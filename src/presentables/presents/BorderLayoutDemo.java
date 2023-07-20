@@ -9,16 +9,10 @@ import javax.swing.JLabel;
 import presentables.Presentable;
 
 public class BorderLayoutDemo extends Presentable {
-	@Override
-	public void init() {
-		this.dispalyTitle = "java.swing.BorderLayout demo";
-	}
-
-	@Override
-	protected void start() {
-		// TODO Auto-generated method stub
-		
-	}
+	public static String getDisplayTitle() 	{	return "java.swing.BorderLayout demo";	}
+	public static String getDescription() 	{	return "color coded visual of a java BorderLayout";	}
+	@Override public void init() 			{}
+	@Override protected void start() 		{}
 
 	@Override
 	protected void initGUI(JFrame jf) {

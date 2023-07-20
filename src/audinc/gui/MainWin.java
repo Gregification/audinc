@@ -49,6 +49,7 @@ import presentables.presents.*;
 public class MainWin extends JFrame {
 	public static String mainTitle = "Audinc";
 	public static int standardTextSpace = 40;
+	public static Dimension stdDimension = new Dimension(480,270);
 	public static Map<String, Class<? extends Presentable>> Presents = Map.of(
 			"Menu", 		presentables.presents.menu.class,
 			"txt -> voice", presentables.presents.txtToVoice.class,
@@ -63,6 +64,7 @@ public class MainWin extends JFrame {
 		super(title);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400,200);
+        this.setMinimumSize(stdDimension);
         
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -105,7 +107,7 @@ public class MainWin extends JFrame {
 ///////////////////
 //events
 ///////////////////
-	protected void setPresent(String key){
+	public void setPresent(String key){
 		try {
 			setPresent(MainWin.Presents.get(key));
 		}catch(Exception E) {
@@ -116,14 +118,14 @@ public class MainWin extends JFrame {
 			 */
 		}
 	}
-	protected void setPresent(Class<? extends Presentable> cp) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
+	public void setPresent(Class<? extends Presentable> cp) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		if(currPresent != null) currPresent.quit();
 				
 		Presentable p = cp.getDeclaredConstructor().newInstance(); //throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException
 		p.init();
 		p.present(this);		
 		
-		setTitle(mainTitle + " : " + p.dispalyTitle);
+		setTitle(mainTitle + " : " + Presentable.tryForStatic(p.getClass(), "getDisplayTitle"));
 	}
 	
 ///////////////////
@@ -158,9 +160,5 @@ public class MainWin extends JFrame {
 	public void quit() {
 		if(currPresent != null) currPresent.quit();
 		dispose();
-	}
-	
-	public void getJFrame() {
-		
 	}
 }
