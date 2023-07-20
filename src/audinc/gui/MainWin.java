@@ -157,7 +157,7 @@ public class MainWin extends JFrame {
 	
 	public void quit() {
 		if(currPresent != null) currPresent.quit();
-		System.exit(0);
+		dispose();
 	}
 	
 	public void getJFrame() {

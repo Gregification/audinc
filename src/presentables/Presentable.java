@@ -22,9 +22,8 @@ public abstract class Presentable {
 	public void present(MainWin mw) {
 		JFrame jf = mw;
 		
-//		jf.removeAll();
-//		initGUIMenuBar(jf, mw);
 		initGUI(jf);
+//		jf.update(null);
 		
 		start();
 	}
@@ -33,15 +32,6 @@ public abstract class Presentable {
 	
 	protected abstract void start();
 	
-	/*
-	 * all gui that isnt the menu bar
-	 */
 	protected abstract void initGUI(JFrame jf);
 	
-//	/*
-//	 * override for control over the menu bar
-//	 */
-//	protected void initGUIMenuBar(JFrame jf, MainWin mw) {
-//		jf.setJMenuBar(mw.initGUIMenuBar());
-//	}
 }
