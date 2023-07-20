@@ -6,6 +6,7 @@ import java.awt.Color;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 
+import audinc.gui.MainWin;
 import presentables.Presentable;
 
 public class BorderLayoutDemo extends Presentable {
@@ -15,7 +16,9 @@ public class BorderLayoutDemo extends Presentable {
 	@Override protected void start() 		{}
 
 	@Override
-	protected void initGUI(JFrame jf) {
+	protected void initGUI(MainWin mw) {
+		JFrame jf = mw;
+		
 		JLabel lineStartLabel = new JLabel("LINE_START", JLabel.CENTER);
 		 lineStartLabel.setOpaque(true);
 		 lineStartLabel.setBackground(Color.RED);

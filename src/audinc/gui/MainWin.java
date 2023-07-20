@@ -52,7 +52,7 @@ public class MainWin extends JFrame {
 	public static Dimension stdDimension = new Dimension(480,270);
 	public static Map<String, Class<? extends Presentable>> Presents = Map.of(
 			"Menu", 		presentables.presents.menu.class,
-			"txt -> voice", presentables.presents.txtToVoice.class,
+			"txt -> speach: (TTS)", presentables.presents.txtToSpeach.class,
 			"Borderlayout visualization",	presentables.presents.BorderLayoutDemo.class
 		);
 	
@@ -141,7 +141,7 @@ public class MainWin extends JFrame {
 
         JLabel title = new JLabel("<html><body>"
         +"<h1 align='center'><font size=+1><u>Audinc</u></font></h1>"
-        +"<p align='center'><br>v</p>"
+        +"<p align='center'><br>George Boone</p>"
         +"</body></html>",
         SwingConstants.CENTER);
 

@@ -28,12 +28,11 @@ public abstract class Presentable {
 	public abstract void init();
 	
 	public void present(MainWin mw) {
-		JFrame jf = mw;
-		
-		jf.getContentPane().removeAll();
+				
+		mw.getContentPane().removeAll();
 		init();
-		initGUI(jf);
-		jf.validate();
+		initGUI(mw);
+		mw.validate();
 		
 		start();
 	}
@@ -42,7 +41,7 @@ public abstract class Presentable {
 	
 	protected abstract void start();
 	
-	protected abstract void initGUI(JFrame jf);
+	protected abstract void initGUI(MainWin mw);
 	
 	public static String getDescription() {
 		return "no description avaliable";
