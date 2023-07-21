@@ -41,7 +41,13 @@ import java.lang.reflect.InvocationTargetException;
 import javax.imageio.ImageIO;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import presentables.Presentable;
 import presentables.presents.*;
@@ -50,11 +56,12 @@ public class MainWin extends JFrame {
 	public static String mainTitle = "Audinc";
 	public static int standardTextSpace = 40;
 	public static Dimension stdDimension = new Dimension(480,270);
-	public static Map<String, Class<? extends Presentable>> Presents = Map.of(
-			"Menu", 		presentables.presents.menu.class,
-			"txt -> speach: (TTS)", presentables.presents.txtToSpeach.class,
-			"Borderlayout visualization",	presentables.presents.BorderLayoutDemo.class
-		);
+	public static Set<Class<? extends Presentable>> Presents = Stream.of(
+			presentables.presents.menu.class,
+			presentables.presents.txtToSpeach.class,
+			presentables.presents.BorderLayoutDemo.class,
+			presentables.presents.AutoClicker.class
+		).collect(Collectors.collectingAndThen(Collectors.toSet(),Collections::<Class<? extends Presentable>>unmodifiableSet));
 	
 	public Presentable currPresent = null;
 	
@@ -74,7 +81,7 @@ public class MainWin extends JFrame {
         initGUIMenuBar();
 		
 		//starting present
-		setPresent("Menu");
+		setPresent(presentables.presents.menu.class);
 		
 		setVisible(true);
 	}
@@ -84,7 +91,7 @@ public class MainWin extends JFrame {
 		
 		JMenu help 	= new JMenu("Help");
 		JMenuItem mainMenu = new JMenuItem("main menu");
-		mainMenu.addActionListener(event -> setPresent("Menu"));
+		mainMenu.addActionListener(event -> setPresent(presentables.presents.menu.class));
 		JMenuItem about = new JMenuItem("About");
 		about.addActionListener(event -> onAboutClick());
 		JMenuItem quit = new JMenuItem("Quit");
@@ -95,8 +102,8 @@ public class MainWin extends JFrame {
 		help.add(quit);
 		
 		JMenu presents = new JMenu("Presents");
-		for(var k : Presents.keySet()) {
-			JMenuItem jmi = new JMenuItem(k);
+		for(var k : Presents) {
+			JMenuItem jmi = new JMenuItem((String)Presentable.tryForStatic(k, "getDisplayTitle"));
 			jmi.addActionListener(event -> setPresent(k));
 			presents.add(jmi);
 		}
@@ -110,25 +117,15 @@ public class MainWin extends JFrame {
 ///////////////////
 //events
 ///////////////////
-	public void setPresent(String key){
-		try {
-			setPresent(MainWin.Presents.get(key));
-		}catch(Exception E) {
-			throw new java.lang.Error(E);
-			/* expected errors to catch
-			 * - invalid key
-			 * - key is valid but the class dosn't have a matching constructor
-			 */
-		}
-	}
-	public void setPresent(Class<? extends Presentable> cp) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
+	public void setPresent(Class<? extends Presentable> cp) {
 		if(currPresent != null) currPresent.quit();
-				
-		Presentable p = cp.getDeclaredConstructor().newInstance(); //throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException
-		p.init();
-		p.present(this);		
 		
-		setTitle(mainTitle + " : " + Presentable.tryForStatic(p.getClass(), "getDisplayTitle"));
+		try {
+			Presentable p = cp.getDeclaredConstructor().newInstance(); //throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException
+			p.init();
+			p.present(this);		
+			setTitle(mainTitle + " : " + Presentable.tryForStatic(p.getClass(), "getDisplayTitle"));
+		} catch(InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | SecurityException e) { e.printStackTrace(); }
 	}
 	
 ///////////////////
@@ -139,8 +136,7 @@ public class MainWin extends JFrame {
 		try{
 			BufferedImage bgImg = ImageIO.read(new File("res/aboutbg.png"));
             bg = new JLabel(new ImageIcon(bgImg));
-        }catch(IOException e ){
-        }
+        }catch(IOException e ){ e.printStackTrace(); }
 
         JLabel title = new JLabel("<html><body>"
         +"<h1 align='center'><font size=+1><u>Audinc</u></font></h1>"

@@ -72,4 +72,18 @@ public abstract class Presentable {
 		}		
 		return null;
 	}
+	
+	public static ImageIcon getImageIcon(String prefereed) {
+		try {
+			ImageIcon ii = new ImageIcon( ImageIO.read(new File(prefereed)));
+			if(ii != null) return ii;
+		} catch (IOException e) {}
+		
+		try {
+			return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png")));
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 }

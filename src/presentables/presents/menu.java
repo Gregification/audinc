@@ -38,7 +38,7 @@ import audinc.gui.MainWin;
 import audinc.gui.WrapLayout;
 
 public class menu extends Presentable{
-	private JPanel descriptionArea, displayArea;
+	private JPanel descriptionArea, displayArea, screenLeft, screenRight;
 	private JButton d_start_btn;
 	private JLabel d_title, d_description;
 	private JTextField searchBarInput;
@@ -48,7 +48,7 @@ public class menu extends Presentable{
 	
 	@Override public void init() 			{}
 	@Override protected void start() 		{
-		selectApp(MainWin.Presents.keySet().stream().findAny().orElse("Menu"));
+		selectApp(MainWin.Presents.stream().findAny().orElse(presentables.presents.menu.class));
 		loadApps(searchBarInput.getText());
 	}
 	
@@ -67,7 +67,7 @@ public class menu extends Presentable{
 		d_description = new JLabel(); 	d_description	.setBorder(BorderFactory.createTitledBorder(etchedLowered, "Description", TitledBorder.LEFT, TitledBorder.TOP));
 			d_description.setVerticalAlignment(JLabel.TOP);
 		
-		JPanel screenLeft = new JPanel();
+		screenLeft = new JPanel();
 			screenLeft.setLayout(new BorderLayout());
 			searchBarInput = new JTextField();
 				searchBarInput.setBorder(BorderFactory.createTitledBorder(etchedLowered, "Search", TitledBorder.CENTER, TitledBorder.TOP));
@@ -87,7 +87,7 @@ public class menu extends Presentable{
 					DAscrollFrame.setAutoscrolls(true);
 			screenLeft.add(DAscrollFrame);
 				
-		JPanel screenRight = new JPanel();
+		screenRight = new JPanel();
 			screenRight.setLayout(new BorderLayout());
 			screenRight.add(d_start_btn, 	BorderLayout.PAGE_END);
 			descriptionArea = new JPanel();
@@ -108,9 +108,6 @@ public class menu extends Presentable{
 		
 	}
 	
-	protected void selectApp(String presentName) {
-		selectApp(MainWin.Presents.get(presentName));
-	}
 	protected void selectApp(Class<? extends Presentable> clas) {
 		selectedPresent = clas;
 		d_start_btn.setEnabled(true);
@@ -122,15 +119,10 @@ public class menu extends Presentable{
 //button events
 ///////////////////
 	protected void onStartClick(MainWin mw) {
-		if(selectedPresent != null) {
-			try {
-				mw.setPresent(selectedPresent);
-			} catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException
-					| SecurityException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}else d_start_btn.setEnabled(false);
+		if(selectedPresent != null) 
+			mw.setPresent(selectedPresent);
+		else 
+			d_start_btn.setEnabled(false);
 	}
 
 ///////////////////
@@ -141,7 +133,7 @@ public class menu extends Presentable{
 		
 		displayArea.removeAll();
 		
-		thread_loadApps = new Thread(() -> loadApps_threadFunciton(new String(pattern), MainWin.Presents.values()));
+		thread_loadApps = new Thread(() -> loadApps_threadFunciton(new String(pattern), MainWin.Presents));
 		thread_loadApps.start();
 	}
 	private void loadApps_threadFunciton(String pattern, Collection<Class<? extends Presentable>> presents) {
@@ -152,7 +144,7 @@ public class menu extends Presentable{
 			if(tTitle.toLowerCase().contains(pattern.toLowerCase())) {
 				displayArea.add(genDisplayCard(p));
 				if(tick <= 0) {
-					displayArea.validate();
+					screenLeft.validate();
 					tick = tickperiod;
 				}else tick--;
 				
@@ -164,7 +156,7 @@ public class menu extends Presentable{
 		try {
 			Thread.sleep(2000);
 		} catch (InterruptedException e) {}
-		displayArea.validate();
+		screenLeft.validate();
 	}
 	private JComponent genDisplayCard(Class<? extends Presentable> present) {
 		JButton jp = new JButton();
@@ -178,6 +170,7 @@ public class menu extends Presentable{
 		
 		//set title
 		JLabel cTitle = new JLabel((String)Presentable.tryForStatic(present, "getDisplayTitle"));
+		cTitle.setHorizontalAlignment(SwingConstants.CENTER);
 		jp.add(cTitle, BorderLayout.PAGE_END);
 		
 		return jp;
@@ -187,7 +180,7 @@ public class menu extends Presentable{
 //Presentable statics
 ///////////////////
 	public static String getDisplayTitle() 	{ 	return "MENU";	}
-	public static ImageIcon getImgIcon() 	{	try { return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png"))); } catch (IOException e) {	e.printStackTrace(); return null; }}
+	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/presentIcons/menu.png"); }
 	public static String getDescription() 	{	return "<html><body>"
 			+ "the menu lists all avaliable presents along side their icons." 
 			+ "<br>Clicking on one will show its description & details"

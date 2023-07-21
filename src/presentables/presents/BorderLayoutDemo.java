@@ -3,6 +3,7 @@ package presentables.presents;
 import java.awt.BorderLayout;
 import java.awt.Color;
 
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 
@@ -10,8 +11,9 @@ import audinc.gui.MainWin;
 import presentables.Presentable;
 
 public class BorderLayoutDemo extends Presentable {
-	public static String getDisplayTitle() 	{	return "java.swing.BorderLayout demo";	}
+	public static String getDisplayTitle() 	{	return "BorderLayout demo";	}
 	public static String getDescription() 	{	return "color coded visual of a java BorderLayout";	}
+	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/presentIcons/BorderLayout.png"); }
 	@Override public void init() 			{}
 	@Override protected void start() 		{}
 

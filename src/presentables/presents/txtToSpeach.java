@@ -21,7 +21,7 @@ public class txtToSpeach extends Presentable {
 //Presentable statics
 ///////////////////
 	public static String getDisplayTitle() 	{ 	return "txt -> speach";	}
-//	public static ImageIcon getImgIcon() 	{	try { return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png"))); } catch (IOException e) {	e.printStackTrace(); return null; }}
+	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/presentIcons/tts.png"); }
 	public static String getDescription() 	{	return "<html><body>"
 	+ "Text to vioce generation with the Kalid project." 
 	+ "<br>work in progress..."
