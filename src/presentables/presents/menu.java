@@ -140,7 +140,6 @@ public class menu extends Presentable{
 		thread_loadApps.start();
 	}
 	private void loadApps_threadFunciton(String pattern, Collection<Class<? extends Presentable>> presents) {
-//		System.out.println("pattern: " + pattern);
 		int tick = 0, tickperiod = 5; 
 		for(Class<? extends Presentable> p : presents) {
 			String tTitle = Presentable.tryForStatic(p, "getDisplayTitle").toString(); 
@@ -150,11 +149,7 @@ public class menu extends Presentable{
 					screenLeft.validate();
 					tick = tickperiod;
 				}else tick--;
-				
-//				System.out.print("\tyes");
 			}
-//			else System.out.print("\tno ");System.out.println("\t" + tTitle);
-			
 		}
 		
 		try {

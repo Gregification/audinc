@@ -73,7 +73,6 @@ public class MainWin extends JFrame {
         
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
-//        pack();
         setResizable(true);
         
         initGUIMenuBar();
@@ -131,11 +130,7 @@ public class MainWin extends JFrame {
 //button events
 ///////////////////
 	protected void onAboutClick() {
-		JLabel bg = null;
-		try{
-			BufferedImage bgImg = ImageIO.read(new File("res/aboutbg.png"));
-            bg = new JLabel(new ImageIcon(bgImg));
-        }catch(IOException e ){ e.printStackTrace(); }
+		JLabel bg = new JLabel(MainWin.getImageIcon("res/aboutbg.png"));
 
         JLabel title = new JLabel("<html><body>"
         +"<h1 align='center'><font size=+1><u>Audinc</u></font></h1>"

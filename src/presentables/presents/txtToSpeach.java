@@ -30,6 +30,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -142,11 +143,9 @@ public class txtToSpeach extends Presentable {
 			//build tab \ screen left
 			JPanel buildTS_l = new JPanel(); buildTS_l	.setLayout(new BorderLayout());
 				buildTS_l.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*1/5), (int)MainWin.stdDimension.getHeight()));
-			
 			//build tab \ screen right
 			JPanel buildTS_r = new JPanel();	buildTS_r	.setLayout(new BorderLayout());
 				buildTS_r.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*1/5), (int)MainWin.stdDimension.getHeight()));
-			
 			//combine build tabs
 			buildTS = new JSplitPane(SwingConstants.VERTICAL, buildTS_l, buildTS_r);
 			buildT.add(buildTS, BorderLayout.CENTER);
@@ -155,16 +154,22 @@ public class txtToSpeach extends Presentable {
 		
 		//import tab
 		importT = new JPanel(); importT	.setLayout(new BorderLayout());
+			//import tool bar
 			JToolBar importT_toolBar = new JToolBar("Controls");
+				JButton importT_toolBar_infobtn = new JButton(MainWin.getImageIcon("res/info.png", MainWin.stdtabIconSize));
+					importT_toolBar_infobtn.addActionListener(event -> onImportInfoClick(mw));
+					importT_toolBar_infobtn.setBorder(emptyBorder);
+					importT_toolBar_infobtn.setToolTipText("More info");
 				JButton importT_toolBar_importbtn = new JButton(MainWin.getImageIcon("res/file.png", MainWin.stdtabIconSize));
 					importT_toolBar_importbtn.addActionListener(event -> onImportModelSourceClick(mw));
 					importT_toolBar_importbtn.setBorder(emptyBorder);
 					importT_toolBar_importbtn.setToolTipText("Import files or folders(search depth:" + importSearchDepth + ")");
-				importT_toolBar.add(importT_toolBar_importbtn);
 				JButton importT_toolBar_rowTools_deleteBtn = new JButton(MainWin.getImageIcon("res/trashCan.png", MainWin.stdtabIconSize));
 					importT_toolBar_rowTools_deleteBtn.addActionListener(event -> onImportTableDeleteClick());
 					importT_toolBar_rowTools_deleteBtn.setBorder(emptyBorder);
 					importT_toolBar_rowTools_deleteBtn.setToolTipText("Delete selected rows");
+				importT_toolBar.add(importT_toolBar_infobtn);
+				importT_toolBar.add(importT_toolBar_importbtn);
 				importT_toolBar.add(Box.createHorizontalGlue());
 				importT_toolBar.add(importT_toolBar_rowTools_deleteBtn);
 				
@@ -223,6 +228,30 @@ public class txtToSpeach extends Presentable {
 	}
 	protected void onImportTableRowSelect(boolean selecting) {
 		
+	}
+	protected void onImportInfoClick(MainWin mw) {
+		JLabel title = new JLabel("<html><body>"
+	        +"<h1 align='center'><font size=+1><u>Audinc</u></font></h1>"
+	        +"</body></html>",
+	        SwingConstants.CENTER),
+		body1 = new JLabel("<html>"
+			+"<h2><u>tab > import</u></h2><ul>"
+			+"<li><u>Use:</u> include and un-include file locations of voice models.<br>"
+			+ "these are file locations only.</li>"
+        	+"</ul></html>",
+        	SwingConstants.CENTER),
+		faq = new JLabel("<html>"
+			+"<h2><u>FAQ</u></h2><ul>"
+            +"<li><u>Why is the info button hiding on the import tab?</u>"
+            	+"<br>because its easier to have it there</li>"
+            +"</ul></html>",
+            SwingConstants.CENTER)
+		;
+
+        JOptionPane.showMessageDialog(mw,
+            new Object[]{title, body1, faq},
+            "Audinc:TTS info",
+            JOptionPane.PLAIN_MESSAGE);
 	}
 	
 	protected void onImportModelSourceClick(MainWin mw) {
