@@ -88,16 +88,19 @@ public class MainWin extends JFrame {
 		JMenuBar menubar = new JMenuBar();
 		
 		JMenu help 	= new JMenu("Help");
-		JMenuItem mainMenu = new JMenuItem("main menu");
-		mainMenu.addActionListener(event -> setPresent(presentables.presents.menu.class));
-		JMenuItem about = new JMenuItem("About");
-		about.addActionListener(event -> onAboutClick());
-		JMenuItem quit = new JMenuItem("Quit");
-		quit.addActionListener(event -> quit());
+			JMenuItem mainMenu = new JMenuItem("main menu");
+				mainMenu.addActionListener(event -> setPresent(presentables.presents.menu.class));
+			JMenuItem about = new JMenuItem("About");
+				about.addActionListener(event -> onAboutClick());
+			JMenuItem quit = new JMenuItem("Quit");
+				quit.addActionListener(event -> quit());
+			JMenuItem restartPresent = new JMenuItem("restart present");
+				restartPresent.addActionListener(event -> {if(currPresent == null) return; this.currPresent.quit(); this.setPresent(currPresent.getClass());});
 		
 		help.add(mainMenu);
 		help.add(about);
 		help.addSeparator();
+		help.add(restartPresent);
 		help.add(quit);
 		
 		JMenu presents = new JMenu("Presents");
