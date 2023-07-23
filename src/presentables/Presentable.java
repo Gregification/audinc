@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 //import java.util.zip.ZipOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -46,6 +47,7 @@ public abstract class Presentable {
 	
 	public static String getDescription() 	{ return "no description avaliable";	}
 	public static String getDisplayTitle() 	{ return "default display title";		}
+	public static Path getRoot(Class<? extends Presentable> clas)		{ return MainWin.settingsDir.resolve(clas.getName()); };
 	public static ImageIcon getImgIcon() {
 		try { return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png"))); } 
 		catch (IOException e) { e.printStackTrace(); return null; }
@@ -111,15 +113,17 @@ public abstract class Presentable {
 				lambda.doTheThing(br);
 			} catch (IOException e) { e.printStackTrace(); }
 	}
-	protected void lazyPathRecursion(Path path, int maxDepth, custom_lasyDirRecursion lambda) {
-		if(maxDepth < 0) return;
+	protected int lazyPathRecursion(Path path, int maxDepth, custom_lasyDirRecursion lambda) {
+		if(maxDepth < 0) return 0;
 		if(Files.exists(path)) {
 			if(Files.isDirectory(path)) {
-					try { Files.list(path).forEach(p -> lazyPathRecursion(p, maxDepth - 1, lambda)); } catch (IOException e) { e.printStackTrace(); };
-			}else {
+					try { Files.list(path).forEach(p -> this.lazyPathRecursion(p, maxDepth - 1, lambda)); } catch (IOException e) { e.printStackTrace(); };
+			}else if(Files.isRegularFile(path)){
 				lambda.doTheThing(path);
+				return 1;
 			}
 		}
+		return 0;
 	}
 	protected <T> boolean nullCoalescing(T o, custom_doTheThingIfNotNull<T> lamda){
 		if(o == null) return false;

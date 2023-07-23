@@ -47,7 +47,8 @@ public class MainWin extends JFrame {
 	
 	//standard values
 	public static int stdTextSpace = 40,
-			stdStructSpace = 15;
+			stdStructSpace = 15,
+			stdPreferredNumThreads = 3;
 	public static float stdDimensionScale = 1.75f;
 	public static Dimension stdDimension = new Dimension((int)(480*stdDimensionScale),(int)(270*stdDimensionScale)),
 			stdtabIconSize = new Dimension((int)(11*stdDimensionScale),(int)(11*stdDimensionScale));
