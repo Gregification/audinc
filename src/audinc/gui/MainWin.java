@@ -2,60 +2,42 @@ package audinc.gui;
 
 import javax.swing.JFrame;           // for main window
 import javax.swing.JOptionPane;      // for standard dialogs
-import javax.swing.JPanel;
-import javax.swing.JSpinner;
-import javax.swing.JTextField;
 import javax.swing.JMenuBar;         // row of menu selections
 import javax.swing.JMenu;            // menu selection that offers another menu
 import javax.swing.JMenuItem;        // menu selection that does something
-import javax.swing.JToolBar;         // row of buttons under the menu
-import javax.swing.SpinnerNumberModel;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JFileChooser;
-import javax.swing.JToggleButton;    // 2-state button
-import javax.swing.BorderFactory;    // manufacturers Border objects around buttons
-import javax.swing.Box;              // to create toolbar spacer
-import javax.swing.UIManager;        // to access default icons
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.JLabel;           // text or image holder
 import javax.swing.ImageIcon;        // holds a custom icon
 import javax.swing.SwingConstants;   // useful values for Swing method calls
-import javax.swing.SpinnerModel;
 
-import java.net.URL;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.imageio.ImageIO;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import presentables.Presentable;
-import presentables.presents.*;
 
 public class MainWin extends JFrame {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	public static String mainTitle = "Audinc";
-	public static int standardTextSpace = 40;
-	public static Dimension stdDimension = new Dimension(480,270);
+	public static Path settingsDir = Paths.get("G:\\junk\\audincSettings"); //test with: "G:\\junk\\audincSettings" ; build with ".\\audincSettings"
+	
 	public static Set<Class<? extends Presentable>> Presents = Stream.of(
 			presentables.presents.menu.class,
 			presentables.presents.txtToSpeach.class,
@@ -63,12 +45,27 @@ public class MainWin extends JFrame {
 			presentables.presents.AutoClicker.class
 		).collect(Collectors.collectingAndThen(Collectors.toSet(),Collections::<Class<? extends Presentable>>unmodifiableSet));
 	
+	//standard values
+	public static int stdTextSpace = 40,
+			stdStructSpace = 15;
+	public static float stdDimensionScale = 1.75f;
+	public static Dimension stdDimension = new Dimension((int)(480*stdDimensionScale),(int)(270*stdDimensionScale)),
+			stdtabIconSize = new Dimension((int)(11*stdDimensionScale),(int)(11*stdDimensionScale));
+	
 	public Presentable currPresent = null;
 	
 //	private File settingsFile = new File("settings.audinc");
 	
 	public MainWin(String title) {
 		super(title);
+		
+		//create save
+		settingsDir = settingsDir.toAbsolutePath();
+		if(!Files.exists(settingsDir))
+			try { Files.createDirectory(settingsDir); } catch (IOException e) { e.printStackTrace(); }
+		
+		
+		//GUI
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400,200);
         this.setMinimumSize(stdDimension);
@@ -99,6 +96,7 @@ public class MainWin extends JFrame {
 		
 		help.add(mainMenu);
 		help.add(about);
+		help.addSeparator();
 		help.add(quit);
 		
 		JMenu presents = new JMenu("Presents");
@@ -113,18 +111,15 @@ public class MainWin extends JFrame {
 		
 		setJMenuBar(menubar);
 	}
-	
-///////////////////
-//events
-///////////////////
+
 	public void setPresent(Class<? extends Presentable> cp) {
 		if(currPresent != null) currPresent.quit();
 		
 		try {
 			Presentable p = cp.getDeclaredConstructor().newInstance(); //throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException
-			p.init();
 			p.present(this);		
 			setTitle(mainTitle + " : " + Presentable.tryForStatic(p.getClass(), "getDisplayTitle"));
+			currPresent = p; 
 		} catch(InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | SecurityException e) { e.printStackTrace(); }
 	}
 	
@@ -157,7 +152,32 @@ public class MainWin extends JFrame {
 	}
 	
 	public void quit() {
-		if(currPresent != null) currPresent.quit();
+		if(currPresent != null) {
+			currPresent.quit();
+		}
 		dispose();
 	}
+
+///////////////////
+//GUI utils
+///////////////////
+	public static ImageIcon getImageIcon(String src) {
+		try {
+			return new ImageIcon( ImageIO.read(new File(src)));
+		} catch (IOException e) {
+			return null;
+		}
+	}
+	public static ImageIcon getImageIcon(String src, Dimension size) { return getImageIcon(src, size, Image.SCALE_FAST); }
+	public static ImageIcon getImageIcon(String src, Dimension size, int scaleMethod) {
+		try {
+			Image img = ImageIO.read(new File(src));
+			Image imgScaled = img.getScaledInstance(size.width, size.height, scaleMethod);
+			return new ImageIcon(imgScaled);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
 }

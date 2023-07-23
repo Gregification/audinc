@@ -11,15 +11,12 @@ import audinc.gui.MainWin;
 import presentables.Presentable;
 
 public class BorderLayoutDemo extends Presentable {
-	public static String getDisplayTitle() 	{	return "BorderLayout demo";	}
-	public static String getDescription() 	{	return "color coded visual of a java BorderLayout";	}
-	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/presentIcons/BorderLayout.png"); }
-	@Override public void init() 			{}
+	@Override protected void init(MainWin mw) { initGUI(mw); }
 	@Override protected void start() 		{}
 
-	@Override
-	protected void initGUI(MainWin mw) {
+	@Override protected void initGUI(MainWin mw) {
 		JFrame jf = mw;
+		jf.setLayout(new BorderLayout());
 		
 		JLabel lineStartLabel = new JLabel("LINE_START", JLabel.CENTER);
 		 lineStartLabel.setOpaque(true);
@@ -46,4 +43,11 @@ public class BorderLayoutDemo extends Presentable {
 		 pageStartLabel.setBackground(Color.GREEN);
 		 jf.add(pageStartLabel, BorderLayout.PAGE_START);
 	}
+	
+///////////////////
+//Presentable statics
+///////////////////
+	public static String getDisplayTitle() 	{	return "BorderLayout demo";	}
+	public static String getDescription() 	{	return "color coded visual of a java BorderLayout";	}
+	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/presentIcons/BorderLayout.png"); }
 }

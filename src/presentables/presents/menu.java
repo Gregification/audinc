@@ -6,16 +6,8 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
 
-import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -26,13 +18,12 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextField;
+import javax.swing.JToolBar;
 import javax.swing.ScrollPaneLayout;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 
 import audinc.gui.MainWin;
 import audinc.gui.WrapLayout;
@@ -44,15 +35,16 @@ public class menu extends Presentable{
 	private JTextField searchBarInput;
 	private Class<? extends Presentable> selectedPresent = null;
 	private Thread thread_loadApps = null;
+	private MainWin mw;
 	
-	
-	@Override public void init() 			{}
 	@Override protected void start() 		{
 		selectApp(MainWin.Presents.stream().findAny().orElse(presentables.presents.menu.class));
 		loadApps(searchBarInput.getText());
 	}
 	
+	@Override protected void init(MainWin mw) { initGUI(mw); }
 	@Override protected void initGUI(MainWin mw) {
+		this.mw = mw;
 		JFrame jf = mw;//just for readability
 		
 		jf.setLayout(new BorderLayout());
@@ -105,10 +97,21 @@ public class menu extends Presentable{
 		
 		JSplitPane sl = new JSplitPane(SwingConstants.VERTICAL, screenLeft, screenRight);
 		jf.add(sl);
+	}
+	protected JToolBar setupGUIToolBar(MainWin mw) {
+		JToolBar toolbar = new JToolBar();
 		
+		
+		
+		return toolbar;
 	}
 	
+	
 	protected void selectApp(Class<? extends Presentable> clas) {
+		if(selectedPresent != null && selectedPresent == clas) {
+			onStartClick(mw);
+			return;
+		}
 		selectedPresent = clas;
 		d_start_btn.setEnabled(true);
 		d_description.setText((String)Presentable.tryForStatic(clas, "getDescription"));
@@ -138,7 +141,7 @@ public class menu extends Presentable{
 	}
 	private void loadApps_threadFunciton(String pattern, Collection<Class<? extends Presentable>> presents) {
 //		System.out.println("pattern: " + pattern);
-		int tick = 0, tickperiod = 3; 
+		int tick = 0, tickperiod = 5; 
 		for(Class<? extends Presentable> p : presents) {
 			String tTitle = Presentable.tryForStatic(p, "getDisplayTitle").toString(); 
 			if(tTitle.toLowerCase().contains(pattern.toLowerCase())) {
@@ -153,9 +156,11 @@ public class menu extends Presentable{
 //			else System.out.print("\tno ");System.out.println("\t" + tTitle);
 			
 		}
+		
 		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {}
+			Thread.sleep(300);
+		} catch (InterruptedException e) { e.printStackTrace(); }
+		
 		screenLeft.validate();
 	}
 	private JComponent genDisplayCard(Class<? extends Presentable> present) {
@@ -179,7 +184,7 @@ public class menu extends Presentable{
 ///////////////////
 //Presentable statics
 ///////////////////
-	public static String getDisplayTitle() 	{ 	return "MENU";	}
+	public static String getDisplayTitle() 	{ 	return "Menu";	}
 	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/presentIcons/menu.png"); }
 	public static String getDescription() 	{	return "<html><body>"
 			+ "the menu lists all avaliable presents along side their icons." 

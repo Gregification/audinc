@@ -7,5 +7,55 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/cmu_time_awb.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/cmu_us_kal.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/cmudict04.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/cmulex.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/cmutimelex.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/en_us.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/freetts.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/freetts-jsapi10.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/jsapi.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/mbrola.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

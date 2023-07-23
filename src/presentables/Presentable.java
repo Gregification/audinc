@@ -1,18 +1,28 @@
 package presentables;
 
-import java.awt.BorderLayout;
-import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+//import java.io.FileNotFoundException;
+//import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+//import java.nio.file.Path;
+//import java.nio.file.Paths;
+//import java.util.Collections;
+//import java.util.zip.ZipEntry;
+//import java.util.zip.ZipException;
+//import java.util.zip.ZipFile;
+//import java.util.zip.ZipInputStream;
+//import java.util.zip.ZipOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import javax.imageio.ImageIO;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.UIManager;
 
 import audinc.gui.MainWin;
 
@@ -21,44 +31,25 @@ import audinc.gui.MainWin;
  * {@value displayTitle parameter should be set to something unique.}
  */
 
-public abstract class Presentable {	
-	/*
-	 * set the display title here and what ever else need to run before the GUI
-	 */
-	public abstract void init();
-	
+public abstract class Presentable {
+	public void quit()	{};
 	public void present(MainWin mw) {
-				
 		mw.getContentPane().removeAll();
-		init();
-		initGUI(mw);
-		mw.validate();
-		
+		init(mw);
 		start();
+		mw.validate();
 	}
 	
-	public void quit(){};
-	
+	protected abstract void init(MainWin mw);
 	protected abstract void start();
-	
 	protected abstract void initGUI(MainWin mw);
 	
-	public static String getDescription() {
-		return "no description avaliable";
-	}
-	public static String getDisplayTitle() {
-		return "default display title";
-	}
-	
+	public static String getDescription() 	{ return "no description avaliable";	}
+	public static String getDisplayTitle() 	{ return "default display title";		}
 	public static ImageIcon getImgIcon() {
-		try {
-			return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png")));
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
+		try { return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png"))); } 
+		catch (IOException e) { e.printStackTrace(); return null; }
 	}
-	
 	/*
 	 * attempts to get the relevant static method from the given Presentable child. ex: getDescription
 	 * - made as a work-around for overriding static methods
@@ -72,7 +63,6 @@ public abstract class Presentable {
 		}		
 		return null;
 	}
-	
 	public static ImageIcon getImageIcon(String prefereed) {
 		try {
 			ImageIcon ii = new ImageIcon( ImageIO.read(new File(prefereed)));
@@ -85,5 +75,55 @@ public abstract class Presentable {
 			e.printStackTrace();
 			return null;
 		}
+	}
+		
+	/*
+	 * protected static ZipOutputStream getZOStream(Class<? extends Presentable>
+	 * clas) { ZipOutputStream out = null; try { out = new ZipOutputStream( new
+	 * FileOutputStream( new File(settingsDir.getAbsolutePath() + "\\" +
+	 * clas.toString()))); } catch (FileNotFoundException e) { e.printStackTrace();
+	 * }
+	 * 
+	 * return out; }
+	 * 
+	 * protected static ZipEntry getZEntry(ZipFile zos, Class<? extends Presentable>
+	 * cp, String name) { name = cp.getName() + (name == null ? "":("\\" + name));
+	 * 
+	 * for (ZipEntry e : Collections.list(zos.entries())) if
+	 * (e.getName().endsWith(name)) return e;
+	 * 
+	 * ZipEntry r = new ZipEntry(name);
+	 * 
+	 * return r; }
+	 */
+	
+///////////////////
+//i don't know any better
+///////////////////
+	protected void writeToPath(Path path, custom_bufferedWriter lambda) {
+		try(BufferedWriter br = Files.newBufferedWriter(path)){
+			lambda.doTheThing(br);
+		}catch (IOException e) { e.printStackTrace(); }
+	}
+	protected void readFromPath(Path path, custom_bufferedReader lambda) {
+		if(Files.exists(path))
+			try(BufferedReader br = Files.newBufferedReader(path)){
+				lambda.doTheThing(br);
+			} catch (IOException e) { e.printStackTrace(); }
+	}
+	protected void lazyPathRecursion(Path path, int maxDepth, custom_lasyDirRecursion lambda) {
+		if(maxDepth < 0) return;
+		if(Files.exists(path)) {
+			if(Files.isDirectory(path)) {
+					try { Files.list(path).forEach(p -> lazyPathRecursion(p, maxDepth - 1, lambda)); } catch (IOException e) { e.printStackTrace(); };
+			}else {
+				lambda.doTheThing(path);
+			}
+		}
+	}
+	protected <T> boolean nullCoalescing(T o, custom_doTheThingIfNotNull<T> lamda){
+		if(o == null) return false;
+		lamda.doTheThing(o);
+		return true;
 	}
 }
