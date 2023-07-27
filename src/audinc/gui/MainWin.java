@@ -36,7 +36,7 @@ public class MainWin extends JFrame {
 	 */
 	private static final long serialVersionUID = 1L;
 	public static String mainTitle = "Audinc";
-	public static Path settingsDir = Paths.get("G:\\junk\\audincSettings"); //test with: "G:\\junk\\audincSettings" ; build with ".\\audincSettings"
+	public static Path settingsDir = Paths.get(".\\audincSettings"); // build with ".\\audincSettings"
 	
 	public static Set<Class<? extends Presentable>> Presents = Stream.of(
 			presentables.presents.menu.class,
