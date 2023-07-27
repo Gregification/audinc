@@ -2,11 +2,9 @@ package presentables.presents;
 
 import presentables.Presentable;
 
-import com.sun.speech.freetts.Voice;
-import com.sun.speech.freetts.VoiceManager;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -15,19 +13,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -43,6 +41,8 @@ import javax.swing.RowSorter;
 import javax.swing.SortOrder;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
@@ -52,22 +52,28 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
+import com.sun.speech.freetts.Voice;
+import com.sun.speech.freetts.VoiceManager;
+
 import audinc.gui.MainWin;
 import audinc.gui.WrapLayout;
 
-/* JSAPI documentation: https://docs.oracle.com/cd/E17802_01/products/products/java-media/speech/forDevelopers/jsapi-doc/index.html
- * FreeTTS: https://freetts.sourceforge.io/#freetts_api
+/* JSAPI documentation	: https://docs.oracle.com/cd/E17802_01/products/products/java-media/speech/forDevelopers/jsapi-doc/index.html
+ * FreeTTS				: https://freetts.sourceforge.io/#freetts_api
+ * MBROLA source		: https://web.archive.org/web/20190714185926/http://tcts.fpms.ac.be/synthesis/mbrola.html
  */
 
 public class txtToSpeach extends Presentable {
 	//GUI
 	private JSplitPane runTS, buildTS;
 	private JTextArea runTS_rP_txtEditor_input;
+	private JComboBox<Path> runTS_lP_voiceCB;
+	private DefaultComboBoxModel<Path> runTS_lP_voiceCB_model; 
 	private JLabel noticeDisplay;
 	private JTable importT_srcsTable;
 	private JPanel importT;
 	private DefaultTableModel importT_srcsTable_model;
-	private JButton importT_toolBar_rowTools_deleteBtn;
+	private JButton importT_toolBar_rowTools_deleteBtn, importT_toolBar_rowTools_savebtn;
 	private ListSelectionModel importT_srcsTable_selectionModel;
 	
 	//main variables
@@ -79,12 +85,12 @@ public class txtToSpeach extends Presentable {
 		);
 	private int importSearchDepth = 5;
 	
-	@Override protected void init(MainWin mw) { initGUI(mw); }
+	@Override protected void init(MainWin mw) { initGUI(mw); try { load(); } catch (IOException e) { e.printStackTrace(); }}
 	@Override public void quit() 				{
 		try { save(); } catch (IOException e) { e.printStackTrace(); }
 	}
 	@Override protected void start() 			{
-		try { load(); } catch (IOException e) { e.printStackTrace(); }
+		onRunTabOpen();
 	}
 	@Override protected void initGUI(MainWin mw){
 		mw.setLayout(new BorderLayout());
@@ -96,7 +102,8 @@ public class txtToSpeach extends Presentable {
 		mw.add(noticeDisplay, BorderLayout.PAGE_END);
 		
 		JTabbedPane mainTp = new JTabbedPane();
-		Border emptyBorder = BorderFactory.createEmptyBorder();
+		Border emptyBorder = BorderFactory.createEmptyBorder(),
+			etchedLoweredBorder = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
 		
 		//run tab
 		JPanel runT = new JPanel(); runT	.setLayout(new BorderLayout());
@@ -104,9 +111,16 @@ public class txtToSpeach extends Presentable {
 			JPanel runTS_l = new JPanel(); runTS_l	.setLayout(new BorderLayout());
 				JPanel runTS_lP_runSettings = new JPanel(); runTS_lP_runSettings.setLayout(new WrapLayout());
 					//run tab \ screen left \ settings UI
-				JButton runTS_lP_runSettings_startBtn = new JButton("START");
-						runTS_lP_runSettings_startBtn.addActionListener(event -> onRunPanelStartClick());
-				runTS_lP_runSettings.add(runTS_lP_runSettings_startBtn);
+					JButton runTS_lP_runSettings_startBtn = new JButton("START");
+						runTS_lP_runSettings_startBtn.addActionListener(event -> onRunTabStartClick());
+						runTS_lP_runSettings_startBtn.setAlignmentY(Component.BOTTOM_ALIGNMENT);
+						runTS_lP_runSettings_startBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+					runTS_lP_voiceCB = new JComboBox<Path>();
+						runTS_lP_voiceCB_model = new DefaultComboBoxModel<Path>();
+						runTS_lP_voiceCB.setModel(runTS_lP_voiceCB_model);
+						runTS_lP_voiceCB.setAlignmentX(Component.LEFT_ALIGNMENT);
+						runTS_lP_voiceCB.setEditable(false);
+						runTS_lP_voiceCB.setBorder(BorderFactory.createTitledBorder(etchedLoweredBorder, "Voice", TitledBorder.LEFT, TitledBorder.LEFT));
 				JScrollPane runTS_lP_txtEditor_ScrollFrame = new JScrollPane(runTS_lP_runSettings,	
 						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -114,6 +128,8 @@ public class txtToSpeach extends Presentable {
 					runTS_lP_txtEditor_ScrollFrame.setPreferredSize(new Dimension((int)(MainWin.stdDimension.getWidth()*2/3), (int)MainWin.stdDimension.getHeight()));
 					runTS_lP_txtEditor_ScrollFrame.setAutoscrolls(true);
 					
+					runTS_lP_runSettings.add(runTS_lP_voiceCB);
+					runTS_lP_runSettings.add(runTS_lP_runSettings_startBtn);
 			runTS_l.add(runTS_lP_txtEditor_ScrollFrame, BorderLayout.CENTER);
 			
 			
@@ -143,9 +159,11 @@ public class txtToSpeach extends Presentable {
 			//build tab \ screen left
 			JPanel buildTS_l = new JPanel(); buildTS_l	.setLayout(new BorderLayout());
 				buildTS_l.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*1/5), (int)MainWin.stdDimension.getHeight()));
+			
 			//build tab \ screen right
 			JPanel buildTS_r = new JPanel();	buildTS_r	.setLayout(new BorderLayout());
 				buildTS_r.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*1/5), (int)MainWin.stdDimension.getHeight()));
+			
 			//combine build tabs
 			buildTS = new JSplitPane(SwingConstants.VERTICAL, buildTS_l, buildTS_r);
 			buildT.add(buildTS, BorderLayout.CENTER);
@@ -164,12 +182,25 @@ public class txtToSpeach extends Presentable {
 					importT_toolBar_importbtn.addActionListener(event -> onImportModelSourceClick(mw));
 					importT_toolBar_importbtn.setBorder(emptyBorder);
 					importT_toolBar_importbtn.setToolTipText("Import files or folders(search depth:" + importSearchDepth + ")");
-				JButton importT_toolBar_rowTools_deleteBtn = new JButton(MainWin.getImageIcon("res/trashCan.png", MainWin.stdtabIconSize));
+				importT_toolBar_rowTools_deleteBtn = new JButton(MainWin.getImageIcon("res/trashCan.png", MainWin.stdtabIconSize));
 					importT_toolBar_rowTools_deleteBtn.addActionListener(event -> onImportTableDeleteClick());
 					importT_toolBar_rowTools_deleteBtn.setBorder(emptyBorder);
 					importT_toolBar_rowTools_deleteBtn.setToolTipText("Delete selected rows");
+					importT_toolBar_rowTools_deleteBtn.setEnabled(false);
+				importT_toolBar_rowTools_savebtn = new JButton(MainWin.getImageIcon("res/save.png", MainWin.stdtabIconSize));
+					importT_toolBar_rowTools_savebtn.addActionListener(event -> onImportTableSaveClick());
+					importT_toolBar_rowTools_savebtn.setBorder(emptyBorder);
+					importT_toolBar_rowTools_savebtn.setToolTipText("Save path changes");
+					importT_toolBar_rowTools_savebtn.setEnabled(false);
+				JButton importT_toolBar_refreshbtn = new JButton(MainWin.getImageIcon("res/refresh.png", MainWin.stdtabIconSize));
+					importT_toolBar_refreshbtn.addActionListener(event -> onImportTableRefreshClick());
+					importT_toolBar_refreshbtn.setBorder(emptyBorder);
+					importT_toolBar_refreshbtn.setToolTipText("ignore changes & reload paths from the last save");
+					
 				importT_toolBar.add(importT_toolBar_infobtn);
-				importT_toolBar.add(importT_toolBar_importbtn);
+				importT_toolBar.add(importT_toolBar_importbtn);	
+				importT_toolBar.add(importT_toolBar_rowTools_savebtn);
+				importT_toolBar.add(importT_toolBar_refreshbtn);
 				importT_toolBar.add(Box.createHorizontalGlue());
 				importT_toolBar.add(importT_toolBar_rowTools_deleteBtn);
 				
@@ -204,8 +235,11 @@ public class txtToSpeach extends Presentable {
 		//tab(nocturnal crab) activities
 		mainTp.addChangeListener(new ChangeListener() {
 			@Override public void stateChanged(ChangeEvent e) {
-				if(mainTp.getSelectedComponent().equals(importT)) {
-					load_speachModelSources(false);
+				var selectedComponent = mainTp.getSelectedComponent(); 
+				if(selectedComponent.equals(importT)) {
+					onImportTabOpen();
+				} else if(selectedComponent.equals(runT)) {
+					onRunTabOpen();
 				}
 			}
 			
@@ -217,17 +251,56 @@ public class txtToSpeach extends Presentable {
 ///////////////////
 // gui events
 ///////////////////
-	protected void onRunPanelStartClick() {
+	protected void onRunTabOpen() {
+		//refresh options
+		runTS_lP_voiceCB_model.removeAllElements();
+		runTS_lP_voiceCB_model.addAll(speachModelSources.stream().toList());
+		runTS_lP_voiceCB_model.setSelectedItem(speachModelSources.stream().findAny().orElse(null));
+	}
+	protected void onRunTabStartClick() {
 		this.setNoticeText("something malicious is brewing...");
+		
+		Voice[] voices;
+		VoiceManager vm = VoiceManager.getInstance();
+		voices = vm.getVoices();
+		
+		for(Voice voice : voices) {
+			System.out.println(voice.getName() + " - " + voice.getDescription());
+		}
+	}
+	
+	protected void onImportTabOpen() {
+		if(!importT_toolBar_rowTools_savebtn.isEnabled())
+			load_speachModelSources(false);
 	}
 	protected void onImportTableDeleteClick() {
-		Path p = Paths.get("" + importT_srcsTable.getValueAt(importT_srcsTable.getSelectedRow(),0));
+		importT_toolBar_rowTools_deleteBtn.setEnabled(false);
+		importT_toolBar_rowTools_savebtn.setEnabled(true);
+		
+		int rowIdx = importT_srcsTable.getSelectedRow();
+		if(rowIdx == -1) {
+			setNoticeText("no row selected.", Color.black);
+			return;
+		}
+		
+		Path p = Paths.get("" + importT_srcsTable.getValueAt(rowIdx,0));
 		setNoticeText("removed model:" + p);
 		speachModelSources.remove(p);
 		importT_srcsTable_model.removeRow(importT_srcsTable.getSelectedRow());
 	}
+	protected void onImportTableSaveClick() {
+		importT_toolBar_rowTools_savebtn.setEnabled(false);
+		save_paths(getRoot(this.getClass()));
+		setNoticeText("paths saved.", Color.black);
+	}
+	protected void onImportTableRefreshClick() {
+		importT_toolBar_rowTools_deleteBtn.setEnabled(false);
+		importT_toolBar_rowTools_savebtn.setEnabled(false);
+		load_speachModelSources(true);
+		setNoticeText("paths refreshed from last save.", Color.black);
+	}
 	protected void onImportTableRowSelect(boolean selecting) {
-		
+		importT_toolBar_rowTools_deleteBtn.setEnabled(true);
 	}
 	protected void onImportInfoClick(MainWin mw) {
 		JLabel title = new JLabel("<html><body>"
@@ -253,24 +326,29 @@ public class txtToSpeach extends Presentable {
             "Audinc:TTS info",
             JOptionPane.PLAIN_MESSAGE);
 	}
-	
 	protected void onImportModelSourceClick(MainWin mw) {
 		Path pPreferred = speachModelSources.stream().findAny().orElse(
 				getRoot(this.getClass()).resolve(saveMap.values().stream().findAny().orElse("")));
+			
+		JFileChooser fc;
 		
-		JFileChooser fc = new JFileChooser(pPreferred.toAbsolutePath().toString());
+		//use the path of the selected file if available
+		if(importT_srcsTable.getSelectedRow() != -1)
+			fc = new JFileChooser(importT_srcsTable.getValueAt(importT_srcsTable.getSelectedRow(),0).toString());
+		else fc = new JFileChooser(pPreferred.toAbsolutePath().toString());
+		
 		FileNameExtensionFilter allowedFiles = new FileNameExtensionFilter("Supported models", speachModelFileExtensions);
 		fc.addChoosableFileFilter(allowedFiles);
 		fc.setFileFilter(allowedFiles);
 		fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-
 		
 		switch(fc.showOpenDialog(mw)) {
 			case JFileChooser.APPROVE_OPTION : 
 				add_speachModelSources(fc.getSelectedFile().toPath());
+				importT_toolBar_rowTools_savebtn.setEnabled(true);
 				break;
 			case JFileChooser.CANCEL_OPTION : 
-				System.out.println("cancled file chooser");
+//				System.out.println("cancled file chooser");
 				break;
 		}
 	}
@@ -287,7 +365,6 @@ public class txtToSpeach extends Presentable {
 //freeTTS
 ///////////////////
 	
-
 ///////////////////
 //save & load. for everything
 ///////////////////
@@ -296,11 +373,16 @@ public class txtToSpeach extends Presentable {
 			Files.createDirectories(root);
 			Path path = root.resolve(saveMap.get("runTS_rP_txtEditor_input"));
 				Files.writeString(path, runTS_rP_txtEditor_input.getText(), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
-			path = root.resolve(saveMap.get("speachModelSources"));
-				writeToPath(path, bw ->{
-						for(var v : speachModelSources) try { bw.write(v.toAbsolutePath().toString()); bw.newLine(); } catch (IOException e) {} 
-					});
+			
+			save_paths(getRoot(this.getClass()));
+			
 		return root;	
+	}
+	protected void save_paths(Path root) {
+		Path path = root.resolve(saveMap.get("speachModelSources"));
+		writeToPath(path, bw ->{
+				for(var v : speachModelSources) try { bw.write(v.toAbsolutePath().toString()); bw.newLine(); } catch (IOException e) {} 
+			});
 	}
 	
 	protected Path load() throws IOException {
@@ -316,7 +398,6 @@ public class txtToSpeach extends Presentable {
 		
 		return root;	
 	}
-	
 	protected boolean load_speachModelSources(boolean force) {
 		Path path = getRoot(this.getClass()).resolve(saveMap.get("speachModelSources"));
 		if(Files.notExists(path)) return false;
@@ -327,6 +408,7 @@ public class txtToSpeach extends Presentable {
 			} catch (IOException e) { e.printStackTrace(); }
 		}
 		speachModelSources.clear();
+		importT_srcsTable_model.setRowCount(0);
 		
 		readFromPath(path, br -> {
 				try { String line;
@@ -380,10 +462,10 @@ public class txtToSpeach extends Presentable {
 ///////////////////
 //static presentables
 ///////////////////
-	public static String getDisplayTitle() 	{ 	return "txt -> speach";	}
-	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/presentIcons/tts.png"); }
+	public static String getDisplayTitle() 	{ 	return "TTS";	}
+	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/presentIcons/tts.png"); }	
 	public static String getDescription() 	{	return "<html><body>"
-		+ "voice synthesis using FreeTTS (1.2.2) and recordings with VestFox and Festival." 
-		+ "<ul><li>MBROLA files not supported.</li></ul>"
+		+ "text to speach<br>voice synthesis using FreeTTS (1.2.2) and recordings with VestFox and Festival." 
+		+ "<ul><li>MBROLA files supported.</li></ul>"
 		+ "</body></html>";	}
 }

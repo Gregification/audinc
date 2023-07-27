@@ -184,5 +184,7 @@ public class menu extends Presentable{
 	public static String getDescription() 	{	return "<html><body>"
 			+ "the menu lists all avaliable presents along side their icons." 
 			+ "<br>Clicking on one will show its description & details"
+			+ "<br>- note: the swing component used to display the presents dosent refresh very well."
+			+ "<br>&emsp;try resizing any of the windows elements to have it correct itself."
 			+ "</body></html>";	}
 }

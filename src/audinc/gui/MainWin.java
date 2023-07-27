@@ -76,7 +76,7 @@ public class MainWin extends JFrame {
         setResizable(true);
         
         initGUIMenuBar();
-		
+        
 		//starting present
 		setPresent(presentables.presents.menu.class);
 		
@@ -102,6 +102,7 @@ public class MainWin extends JFrame {
 		help.add(restartPresent);
 		help.add(quit);
 		
+		//menu bar present options
 		JMenu presents = new JMenu("Presents");
 		for(var k : Presents) {
 			JMenuItem jmi = new JMenuItem((String)Presentable.tryForStatic(k, "getDisplayTitle"));
@@ -134,12 +135,11 @@ public class MainWin extends JFrame {
 
         JLabel title = new JLabel("<html><body>"
         +"<h1 align='center'><font size=+1><u>Audinc</u></font></h1>"
-        +"<p align='center'><br>George Boone</p>"
+        +"<p align='center'><br>joe cat</p>"
         +"</body></html>",
         SwingConstants.CENTER);
 
         JLabel artists = new JLabel("<html>"
-        +"<br/><p>work inspired by Professor George Rice of UT-Arlington</p>"
         +"<br/><p>GDC 3.0 lisence 2023</p>"
         +"</html>",
         SwingConstants.CENTER);

@@ -18,5 +18,5 @@ public class AutoClicker extends Presentable{
 	public static String getDisplayTitle() 	{	return "auto clicker";	}
 	public static String getDescription() 	{	return "<html>automation of repetitive mouse actions"
 			+ "<ul><li>click</li><li>click</li><li>click</li></ul></html>";	}
-	public static ImageIcon getImgIcon() 	{	return getImageIcon(""); }
+	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/mouse.png"); }
 }

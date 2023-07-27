@@ -58,6 +58,7 @@ public abstract class Presentable {
 	 */
 	public static Object tryForStatic(Class<? extends Presentable> clas, String methodName) {
 		try { 
+//			System.out.println("presentable tryforstatic:\t" + methodName + "\n\t" + clas.toString());
 			Method m = clas.getMethod(methodName);
 			return m.invoke(null);
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | InvocationTargetException e) {
