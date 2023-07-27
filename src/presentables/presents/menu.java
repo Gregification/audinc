@@ -4,6 +4,7 @@ import presentables.Presentable;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Desktop;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Collection;
@@ -12,6 +13,7 @@ import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -24,6 +26,8 @@ import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 
 import audinc.gui.MainWin;
 import audinc.gui.WrapLayout;
@@ -31,7 +35,7 @@ import audinc.gui.WrapLayout;
 public class menu extends Presentable{
 	private JPanel descriptionArea, displayArea, screenLeft, screenRight;
 	private JButton d_start_btn;
-	private JLabel d_title, d_description;
+	private JEditorPane d_description, d_title;
 	private JTextField searchBarInput;
 	private Class<? extends Presentable> selectedPresent = null;
 	private Thread thread_loadApps = null;
@@ -54,10 +58,21 @@ public class menu extends Presentable{
 		d_start_btn = new JButton("SELECT"); d_start_btn.setBorder(etchedLowered);
 			d_start_btn.setEnabled(false);
 			d_start_btn.addActionListener(event -> onStartClick(mw));
-		d_title = new JLabel();				d_title		.setBorder(BorderFactory.createTitledBorder(etchedLowered, "Name", TitledBorder.LEFT, TitledBorder.TOP));
-			d_title.setVerticalAlignment(JLabel.TOP);
-		d_description = new JLabel(); 	d_description	.setBorder(BorderFactory.createTitledBorder(etchedLowered, "Description", TitledBorder.LEFT, TitledBorder.TOP));
-			d_description.setVerticalAlignment(JLabel.TOP);
+		d_title = new JEditorPane();			d_title		.setBorder(BorderFactory.createTitledBorder(etchedLowered, "Name", TitledBorder.LEFT, TitledBorder.TOP));
+			d_title.setContentType("text/html");
+			d_title.setEditable(false);
+		d_description = new JEditorPane(); 	d_description	.setBorder(BorderFactory.createTitledBorder(etchedLowered, "Description", TitledBorder.LEFT, TitledBorder.TOP));
+			d_description.setContentType("text/html");
+			d_description.setEditable(false);	
+			d_description.addHyperlinkListener(new HyperlinkListener() {
+				@Override public void hyperlinkUpdate(HyperlinkEvent e) { 
+					if (HyperlinkEvent.EventType.ACTIVATED.equals(e.getEventType())) {
+                        System.out.println(e.getURL());
+                        Desktop desktop = Desktop.getDesktop();
+                        try { desktop.browse(e.getURL().toURI());
+                        } catch (Exception ex) { ex.printStackTrace(); }
+                    }
+				}});
 		
 		screenLeft = new JPanel();
 			screenLeft.setLayout(new BorderLayout());
@@ -66,7 +81,6 @@ public class menu extends Presentable{
 				searchBarInput.addActionListener(new ActionListener() {
 				      public void actionPerformed(ActionEvent e) { loadApps(searchBarInput.getText());}
 				      });
-			screenLeft.add(searchBarInput, BorderLayout.PAGE_END);
 			displayArea = new JPanel(); 		//app display
 	//			displayArea.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*2/5), (int)MainWin.stdDimension.getHeight()));
 				displayArea.setLayout(new WrapLayout());
@@ -77,11 +91,12 @@ public class menu extends Presentable{
 					DAscrollFrame.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*2/5), (int)MainWin.stdDimension.getHeight()));
 					DAscrollFrame.setLayout(new ScrollPaneLayout());
 					DAscrollFrame.setAutoscrolls(true);
-			screenLeft.add(DAscrollFrame);
+					
+		screenLeft.add(searchBarInput, BorderLayout.PAGE_END);
+		screenLeft.add(DAscrollFrame);
 				
 		screenRight = new JPanel();
 			screenRight.setLayout(new BorderLayout());
-			screenRight.add(d_start_btn, 	BorderLayout.PAGE_END);
 			descriptionArea = new JPanel();
 	//			descriptionArea.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()/3), (int)MainWin.stdDimension.getHeight()));
 				descriptionArea.setLayout(new BorderLayout());
@@ -93,19 +108,13 @@ public class menu extends Presentable{
 					DesscrollFrame.setPreferredSize(new Dimension(100, 100));
 					DesscrollFrame.setAutoscrolls(true);
 					DesscrollFrame.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()/3), (int)MainWin.stdDimension.getHeight()));
-			screenRight.add(DesscrollFrame);
+					
+		screenRight.add(d_start_btn, 	BorderLayout.PAGE_END);
+		screenRight.add(DesscrollFrame);
 		
 		JSplitPane sl = new JSplitPane(SwingConstants.VERTICAL, screenLeft, screenRight);
 		jf.add(sl);
-	}
-	protected JToolBar setupGUIToolBar(MainWin mw) {
-		JToolBar toolbar = new JToolBar();
-		
-		
-		
-		return toolbar;
-	}
-	
+	}	
 	
 	protected void selectApp(Class<? extends Presentable> clas) {
 		if(selectedPresent != null && selectedPresent == clas) {

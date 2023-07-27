@@ -112,7 +112,7 @@ public class txtToSpeach extends Presentable {
 				JPanel runTS_lP_runSettings = new JPanel(); runTS_lP_runSettings.setLayout(new WrapLayout());
 					//run tab \ screen left \ settings UI
 					JButton runTS_lP_runSettings_startBtn = new JButton("START");
-						runTS_lP_runSettings_startBtn.addActionListener(event -> onRunTabStartClick());
+						runTS_lP_runSettings_startBtn.addActionListener(event -> onRunTabStartClick(mw));
 						runTS_lP_runSettings_startBtn.setAlignmentY(Component.BOTTOM_ALIGNMENT);
 						runTS_lP_runSettings_startBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
 					runTS_lP_voiceCB = new JComboBox<Path>();
@@ -257,15 +257,20 @@ public class txtToSpeach extends Presentable {
 		runTS_lP_voiceCB_model.addAll(speachModelSources.stream().toList());
 		runTS_lP_voiceCB_model.setSelectedItem(speachModelSources.stream().findAny().orElse(null));
 	}
-	protected void onRunTabStartClick() {
+	protected void onRunTabStartClick(MainWin mw) {
 		this.setNoticeText("something malicious is brewing...");
 		
-		Voice[] voices;
-		VoiceManager vm = VoiceManager.getInstance();
-		voices = vm.getVoices();
-		
-		for(Voice voice : voices) {
-			System.out.println(voice.getName() + " - " + voice.getDescription());
+		try {
+			Voice[] voices;
+			VoiceManager vm = VoiceManager.getInstance();
+			voices = vm.getVoices();
+			
+			for(Voice voice : voices) {
+				System.out.println(voice.getName() + " - " + voice.getDescription());
+			}
+		}catch(ClassCastException e) {
+			JLabel msg = new JLabel(e.toString());
+			JOptionPane.showConfirmDialog(mw, msg,"free tts broke.", JOptionPane.OK_OPTION, JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
 	
@@ -379,6 +384,9 @@ public class txtToSpeach extends Presentable {
 		return root;	
 	}
 	protected void save_paths(Path root) {
+		if(Files.notExists(root))
+			try { Files.createDirectories(root); } catch (IOException e1) { e1.printStackTrace(); }
+		
 		Path path = root.resolve(saveMap.get("speachModelSources"));
 		writeToPath(path, bw ->{
 				for(var v : speachModelSources) try { bw.write(v.toAbsolutePath().toString()); bw.newLine(); } catch (IOException e) {} 
