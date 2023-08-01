@@ -6,3 +6,7 @@
 1. copy and paste everyting from the <code>presentables.presentTemplate</code> class into your newly created .java file & change the class name to the correct one.
 1. add your class path to the <code>Presents</code> variable in the <code>audinc.gui.MainWin</code> class.
 1. start making what ever you want.
+1. when pushing to the repo plz make a pull or merge request
+
+### Trouble shooting
+if your having issues with other presents try removing them from the <code>Presents</code> array in <code>audinc.gui</code> first. if that dosent work, just delete those files but dont push those changes.
