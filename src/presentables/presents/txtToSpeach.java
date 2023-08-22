@@ -52,8 +52,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
-import com.sun.speech.freetts.Voice;
-import com.sun.speech.freetts.VoiceManager;
+//import com.sun.speech.freetts.Voice;w
 
 import audinc.gui.MainWin;
 import audinc.gui.WrapLayout;
@@ -253,25 +252,25 @@ public class txtToSpeach extends Presentable {
 ///////////////////
 	protected void onRunTabOpen() {
 		//refresh options
-		runTS_lP_voiceCB_model.removeAllElements();
-		runTS_lP_voiceCB_model.addAll(speachModelSources.stream().toList());
-		runTS_lP_voiceCB_model.setSelectedItem(speachModelSources.stream().findAny().orElse(null));
+//		runTS_lP_voiceCB_model.removeAllElements();
+//		runTS_lP_voiceCB_model.addAll(speachModelSources.stream().toList());
+//		runTS_lP_voiceCB_model.setSelectedItem(speachModelSources.stream().findAny().orElse(null));
 	}
 	protected void onRunTabStartClick(MainWin mw) {
 		this.setNoticeText("something malicious is brewing...");
 		
-		try {
-			Voice[] voices;
-			VoiceManager vm = VoiceManager.getInstance();
-			voices = vm.getVoices();
-			
-			for(Voice voice : voices) {
-				System.out.println(voice.getName() + " - " + voice.getDescription());
-			}
-		}catch(ClassCastException e) {
-			JLabel msg = new JLabel(e.toString());
-			JOptionPane.showConfirmDialog(mw, msg,"free tts broke.", JOptionPane.OK_OPTION, JOptionPane.INFORMATION_MESSAGE);
-		}
+//		try {
+//			Voice[] voices;
+//			VoiceManager vm = VoiceManager.getInstance();
+//			voices = vm.getVoices();
+//			
+//			for(Voice voice : voices) {
+//				System.out.println(voice.getName() + " - " + voice.getDescription());
+//			}
+//		}catch(ClassCastException e) {
+//			JLabel msg = new JLabel(e.toString());
+//			JOptionPane.showConfirmDialog(mw, msg,"free tts broke.", JOptionPane.OK_OPTION, JOptionPane.INFORMATION_MESSAGE);
+//		}
 	}
 	
 	protected void onImportTabOpen() {

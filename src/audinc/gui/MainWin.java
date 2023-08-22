@@ -42,7 +42,8 @@ public class MainWin extends JFrame {
 			presentables.presents.menu.class,
 			presentables.presents.txtToSpeach.class,
 			presentables.presents.BorderLayoutDemo.class,
-			presentables.presents.AutoClicker.class
+			presentables.presents.AutoClicker.class,
+			presentables.presents.SerialPoke.class
 		).collect(Collectors.collectingAndThen(Collectors.toSet(),Collections::<Class<? extends Presentable>>unmodifiableSet));
 	
 	//standard values
