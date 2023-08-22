@@ -1,6 +1,11 @@
 package presentables.presents;
 
+import java.awt.BorderLayout;
+import java.awt.GridBagLayout;
+
+import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
+import javax.swing.JPanel;
 
 import audinc.gui.MainWin;
 import presentables.Presentable;
@@ -10,7 +15,13 @@ public class AutoClicker extends Presentable{
 	@Override protected void start() 		{}
 
 	@Override
-	protected void initGUI(MainWin mw) {}
+	protected void initGUI(MainWin mw) {
+		JPanel mainWrap = new JPanel();
+			JPanel rui = new JPanel(new GridBagLayout());
+
+		
+		mw.add(mainWrap);
+	}
 	
 ///////////////////
 //Presentable statics
