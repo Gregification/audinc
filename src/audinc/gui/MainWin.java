@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import javax.imageio.ImageIO;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -174,6 +175,8 @@ public class MainWin extends JFrame {
 		
 		//menu bar present options
 		JMenu presents = new JMenu("Presents");
+			ArrayList<String> present_names = new ArrayList<>(Presents.size());
+			for(var v : Presents) { present_names.add((String)Presentable.tryForStatic(v, "getDisplayTitle")); };
 		for(var k : Presents) {
 			JMenuItem jmi = new JMenuItem((String)Presentable.tryForStatic(k, "getDisplayTitle"));
 			jmi.addActionListener(event -> setPresent(k));

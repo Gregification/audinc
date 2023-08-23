@@ -5,10 +5,14 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import static java.util.Map.entry; 
 
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -19,6 +23,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.ListSelectionModel;
@@ -51,7 +56,8 @@ public class SerialPoke extends Presentable{
 				//editor tab
 				JPanel editorTab = new JPanel(new BorderLayout());
 					JButton editorTab_newEditor_btn = new JButton("new editor");
-					editorTab.add(editorTab_newEditor_btn);
+					editorTab_newEditor_btn.setEnabled(false);
+					editorTab.add(editorTab_newEditor_btn, BorderLayout.PAGE_END);
 					commTable = new JTable() {
 						private static final long serialVersionUID = 1L;//eclipse complains
 						public boolean isCellEditable(int row, int column) { return false; }; //disables user editing of table
@@ -59,7 +65,12 @@ public class SerialPoke extends Presentable{
 					commTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 					commTable.setCellEditor(null);
 					commTable_model = (DefaultTableModel) commTable.getModel();
-						commTable_model.addColumn("Path");
+						for(var v : new String[] {"system port name", "baud rate"}) commTable_model.addColumn(v);
+						commTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+							@Override public void valueChanged(ListSelectionEvent e) {
+								editorTab_newEditor_btn.setEnabled(true);
+							}
+						});
 					TableRowSorter<TableModel> importT_srcsTable_sorter = new TableRowSorter<>(commTable_model);
 						importT_srcsTable_sorter.setSortKeys(Arrays.asList(
 									new RowSorter.SortKey(0, SortOrder.ASCENDING)
@@ -100,6 +111,30 @@ public class SerialPoke extends Presentable{
 			System.out.println(v.toString());
 			commTable_model.addRow(new Object[] {v.toString()});
 		}
+		if(commTable_model.getRowCount() == 0) {
+			commTable_model.addRow(new Object[] {"no connections found"});
+		}
+	}
+	
+	private Map<String, Object> getSPGeneralRowInfo(SerialPort sp) {
+		return Map.ofEntries(
+			    entry("system port name", 	sp.getSystemPortName()),
+			    entry("baud rate",			sp.getBaudRate())
+			);
+	}
+	
+	private Map<String, Object> getSPFullRowInfo(SerialPort sp) {
+		return Map.ofEntries(
+			    entry("system port name", 		sp.getSystemPortName()),
+			    entry("system port path",		sp.getSystemPortPath()),
+			    entry("descriptive port name",	sp.getDescriptivePortName()),
+			    entry("baud rate",				sp.getBaudRate()),
+			    entry("port decription",		sp.getPortDescription()),
+			    entry("port location",			sp.getPortLocation()),
+			    entry("device write buffer size",	sp.getDeviceReadBufferSize()),
+			    entry("device raed buffer size",	sp.getDeviceWriteBufferSize()),
+			    entry("vendor ID",				sp.getVendorID())
+			);
 	}
 	
 ///////////////////
@@ -124,7 +159,8 @@ class SerialPokeCommConnection{
 	public JPanel SerialPokeCommConnection(SerialPort sp) {
 		this.sp = sp;
 		JPanel host = new JPanel(new BorderLayout());
-		
+			JLabel temp = new JLabel("text");
+		host.add(temp);
 		sp.addDataListener(new SerialPortDataListener() {
 			@Override public int getListeningEvents() { return 0; }
 
@@ -172,7 +208,7 @@ class SerialPokeCommConnection{
 		return host;
 	}
 	
-	public void setTabIcon(String src) {
+	public void onTabClick() {
 		
 	}
 }
