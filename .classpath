@@ -7,11 +7,6 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/cmu_us_kal.jar"/>
-	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/cmulex.jar"/>
-	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/en_us.jar"/>
-	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/freetts.jar"/>
-	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/freetts-jsapi10.jar"/>
-	<classpathentry kind="lib" path="G:/actual/freetts-1.2.2-bin/freetts-1.2/lib/mbrola.jar"/>
+	<classpathentry kind="lib" path="D:/eclipse/audinc/refrence libs/jSerialComm/jSerialComm-2.10.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
