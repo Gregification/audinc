@@ -83,6 +83,8 @@ public class MainWin extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
         setResizable(true);
+        setIconImage((new ImageIcon("res/JSAPIRecognition1.png")).getImage());
+        
         
         initGUIMenuBar();
         

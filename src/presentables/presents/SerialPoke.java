@@ -1,6 +1,7 @@
 package presentables.presents;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.util.ArrayList;
@@ -127,7 +128,7 @@ public class SerialPoke extends Presentable{
 					commTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 					commTable.setCellEditor(null);
 					commTable_model = (DefaultTableModel) commTable.getModel();
-						for(var v : new String[] {"system port name", "baud rate"}) commTable_model.addColumn(v);
+						for(var v : new String[] {"port name", "baud rate"}) commTable_model.addColumn(v);
 						commTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 							@Override public void valueChanged(ListSelectionEvent e) {
 								editorTab_portDescriptor_txt.setText(commTable.getModel().getValueAt(commTable.getSelectedRow(), 0).toString());
@@ -191,7 +192,7 @@ public class SerialPoke extends Presentable{
 		JLabel tabTitle		= new JLabel(title);
 		JButton tabClosebtn = new JButton("X");
 			tabClosebtn.setBorder(new CompoundBorder(BorderFactory.createEmptyBorder(), new EmptyBorder(0,10,0,0)));//top,left,bottom,right
-			tabClosebtn.addActionListener(event -> tabbedPane.remove(spcc.content));
+			tabClosebtn.addActionListener(event -> {spcc.quit(); tabbedPane.remove(spcc.content);});
 		
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 0;
@@ -257,7 +258,7 @@ public class SerialPoke extends Presentable{
 ///////////////////
 //Presentable statics
 ///////////////////
-	public static String getDisplayTitle() 	{ 	return "Serial Mapper";	}
+	public static String getDisplayTitle() 	{ 	return "Serial Poke";	}
 	public static ImageIcon getImgIcon() 	{	return getImageIcon(""); }
 	public static String getDescription() 	{	return "<html>"
 			+ "<body> A way to jimmy seral connections into working. please use something like PuTTY for actual communicaitons.<br>"
@@ -274,6 +275,8 @@ class SerialPokeCommConnection{
 	public String title;
 	public SerialPort sp;
 	public JPanel content = new JPanel(new BorderLayout());
+	
+	private JLabel noticeDisplay;
 	
 	public SerialPokeCommConnection(SerialPort sp, String title) {
 		this.title = title;
@@ -328,13 +331,24 @@ class SerialPokeCommConnection{
 	private void genGUI() {
 		content.setLayout(new BorderLayout());
 		
-		JLabel notice = new JLabel("notices");
-		content.add(notice, BorderLayout.PAGE_END);
+		noticeDisplay = new JLabel("notices");
+		content.add(noticeDisplay, BorderLayout.PAGE_END);
 		
+		JPanel console = new JPanel();
+		JScrollPane console_scroll = new JScrollPane(console,	
+				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		
+		JPanel cards = new JPanel();
+		JScrollPane cards_scroll = new JScrollPane(cards,	
+				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		
+		content.add(new JSplitPane(SwingConstants.VERTICAL,console_scroll, cards_scroll), BorderLayout.CENTER);
 		
 		JButton btn = new JButton("click");
 			btn.addActionListener(event -> openInfoDialoug());
-		content.add(btn);
+		content.add(btn, BorderLayout.PAGE_START);
 	}
 	
 	public void openInfoDialoug() {
@@ -363,5 +377,17 @@ class SerialPokeCommConnection{
 		
 		
 		JOptionPane.showMessageDialog(content, new Object[] {spInfo_scroll}, "info: " +title, JOptionPane.PLAIN_MESSAGE);
+	}
+	
+	public void quit() {
+		
+	}
+	
+	public void setNoticeText(String text) {
+		this.noticeDisplay.setText(text);
+	}
+	public void setNoticeText(String text, Color color) {
+		this.noticeDisplay.setForeground(color);
+		setNoticeText(text);
 	}
 }
