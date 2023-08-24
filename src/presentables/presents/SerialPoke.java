@@ -13,7 +13,9 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -178,8 +180,8 @@ public class SerialPoke extends Presentable{
 	
 	private void onNewEditorSelect(JTabbedPane tabbedPane) {
 		String title = tabbedPane.getTabCount() + ". " + editorTab_portDescriptor_txt.getText();
-		SerialPort sp = SerialPort.getCommPort(editorTab_portDescriptor_txt.getText());
-		SerialPokeCommConnection spcc = new SerialPokeCommConnection(sp);
+		SerialPort sp = SerialPort.getCommPort(editorTab_portDescriptor_txt.getText());		
+		SerialPokeCommConnection spcc = new SerialPokeCommConnection(sp, title);
 		
 		
 		int tabI = tabbedPane.getTabCount();
@@ -209,13 +211,13 @@ public class SerialPoke extends Presentable{
 		tabbedPane.setSelectedIndex(tabI);
 	}
 	
-	private String[][] getSPGeneralRowInfo(SerialPort sp) {
+	public static String[][] getSPGeneralRowInfo(SerialPort sp) {
 		return new String[][] {
 					{"system port name"	, sp.getSystemPortName()},
 					{"baud rate"		, String.valueOf(sp.getBaudRate())}
 				};
 	}
-	private String[][] getSPFullRowInfo(SerialPort sp) {
+	public static String[][] getSPFullRowInfo(SerialPort sp) {
 		return new String[][] {
 					{"system port name"	, sp.getSystemPortName()},
 					{"system port path"	, sp.getSystemPortPath()},
@@ -269,10 +271,12 @@ public class SerialPoke extends Presentable{
 }
 
 class SerialPokeCommConnection{
+	public String title;
 	public SerialPort sp;
 	public JPanel content = new JPanel(new BorderLayout());
 	
-	public SerialPokeCommConnection(SerialPort sp) {
+	public SerialPokeCommConnection(SerialPort sp, String title) {
+		this.title = title;
 		this.sp = sp;
 		
 		genGUI();
@@ -322,7 +326,42 @@ class SerialPokeCommConnection{
 	}
 	
 	private void genGUI() {
-		JLabel temp = new JLabel("text");
-		content.add(temp);
+		content.setLayout(new BorderLayout());
+		
+		JLabel notice = new JLabel("notices");
+		content.add(notice, BorderLayout.PAGE_END);
+		
+		
+		JButton btn = new JButton("click");
+			btn.addActionListener(event -> openInfoDialoug());
+		content.add(btn);
+	}
+	
+	public void openInfoDialoug() {
+		JLabel spInfo = new JLabel();{
+			 StringBuilder sb = new StringBuilder("<html>");
+			 sb.append("<table>"
+			 		+ "<tr>"
+			 		+ "<th>field</th>"
+			 		+ "<th>value</th>"
+			 		+ "</tr>");
+			 
+			 for(String[] s : SerialPoke.getSPFullRowInfo(sp)) {
+				 sb.append("<tr>"
+				 		+ "<td>"+s[0]+"</td>"
+				 		+ "<td>"+s[1]+"</td>"
+				 		+ "</tr>");
+			 }
+			 
+			 sb.append("</table>");
+			 
+			 spInfo.setText(sb.toString());
+		}
+		JScrollPane spInfo_scroll = new JScrollPane(spInfo,	
+				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		
+		
+		JOptionPane.showMessageDialog(content, new Object[] {spInfo_scroll}, "info: " +title, JOptionPane.PLAIN_MESSAGE);
 	}
 }
