@@ -2,18 +2,26 @@ package presentables.presents;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.Stack;
+
 import static java.util.Map.entry;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -23,10 +31,12 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
@@ -34,8 +44,13 @@ import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelListener;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreeSelectionModel;
 import javax.swing.ListSelectionModel;
 import javax.swing.RowSorter;
 import javax.swing.SortOrder;
@@ -48,6 +63,8 @@ import com.fazecast.jSerialComm.SerialPortEvent;
 
 import audinc.gui.MainWin;
 import presentables.Presentable;
+import presentables.custom_doTheThingIfNotNull;
+import presentables.doTheThing;
 
 public class SerialPoke extends Presentable{
 	//editor tab UI
@@ -89,9 +106,7 @@ public class SerialPoke extends Presentable{
 									  if(text.length() == 0 && editorTab_newEditor_btn.isEnabled())
 										  editorTab_newEditor_btn.setEnabled(false);	
 								  }
-								  public void insertUpdate(DocumentEvent e) 	{
-//									  String text = editorTab_portDescriptor_txt.getText();
-									  
+								  public void insertUpdate(DocumentEvent e) 	{									  
 									  if(!editorTab_newEditor_btn.isEnabled())
 										  editorTab_newEditor_btn.setEnabled(true);
 								  }
@@ -277,6 +292,8 @@ class SerialPokeCommConnection{
 	public JPanel content = new JPanel(new BorderLayout());
 	
 	private JLabel noticeDisplay;
+	private JTree ConCateTree;//console category tree
+	private DefaultMutableTreeNode ConCateTree_root;
 	
 	public SerialPokeCommConnection(SerialPort sp, String title) {
 		this.title = title;
@@ -334,15 +351,106 @@ class SerialPokeCommConnection{
 		noticeDisplay = new JLabel("notices");
 		content.add(noticeDisplay, BorderLayout.PAGE_END);
 		
+		ConCateTree_root = new DefaultMutableTreeNode(new custom_doTheThingIfNotNull<JPanel>() {
+			@Override public String toString() { return sp.getSystemPortName(); }
+			@Override public void doTheThing(JPanel pan) {}
+			});
+		
 		JPanel console = new JPanel();
+			console.setLayout(new BoxLayout(console, BoxLayout.Y_AXIS));
+			//populating ConCateTree_root
+			{
+				//category session
+				DefaultMutableTreeNode cat_session = new DefaultMutableTreeNode(new custom_doTheThingIfNotNull<JPanel>() {
+					@Override public String toString() { return "session"; }
+					@Override public void doTheThing(JPanel pan) {
+						
+					}
+					}, true);
+				
+				//category connection
+				DefaultMutableTreeNode cat_connection = new DefaultMutableTreeNode(new custom_doTheThingIfNotNull<JPanel>() {
+					@Override public String toString() { return "connection"; }
+					@Override public void doTheThing(JPanel pan) {
+						
+					}
+					}, true);
+					//sub category flow control
+					DefaultMutableTreeNode cat_connection_flowControl = new DefaultMutableTreeNode(new custom_doTheThingIfNotNull<JPanel>() {
+						@Override public String toString() { return "session"; }
+						@Override public void doTheThing(JPanel pan) {
+							
+						}
+						}, true);
+				
+				//add all top level categories
+				ConCateTree_root.add(cat_session);
+				ConCateTree_root.add(cat_connection);
+			}
+			ConCateTree = new JTree(ConCateTree_root);
+				ConCateTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+				ConCateTree.addTreeSelectionListener(new TreeSelectionListener() {
+					@Override public void valueChanged(TreeSelectionEvent e) {
+						DefaultMutableTreeNode node = (DefaultMutableTreeNode)ConCateTree.getLastSelectedPathComponent();
+						
+						JPanel card = new JPanel();
+						Stack<JPanel> cardStack = new Stack<JPanel>();
+							cardStack.push(card);
+						//go through the current node and all sub nodes;
+						custom_doTheThingIfNotNull<DefaultMutableTreeNode> recurson = new custom_doTheThingIfNotNull<DefaultMutableTreeNode>() {
+								@Override public void doTheThing(DefaultMutableTreeNode currNode) {
+									try {
+										//current node goes first
+										custom_doTheThingIfNotNull<JPanel> currNodeTask = (custom_doTheThingIfNotNull<JPanel>)(currNode.getUserObject());
+											currNodeTask.doTheThing(cardStack.peek());
+										
+										//children of current node next
+										var v = currNode.children().asIterator();
+										while(v.hasNext()) {
+											TreeNode dmtn = v.next();
+											custom_doTheThingIfNotNull<JPanel> dtt = (custom_doTheThingIfNotNull<JPanel>)v.next();
+											
+											if(dmtn.getChildCount() > 0) {
+												JPanel np = new JPanel();
+												np.setBorder(
+														BorderFactory.createTitledBorder(
+																BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), 
+														dtt.toString(),
+														TitledBorder.LEFT,
+														TitledBorder.LEFT
+													));
+												cardStack.push(np);
+											}
+											dtt.doTheThing(cardStack.peek());
+											
+											JPanel jp = cardStack.pop();
+											cardStack.peek().add(jp);
+											
+										}
+										
+									}catch(Exception e1) {
+										System.err.println("SerialPoke.java>SerialPokeCommConnection.genGUI()>ConCateTree | :3 oh no!, something exploded when clicked!\n\tmost likely caused by a DefaultMutableTreeNode object that was not declared using the [custom_doTheThingIfNotNull<JPanel>] lambda");
+										e1.printStackTrace();
+									}
+								}
+							}; 
+					}
+				});
+			ConCateTree.setAlignmentX(Component.LEFT_ALIGNMENT);
+			console.add(ConCateTree);
+			
 		JScrollPane console_scroll = new JScrollPane(console,	
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+			console_scroll.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*1/5), (int)MainWin.stdDimension.getHeight()));
+			console_scroll.setPreferredSize(new Dimension((int)(MainWin.stdDimension.getWidth()*1/4), (int)MainWin.stdDimension.getHeight()));
 		
 		JPanel cards = new JPanel();
 		JScrollPane cards_scroll = new JScrollPane(cards,	
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+			cards_scroll.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*1/5), (int)MainWin.stdDimension.getHeight()));
+			cards_scroll.setAutoscrolls(true);
 		
 		content.add(new JSplitPane(SwingConstants.VERTICAL,console_scroll, cards_scroll), BorderLayout.CENTER);
 		
@@ -352,6 +460,9 @@ class SerialPokeCommConnection{
 	}
 	
 	public void openInfoDialoug() {
+		JOptionPane.showMessageDialog(content, new Object[] {this.getInfoScrollFrame()}, "info: " +title, JOptionPane.PLAIN_MESSAGE);
+	}	
+	private JComponent getInfoScrollFrame() {
 		JLabel spInfo = new JLabel();{
 			 StringBuilder sb = new StringBuilder("<html>");
 			 sb.append("<table>"
@@ -374,9 +485,7 @@ class SerialPokeCommConnection{
 		JScrollPane spInfo_scroll = new JScrollPane(spInfo,	
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		
-		
-		JOptionPane.showMessageDialog(content, new Object[] {spInfo_scroll}, "info: " +title, JOptionPane.PLAIN_MESSAGE);
+		return spInfo_scroll;
 	}
 	
 	public void quit() {
