@@ -48,6 +48,7 @@ public class BorderLayoutDemo extends Presentable {
 //Presentable statics
 ///////////////////
 	public static String getDisplayTitle() 	{	return "BorderLayout demo";	}
-	public static String getDescription() 	{	return "color coded visual of a java BorderLayout";	}
+	public static String getDescription() 	{	return "color coded visual of a java BorderLayout"
+			+ "<br><br><br>- inspired by Professor George.F.Rice of UTArlington.";	}
 	public static ImageIcon getImgIcon() 	{	return getImageIcon("res/presentIcons/BorderLayout.png"); }
 }

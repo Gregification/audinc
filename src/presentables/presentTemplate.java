@@ -26,6 +26,8 @@ public class presentTemplate extends Presentable{
 		//the MainWin class is a JFrame. add your GUI components to it; however, DO NOT change the JMenuBar
 	}
 	
+	@Override public void quit() {}
+	
 ///////////////////
 //Presentable statics
 ///////////////////

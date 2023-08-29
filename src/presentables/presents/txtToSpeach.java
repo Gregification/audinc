@@ -132,11 +132,11 @@ public class txtToSpeach extends Presentable {
 			runTS_l.add(runTS_lP_txtEditor_ScrollFrame, BorderLayout.CENTER);
 			
 			
-			//run tab \ screen right
+			//run/synth tab \ screen right
 			JPanel runTS_rP = new JPanel();	runTS_rP	.setLayout(new BorderLayout());
 				//run tab \ screen right \ text editor (c)
 				JPanel runTS_rP_txtEditor = new JPanel();	runTS_rP_txtEditor	.setLayout(new BorderLayout());
-					runTS_rP_txtEditor_input = new JTextArea("text here will be read");
+					runTS_rP_txtEditor_input = new JTextArea("text here will be read if i can ever find a FreeTTS distrobution that dosent have inherient fatal errors.     >:(");
 					runTS_rP_txtEditor_input.setLineWrap(true);
 					JScrollPane runTS_rP_txtEditor_ScrollFrame = new JScrollPane(runTS_rP_txtEditor_input,	
 							JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -257,7 +257,7 @@ public class txtToSpeach extends Presentable {
 //		runTS_lP_voiceCB_model.setSelectedItem(speachModelSources.stream().findAny().orElse(null));
 	}
 	protected void onRunTabStartClick(MainWin mw) {
-		this.setNoticeText("something malicious is brewing...");
+		this.setNoticeText("something malicious is (not) brewing...");
 		
 //		try {
 //			Voice[] voices;

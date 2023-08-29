@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Image;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 
 import java.io.File;
@@ -48,12 +49,15 @@ public class MainWin extends JFrame {
 		).collect(Collectors.collectingAndThen(Collectors.toSet(),Collections::<Class<? extends Presentable>>unmodifiableSet));
 	
 	//standard values
-	public static int stdTextSpace = 40,	//standard spacing unit between gui components 
-			stdStructSpace = 15,
-			stdPreferredNumThreads = 3;
-	public static float stdDimensionScale = 1.75f;
-	public static Dimension stdDimension = new Dimension((int)(480*stdDimensionScale),(int)(270*stdDimensionScale)),
-			stdtabIconSize = new Dimension((int)(11*stdDimensionScale),(int)(11*stdDimensionScale));
+	public static final float stdDimensionScale = 1.75f;
+	public static int 
+			stdTextSpace 			= 40,	//standard spacing unit between gui components 
+			stdStructSpace 			= 15,
+			stdPreferredNumThreads 	= 3;
+	public static Dimension 
+			stdDimension 		= new Dimension((int)(480*stdDimensionScale),	(int)(270*stdDimensionScale)),
+			stdtabIconSize 		= new Dimension((int)(11*stdDimensionScale),	(int)(11*stdDimensionScale)),
+			stbPresentIconSize 	= new Dimension((int)(32*stdDimensionScale), 	(int)(30*stdDimensionScale));
 	
 	public void setPresent(Class<? extends Presentable> cp) {
 		if(currPresent != null) currPresent.quit();
@@ -146,7 +150,9 @@ public class MainWin extends JFrame {
 		if(currPresent != null) {
 			currPresent.quit();
 		}
+		
 		dispose();
+		System.exit(0);
 	}
 
 //////////////////
@@ -168,7 +174,7 @@ public class MainWin extends JFrame {
 				quit.addActionListener(event -> quit());
 			JMenuItem restartPresent = new JMenuItem("restart present");
 				restartPresent.addActionListener(event -> {if(currPresent == null) return; this.currPresent.quit(); this.setPresent(currPresent.getClass());});
-		
+				
 		help.add(mainMenu);
 		help.add(about);
 		help.addSeparator();
@@ -177,6 +183,7 @@ public class MainWin extends JFrame {
 		
 		//menu bar present options
 		JMenu presents = new JMenu("Presents");
+			presents.setMnemonic(KeyEvent.VK_P);
 			ArrayList<String> present_names = new ArrayList<>(Presents.size());
 			for(var v : Presents) { present_names.add((String)Presentable.tryForStatic(v, "getDisplayTitle")); };
 		for(var k : Presents) {

@@ -101,7 +101,7 @@ public abstract class Presentable {
 	 */
 	
 ///////////////////
-//i don't know any better
+//i know better but am too lazy to correct
 ///////////////////
 	protected void writeToPath(Path path, custom_bufferedWriter lambda) {
 		try(BufferedWriter br = Files.newBufferedWriter(path)){

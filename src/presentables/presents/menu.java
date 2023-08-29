@@ -7,6 +7,7 @@ import java.awt.Dimension;
 import java.awt.Desktop;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.util.Collection;
 
 import javax.swing.BorderFactory;
@@ -58,6 +59,8 @@ public class menu extends Presentable{
 		d_start_btn = new JButton("SELECT"); d_start_btn.setBorder(etchedLowered);
 			d_start_btn.setEnabled(false);
 			d_start_btn.addActionListener(event -> onStartClick(mw));
+			d_start_btn.setMnemonic(KeyEvent.VK_ENTER);
+			d_start_btn.setToolTipText("(quick-key:enter)");
 		d_title = new JEditorPane();			d_title		.setBorder(BorderFactory.createTitledBorder(etchedLowered, "Name", TitledBorder.LEFT, TitledBorder.TOP));
 			d_title.setContentType("text/html");
 			d_title.setEditable(false);
@@ -67,7 +70,6 @@ public class menu extends Presentable{
 			d_description.addHyperlinkListener(new HyperlinkListener() {
 				@Override public void hyperlinkUpdate(HyperlinkEvent e) { 
 					if (HyperlinkEvent.EventType.ACTIVATED.equals(e.getEventType())) {
-                        System.out.println(e.getURL());
                         Desktop desktop = Desktop.getDesktop();
                         try { desktop.browse(e.getURL().toURI());
                         } catch (Exception ex) { ex.printStackTrace(); }
@@ -88,7 +90,7 @@ public class menu extends Presentable{
 						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 			            JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 					DAscrollFrame.setPreferredSize(new Dimension(100, 100));
-					DAscrollFrame.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*2/5), (int)MainWin.stdDimension.getHeight()));
+					DAscrollFrame.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*2/5 > 50 ? 50 : MainWin.stdDimension.getWidth()*2/5), (int)MainWin.stdDimension.getHeight()/5));
 					DAscrollFrame.setLayout(new ScrollPaneLayout());
 					DAscrollFrame.setAutoscrolls(true);
 					
@@ -107,12 +109,12 @@ public class menu extends Presentable{
 						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 					DesscrollFrame.setPreferredSize(new Dimension(100, 100));
 					DesscrollFrame.setAutoscrolls(true);
-					DesscrollFrame.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()/3), (int)MainWin.stdDimension.getHeight()));
+					DesscrollFrame.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()/3 > 50 ? 50 : (MainWin.stdDimension.getWidth()/3)), (int)MainWin.stdDimension.getHeight()/5));
 					
 		screenRight.add(d_start_btn, 	BorderLayout.PAGE_END);
 		screenRight.add(DesscrollFrame);
 		
-		JSplitPane sl = new JSplitPane(SwingConstants.VERTICAL, screenLeft, screenRight);
+		JSplitPane sl = new JSplitPane(SwingConstants.HORIZONTAL, screenLeft, screenRight);
 		jf.add(sl);
 	}	
 	
@@ -149,13 +151,15 @@ public class menu extends Presentable{
 		thread_loadApps.start();
 	}
 	private void loadApps_threadFunciton(String pattern, Collection<Class<? extends Presentable>> presents) {
-		int tick = 0, tickperiod = 5; 
+		int tick = 0, tickperiod = 2; 
 		for(Class<? extends Presentable> p : presents) {
 			String tTitle = Presentable.tryForStatic(p, "getDisplayTitle").toString(); 
+			
 			if(tTitle.toLowerCase().contains(pattern.toLowerCase())) {
 				displayArea.add(genDisplayCard(p));
+				
 				if(tick <= 0) {
-					screenLeft.validate();
+					displayArea.validate();
 					tick = tickperiod;
 				}else tick--;
 			}
@@ -194,6 +198,6 @@ public class menu extends Presentable{
 			+ "the menu lists all avaliable presents along side their icons." 
 			+ "<br>Clicking on one will show its description & details"
 			+ "<br>- note: the swing component used to display the presents dosent refresh very well."
-			+ "<br>&emsp;try resizing any of the windows elements to have it correct itself."
+			+ "<br>&emsp;try resizing any of the windows elements to have it correct itself. if somethign looks off"
 			+ "</body></html>";	}
 }
