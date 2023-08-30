@@ -350,9 +350,10 @@ class SerialPokeCommConnection{
 				@Override public void doTheThing(JPanel pan) {}
 			});
 		
+		genUI_tab_editor();
 		genUI_tab_settings();
 		genUI_tab_liveInfo();
-		genUI_tab_editor();
+		
 		
 		content.add(content_tabb, BorderLayout.CENTER);
 	}
@@ -497,12 +498,13 @@ class SerialPokeCommConnection{
 			 		+ "<tr>"
 			 		+ "<th>time</th>"
 			 		+ "<th>event</th>"
+			 		+ "<th>received data</th>"
 			 		+ "</tr>");
 			SimpleAttributeSet logout_sas = new SimpleAttributeSet();
 //				StyleConstants.setForeground(logout_sas, Color.black);
 //				StyleConstants.setBackground(logout_sas, Color.white);
 //				StyleConstants.setBold(logout_sas, true);
-		
+		tab_cont.add(logout, BorderLayout.CENTER);
 		
 		content_tabb.addTab("live info", MainWin.getImageIcon("res/info1.png", MainWin.stdtabIconSize), tab_cont, "event driven info about the connection. read only");
 		
@@ -512,10 +514,16 @@ class SerialPokeCommConnection{
 			@Override public int getListeningEvents() { return 0; }
 				
 			@Override public void serialEvent(SerialPortEvent spe) {
-				//if selected event
+				//if event is to be logged
 				if(( logSettings & spe.getEventType()) != 0) {
 					try {
-						logout_doc.insertString(logout_doc.getLength(), "" + (System.nanoTime()/Math.pow(10,9)), logout_sas);
+						logout_doc.insertString(logout_doc.getLength(), ""
+								+ "<tr>"
+								+ "<td>"+ (System.nanoTime()/Math.pow(10,9))		+"</td>"
+								+ "<td>"+ (spe.toString())							+"</td>"
+								+ "<td>"+ Arrays.toString(spe.getReceivedData())	+"</td>"
+								+ "</tr>",
+								logout_sas);
 					} catch (BadLocationException e) { e.printStackTrace(); }
 				}
 				
@@ -566,7 +574,7 @@ class SerialPokeCommConnection{
 			jcb_toggleport.setToolTipText("open/close port. ");
 			jcb_toggleport.addItemListener(il -> {
 				 	if(il.getStateChange() == ItemEvent.SELECTED) {
-				 		int delay = 500;
+				 		int delay = 200;
 	        			setNoticeText("opening port ("+delay+"mil delay)... ", Color.black);
 	        			appendNoticeText((sp.openPort(delay) ? "success" : "failed" ), Color.black);
 	        		}else if(il.getStateChange() == ItemEvent.DESELECTED) { 
@@ -574,6 +582,7 @@ class SerialPokeCommConnection{
 	        			appendNoticeText((sp.closePort() ? "success" : "failed" ), Color.black);
 	        		}
 			 	});
+		tab_cont.add(jcb_toggleport);
 		
 		content_tabb.addTab("editor", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize), tab_cont, "general manager");
 	}
