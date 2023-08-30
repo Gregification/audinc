@@ -166,13 +166,17 @@ public class MainWin extends JFrame {
 		JMenuBar menubar = new JMenuBar();
 		
 		JMenu help 	= new JMenu("Help");
+			help.setMnemonic('H');
 			JMenuItem mainMenu = new JMenuItem("main menu");
 				mainMenu.addActionListener(event -> setPresent(presentables.presents.menu.class));
 			JMenuItem about = new JMenuItem("About");
+				about.setMnemonic('A');
 				about.addActionListener(event -> onAboutClick());
 			JMenuItem quit = new JMenuItem("Quit");
+				quit.setMnemonic('Q');
 				quit.addActionListener(event -> quit());
 			JMenuItem restartPresent = new JMenuItem("restart present");
+				restartPresent.setMnemonic('R');
 				restartPresent.addActionListener(event -> {if(currPresent == null) return; this.currPresent.quit(); this.setPresent(currPresent.getClass());});
 				
 		help.add(mainMenu);
@@ -183,7 +187,7 @@ public class MainWin extends JFrame {
 		
 		//menu bar present options
 		JMenu presents = new JMenu("Presents");
-			presents.setMnemonic(KeyEvent.VK_P);
+			presents.setMnemonic('P');
 			ArrayList<String> present_names = new ArrayList<>(Presents.size());
 			for(var v : Presents) { present_names.add((String)Presentable.tryForStatic(v, "getDisplayTitle")); };
 		for(var k : Presents) {

@@ -25,6 +25,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
+import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -34,6 +35,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
@@ -52,6 +54,10 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreeSelectionModel;
@@ -295,6 +301,7 @@ public class SerialPoke extends Presentable{
 			+ "<li>reroute ports(wip)</li>"
 			+ "</ul>"
 			+ "<b>the ability to multiplex ports is dependent on host machine</b>"
+			+ "<br>Serial Poke? Cereal Pike!"
 			+ "</body>"; }
 	
 }
@@ -302,14 +309,14 @@ public class SerialPoke extends Presentable{
 class SerialPokeCommConnection{
 	public String title;
 	public SerialPort sp;
-		public int logSettings = Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
+	public int logSettings = Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
 		
 	//gui
 	public JPanel content = new JPanel(new BorderLayout());
 	public JTabbedPane content_tabb = new JTabbedPane();
 	
 	//private
-	private boolean loggingEnabled = false;
+	private boolean loggingEnabled = true;
 	private JLabel noticeDisplay;
 	private JTree ConCateTree;//console category tree
 	private DefaultMutableTreeNode ConCateTree_root;
@@ -355,34 +362,37 @@ class SerialPokeCommConnection{
         	cframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         JPanel logCatagories = new JPanel(new WrapLayout());
+        	logCatagories.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Logging catagories", TitledBorder.LEFT, TitledBorder.TOP));
+            logCatagories.setEnabled(this.loggingEnabled);
         	{
 	        	Field[] fields = SerialPort.class.getDeclaredFields();
 	        	String startsWith = "LISTENING_EVENT_";
 	        	for(var v : fields) {
 	        		String name = v.getName();
 	        		if(name.startsWith(startsWith) && v.getType() == int.class) {
-	        			int val = Integer.MIN_VALUE;
+	        			if(name.endsWith("TIMED_OUT")) continue;
+	        			
+	        			int 	val = Integer.MIN_VALUE;
+	        			
 	        			try { val = v.getInt(null); } 
 	        			catch (IllegalArgumentException e) 	{ e.printStackTrace(); } 
 	        			catch (IllegalAccessException e) 	{ e.printStackTrace(); }
+	        			
 	        			if(val == Integer.MIN_VALUE) 		{ new IllegalArgumentException("retreived bad value form serialport. from:" + v.getName()); }
 	        			
 	        			final int val_f = val;
 						JCheckBox jcb = new JCheckBox(name.substring(startsWith.length()), (this.logSettings | val)!=0);
 						jcb.addItemListener(il -> {
-								String t = "";
 							 	if(il.getStateChange() == ItemEvent.SELECTED) {
-							 		t += "state change: selected";
-				        			this.logSettings |= val_f;
+				        			logSettings =  logSettings | val_f;
 				        		}else if(il.getStateChange() == ItemEvent.DESELECTED) { //double check because there are other states that can be triggered
-				        			t += "state change: deselected";
-				        			
-				        			int res = this.logSettings & val_f;
-				        			if(res != 0) this.logSettings &= ~val_f;
+				        			int res = logSettings & val_f;
+				        			if(res != 0) {
+				        				logSettings = logSettings & (~val_f);
+				        			}
 				        		}
-							 	
-							 	System.out.println(t);
 						 	});
+						jcb.setSelected((logSettings & val_f) != 0 );
 						logCatagories.add(jcb);
 	        		}
 	        	}
@@ -393,12 +403,12 @@ class SerialPokeCommConnection{
         	logToggler.addItemListener(il -> {
         		if(il.getStateChange() == ItemEvent.SELECTED) {
         			this.setLogging(true);
+        			logCatagories.setEnabled(true);
         		}else if(il.getStateChange() == ItemEvent.DESELECTED) { //double check because there are other states that can be triggered
         			this.setLogging(false);
+        			logCatagories.setEnabled(false);
         		}
         	});
- 
-        logCatagories.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Logging catagories", TitledBorder.LEFT, TitledBorder.TOP));
         
         JComponent[] objs = {
         		logToggler,
@@ -447,6 +457,9 @@ class SerialPokeCommConnection{
 		this.noticeDisplay.setForeground(color);
 		setNoticeText(text);
 	}
+	public void appendNoticeText(String text, Color color) {
+		setNoticeText(this.noticeDisplay.getText() + text);
+	}
 	
 	private boolean isLogging() {
 		return this.loggingEnabled;
@@ -477,14 +490,35 @@ class SerialPokeCommConnection{
 		tab_cont.add(toolbar, BorderLayout.PAGE_START);
 		
 		//text area
+		JTextPane logout = new JTextPane();
+			logout.setContentType("text/html");
+			logout.setEditable(false);
+			logout.setText("<table>"
+			 		+ "<tr>"
+			 		+ "<th>time</th>"
+			 		+ "<th>event</th>"
+			 		+ "</tr>");
+			SimpleAttributeSet logout_sas = new SimpleAttributeSet();
+//				StyleConstants.setForeground(logout_sas, Color.black);
+//				StyleConstants.setBackground(logout_sas, Color.white);
+//				StyleConstants.setBold(logout_sas, true);
 		
 		
 		content_tabb.addTab("live info", MainWin.getImageIcon("res/info1.png", MainWin.stdtabIconSize), tab_cont, "event driven info about the connection. read only");
 		
 		sp.addDataListener(new SerialPortDataListener() {
+			StyledDocument logout_doc = logout.getStyledDocument();
+			
 			@Override public int getListeningEvents() { return 0; }
 				
 			@Override public void serialEvent(SerialPortEvent spe) {
+				//if selected event
+				if(( logSettings & spe.getEventType()) != 0) {
+					try {
+						logout_doc.insertString(logout_doc.getLength(), "" + (System.nanoTime()/Math.pow(10,9)), logout_sas);
+					} catch (BadLocationException e) { e.printStackTrace(); }
+				}
+				
 				switch(spe.getEventType()) {
 					case SerialPort.LISTENING_EVENT_DATA_AVAILABLE :
 						break;
@@ -528,7 +562,19 @@ class SerialPokeCommConnection{
 	private void genUI_tab_editor() {
 		JPanel tab_cont = new JPanel();
 		
-				
+		JCheckBox jcb_toggleport = new JCheckBox("port enabled", sp.isOpen());
+			jcb_toggleport.setToolTipText("open/close port. ");
+			jcb_toggleport.addItemListener(il -> {
+				 	if(il.getStateChange() == ItemEvent.SELECTED) {
+				 		int delay = 500;
+	        			setNoticeText("opening port ("+delay+"mil delay)... ", Color.black);
+	        			appendNoticeText((sp.openPort(delay) ? "success" : "failed" ), Color.black);
+	        		}else if(il.getStateChange() == ItemEvent.DESELECTED) { 
+	        			setNoticeText("closing port ... " , Color.black);
+	        			appendNoticeText((sp.closePort() ? "success" : "failed" ), Color.black);
+	        		}
+			 	});
+		
 		content_tabb.addTab("editor", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize), tab_cont, "general manager");
 	}
 	
@@ -665,5 +711,9 @@ class SerialPokeCommConnection{
 			System.err.println("SerialPoke.java>SerialPokeCommConnection.genGUI()>ConCateTree | :3 oh no!, something exploded when clicked!\n\tmost likely caused by a DefaultMutableTreeNode that did not have its object declared as a [custom_doTheThingIfNotNull<JPanel>] lambda");
 			e1.printStackTrace();
 		}
+	}
+
+	private void getAsRow(JComponent ...comp) {
+		
 	}
 }
