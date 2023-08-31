@@ -478,7 +478,7 @@ class SerialPokeCommConnection{
 			    			}
 		    			});
 		    		
-				JTextField input = new JTextField("COM3");
+				JTextField input = new JTextField(logTranscriptPath.toAbsolutePath().toString());
 //				input.getDocument().addDocumentListener(new DocumentListener() {
 //					  public void changedUpdate(DocumentEvent e) 	{}
 //					  public void removeUpdate(DocumentEvent e) 	{}
