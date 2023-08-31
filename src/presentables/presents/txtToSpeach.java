@@ -77,7 +77,7 @@ public class txtToSpeach extends Presentable {
 	
 	//main variables
 	private HashSet<Path> speachModelSources = new HashSet<>();
-	private String[] speachModelFileExtensions = new String[] {"bz2"};
+	private String[] speachModelFileExtensions = new String[] {"bz2","txt"};
 	private final Map<String, String> saveMap = Map.of(
 			"runTS_rP_txtEditor_input", 	"textEditorContent.txt",
 			"speachModelSources", 			"speachModelSources.txt"

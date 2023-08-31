@@ -115,6 +115,7 @@ public class menu extends Presentable{
 		screenRight.add(DesscrollFrame);
 		
 		JSplitPane sl = new JSplitPane(SwingConstants.HORIZONTAL, screenLeft, screenRight);
+//		sl.setBackground(MainWin.randColor(mw.getBackground(), .2f));
 		jf.add(sl);
 	}	
 	

@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.event.KeyEvent;
@@ -29,6 +30,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Random;
 
 import presentables.Presentable;
 
@@ -53,7 +55,7 @@ public class MainWin extends JFrame {
 	public static int 
 			stdTextSpace 			= 40,	//standard spacing unit between gui components 
 			stdStructSpace 			= 15,
-			stdPreferredNumThreads 	= 3;
+			stdPreferredNumThreads 	= 2;
 	public static Dimension 
 			stdDimension 		= new Dimension((int)(480*stdDimensionScale),	(int)(270*stdDimensionScale)),
 			stdtabIconSize 		= new Dimension((int)(11*stdDimensionScale),	(int)(11*stdDimensionScale)),
@@ -91,6 +93,8 @@ public class MainWin extends JFrame {
         
         
         initGUIMenuBar();
+        this.setBackground(randColor());
+        
         
 		//starting present
 		setPresent(presentables.presents.menu.class);
@@ -121,6 +125,18 @@ public class MainWin extends JFrame {
 			e.printStackTrace(); 
 			return null;
 		}
+	}
+	public static Color randColor() {
+		Random rand = new Random();
+		return new Color(rand.nextFloat(),rand.nextFloat(),rand.nextFloat());
+	}
+	public static Color randColor(Color theme, float range) {
+		Random rand = new Random();
+		return new Color(
+				theme.getRed() 		* rand.nextFloat() * range,
+				theme.getGreen() 	* rand.nextFloat() * range,
+				theme.getBlue() 	* rand.nextFloat() * range
+			);
 	}
 
 ///////////////////

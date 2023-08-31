@@ -7,7 +7,13 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ItemEvent;
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,6 +32,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -39,6 +46,7 @@ import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
+import javax.swing.border.BevelBorder;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
@@ -52,6 +60,7 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.text.BadLocationException;
@@ -310,13 +319,17 @@ class SerialPokeCommConnection{
 	public String title;
 	public SerialPort sp;
 	public int logSettings = Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
-		
+	
 	//gui
 	public JPanel content = new JPanel(new BorderLayout());
 	public JTabbedPane content_tabb = new JTabbedPane();
 	
 	//private
-	private boolean loggingEnabled = true;
+	private boolean
+		loggingEnabled = true,
+		saveLogTranscript = false;
+	private Path logTranscriptPath;
+	private BufferedWriter logger = null;
 	private JLabel noticeDisplay;
 	private JTree ConCateTree;//console category tree
 	private DefaultMutableTreeNode ConCateTree_root;
@@ -324,6 +337,8 @@ class SerialPokeCommConnection{
 	public SerialPokeCommConnection(SerialPort sp, String title) {
 		this.title = title;
 		this.sp = sp;
+		
+		this.logTranscriptPath = Presentable.getRoot(SerialPoke.class).toAbsolutePath().resolve(this.getDefaultSaveName());
 		
 		genGUI();
 		
@@ -334,6 +349,11 @@ class SerialPokeCommConnection{
 		if(sp.isOpen()) {
 			sp.closePort();
 		}
+		
+		if(logger != null)
+			try {
+				logger.close();
+			} catch (IOException e) { e.printStackTrace(); }
 	}
 
 //////////////////////
@@ -341,6 +361,7 @@ class SerialPokeCommConnection{
 //////////////////////
 	private void genGUI() {
 		content.setLayout(new BorderLayout());
+		content.setBackground(MainWin.randColor());
 		
 		noticeDisplay = new JLabel("notices");
 		content.add(noticeDisplay, BorderLayout.PAGE_END);
@@ -410,15 +431,105 @@ class SerialPokeCommConnection{
         			logCatagories.setEnabled(false);
         		}
         	});
+    		
+    	JPanel logTranscript_panel = new JPanel();
+			SpringLayout editorTab_portDescriptor_layout = new SpringLayout();
+			logTranscript_panel.setLayout(editorTab_portDescriptor_layout);{
+				SpringLayout layout = editorTab_portDescriptor_layout;
+				
+				JCheckBox savetoggler =	new JCheckBox("save transcript", isLoggingToTranscript());
+		    		savetoggler.addItemListener(il -> {
+		        		if(il.getStateChange() == ItemEvent.SELECTED) {
+		        			this.saveLogTranscript = true;
+		        		}else if(il.getStateChange() == ItemEvent.DESELECTED) { //double check because there are other states that can be triggered
+		        			this.saveLogTranscript = false;
+		        		}
+		        	});
+				
+		    	JButton saveFilePicker = new JButton("choose file");
+		    		saveFilePicker.setBackground(new Color(0f,0f,0f,0f));
+		    		saveFilePicker.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
+		    		saveFilePicker.addActionListener(e -> {
+			    			Path pPreferred = Presentable.getRoot(SerialPoke.class);
+			    				
+			    			JFileChooser fc = new JFileChooser(pPreferred.toAbsolutePath().toString());
+			    			
+			    			fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+			    			
+			    			switch(fc.showOpenDialog(cframe)) {
+			    				case JFileChooser.APPROVE_OPTION : 
+				    					try {
+				    						var file	= fc.getSelectedFile();
+				    						
+				    						if(!file.exists()) {
+				    							setNoticeText("file cannot be found: " + file.toPath(), new Color(0,0,0));
+				    						}
+				    						
+				    						if(logger != null) logger.close();
+				    						
+				    						if(file.isDirectory()) {
+				    							Files.createDirectories(Paths.get(file.getAbsolutePath()));
+				    							logTranscriptPath = logTranscriptPath.resolve(getDefaultSaveName());
+				    						}
+				    					} catch (IOException e1) { e1.printStackTrace(); }
+			    					break;
+			    				case JFileChooser.CANCEL_OPTION : 
+			    					break;
+			    			}
+		    			});
+		    		
+				JTextField input = new JTextField("COM3");
+//				input.getDocument().addDocumentListener(new DocumentListener() {
+//					  public void changedUpdate(DocumentEvent e) 	{}
+//					  public void removeUpdate(DocumentEvent e) 	{}
+//					  public void insertUpdate(DocumentEvent e) 	{}
+//					});
+				
+				logTranscript_panel.add(savetoggler);
+				logTranscript_panel.add(input);
+				logTranscript_panel.add(saveFilePicker);
+		 
+		        //toggler
+		        layout.putConstraint(SpringLayout.WEST, savetoggler,
+		        			5, SpringLayout.WEST, logTranscript_panel);
+		        layout.putConstraint(SpringLayout.NORTH, savetoggler,
+		        			5, SpringLayout.NORTH, logTranscript_panel);
+		 
+		        //file selector button
+		        layout.putConstraint(SpringLayout.EAST, saveFilePicker,
+		        		-5, SpringLayout.EAST, logTranscript_panel);
+		        layout.putConstraint(SpringLayout.NORTH, saveFilePicker,
+		        		3, SpringLayout.NORTH, logTranscript_panel);
+		        layout.putConstraint(SpringLayout.SOUTH, saveFilePicker,
+		        		-3, SpringLayout.NORTH, input);
+		        
+		        //text field .
+		        layout.putConstraint(SpringLayout.NORTH, input,
+		        			5, SpringLayout.SOUTH, savetoggler);
+		        
+		        //Adjust constraints for the content pane. text field assumed to be bottom most component
+		        layout.putConstraint(SpringLayout.EAST, logTranscript_panel,
+		        			1, SpringLayout.EAST, input);
+		        layout.putConstraint(SpringLayout.SOUTH, logTranscript_panel,
+		                    5, SpringLayout.SOUTH, input);
+			}
+    		
         
         JComponent[] objs = {
         		logToggler,
-	        	logCatagories
+	        	logCatagories,
+	        	logTranscript_panel
         	};
         JPanel wrapper = new JPanel();
-        	wrapper.setPreferredSize(new Dimension((int)(300*MainWin.stdDimensionScale), (int)(150*MainWin.stdDimensionScale)));
-        for(var v : objs) wrapper.add(v, JComponent.LEFT_ALIGNMENT);
-        JOptionPane.showMessageDialog(cframe, wrapper, "logging", JOptionPane.PLAIN_MESSAGE);
+        	wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        for(var v : objs) {v.setAlignmentX(JComponent.LEFT_ALIGNMENT); wrapper.add(v);}
+        
+        JScrollPane wrapper_scroll = new JScrollPane(wrapper,
+        		JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+        		JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        	wrapper_scroll.setPreferredSize(new Dimension((int)(300*MainWin.stdDimensionScale), (int)(150*MainWin.stdDimensionScale)));
+        	wrapper_scroll.setBorder(BorderFactory.createEmptyBorder());
+        JOptionPane.showMessageDialog(cframe, wrapper_scroll, "logging", JOptionPane.PLAIN_MESSAGE);
         
 	}
 	public void openInfoDialoug() {
@@ -461,12 +572,42 @@ class SerialPokeCommConnection{
 	public void appendNoticeText(String text, Color color) {
 		setNoticeText(this.noticeDisplay.getText() + text);
 	}
-	
 	private boolean isLogging() {
 		return this.loggingEnabled;
 	}
-	private void setLogging(boolean setTo) {
-		if(this.loggingEnabled == setTo) return;
+	private void setLogging(boolean enabled) {
+		if(this.isLogging() == enabled) return;
+		this.loggingEnabled = enabled;
+	}
+	public boolean isLoggingToTranscript() {
+		return this.saveLogTranscript;
+	}
+	public void setLoggingTranscript(boolean enabled) {
+		if(this.isLoggingToTranscript() == enabled) return;
+	}
+	public boolean setLoggingTranscript(boolean enabled, String setTo) {
+		if(!this.setLoggingTranscript(setTo)) return false;
+		
+		this.setLogging(enabled);
+		return true;
+	}
+	public boolean setLoggingTranscript(String setTo) {
+		return false;
+	}
+	public String getDefaultSaveName() {
+		return title + ".log";
+	}
+	private void log(String toLog) {
+		if(!isLoggingToTranscript()) return;
+		if(logger == null)
+			try {
+				logger = Files.newBufferedWriter(logTranscriptPath);
+			} catch (IOException e) { e.printStackTrace(); }
+		
+		try {
+			logger.write(toLog);
+			logger.newLine();
+		} catch (IOException e) { e.printStackTrace(); }
 	}
 	
 	private void genUI_tab_liveInfo() {
@@ -498,32 +639,46 @@ class SerialPokeCommConnection{
 			 		+ "<tr>"
 			 		+ "<th>time</th>"
 			 		+ "<th>event</th>"
-			 		+ "<th>received data</th>"
+			 		+ "<th>data received</th>"
 			 		+ "</tr>");
 			SimpleAttributeSet logout_sas = new SimpleAttributeSet();
-//				StyleConstants.setForeground(logout_sas, Color.black);
-//				StyleConstants.setBackground(logout_sas, Color.white);
-//				StyleConstants.setBold(logout_sas, true);
 		tab_cont.add(logout, BorderLayout.CENTER);
 		
 		content_tabb.addTab("live info", MainWin.getImageIcon("res/info1.png", MainWin.stdtabIconSize), tab_cont, "event driven info about the connection. read only");
 		
 		sp.addDataListener(new SerialPortDataListener() {
 			StyledDocument logout_doc = logout.getStyledDocument();
+			int endLength = ("</html>").length();
 			
 			@Override public int getListeningEvents() { return 0; }
 				
 			@Override public void serialEvent(SerialPortEvent spe) {
 				//if event is to be logged
-				if(( logSettings & spe.getEventType()) != 0) {
+				if(loggingEnabled && ((logSettings & spe.getEventType()) != 0)) {
 					try {
-						logout_doc.insertString(logout_doc.getLength(), ""
-								+ "<tr>"
-								+ "<td>"+ (System.nanoTime()/Math.pow(10,9))		+"</td>"
-								+ "<td>"+ (spe.toString())							+"</td>"
-								+ "<td>"+ Arrays.toString(spe.getReceivedData())	+"</td>"
-								+ "</tr>",
-								logout_sas);
+						long time_mil = (int)(System.nanoTime()/Math.pow(10,6)); 
+						String 
+							serialPortEventName_s 	= spe.toString(),
+							receivedData_s			= Arrays.toString(spe.getReceivedData()); 
+						StringBuilder sb = new StringBuilder();
+							sb.append("<tr><td>");
+							sb.append(time_mil);
+							sb.append("</td><td>");
+							sb.append(serialPortEventName_s);
+							sb.append("</td><td>");
+							sb.append(receivedData_s);
+							sb.append("</td></tr>");
+						
+						logout_doc.insertString(logout_doc.getLength() - endLength, sb.toString(), logout_sas);
+						
+						if(saveLogTranscript) {
+							String line = String.format("%-12d:%30s:%d\n",
+									time_mil,
+									serialPortEventName_s,
+									receivedData_s);
+							log(line);
+							
+						}
 					} catch (BadLocationException e) { e.printStackTrace(); }
 				}
 				
@@ -589,8 +744,6 @@ class SerialPokeCommConnection{
 	
 	private void genUI_tab_settings() {
 		JPanel tab_cont = new JPanel(new BorderLayout());
-		
-		var etchedLowered = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
 		
 		//screen right
 		JPanel cards = new JPanel();
