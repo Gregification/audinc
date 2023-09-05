@@ -1,5 +1,7 @@
 package presentables;
 
+import java.awt.Color;
+import java.awt.event.ItemEvent;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -8,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 //import java.nio.file.Path;
@@ -23,9 +26,24 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SpringLayout;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
+
+import com.fazecast.jSerialComm.SerialPort;
 
 import audinc.gui.MainWin;
+import audinc.gui.WrapLayout;
+import presentables.presents.SerialPoke;
 
 /**
  * {@summary boarder layout}
@@ -80,6 +98,67 @@ public abstract class Presentable {
 		}
 	}
 		
+	public static JPanel genFilePicker(
+			Class<? extends Presentable> c,
+			Path 		defaultPath,
+			JCheckBox 	savetoggler,
+			custom_function<JFileChooser> fileChooserEvent){
+		
+		JPanel logTranscript_panel = new JPanel();
+			SpringLayout editorTab_portDescriptor_layout = new SpringLayout();
+			logTranscript_panel.setLayout(editorTab_portDescriptor_layout);{
+				SpringLayout layout = editorTab_portDescriptor_layout;
+				
+		    	JButton saveFilePicker = new JButton("choose file");
+		    		saveFilePicker.setBackground(new Color(0f,0f,0f,0f));
+		    		saveFilePicker.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
+		    		saveFilePicker.addActionListener(e -> {
+			    			Path pPreferred = Presentable.getRoot(SerialPoke.class);
+			    				
+			    			JFileChooser fc = new JFileChooser(pPreferred.toAbsolutePath().toString());
+			    			
+			    			fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+			    			
+			    			fileChooserEvent.doTheThing(fc);
+			    			
+		    			});
+		    		
+				JTextField input = new JTextField(defaultPath.toAbsolutePath().toString());
+				
+				logTranscript_panel.add(savetoggler);
+				logTranscript_panel.add(input);
+				logTranscript_panel.add(saveFilePicker);
+		 
+		        //toggler
+		        layout.putConstraint(SpringLayout.WEST, savetoggler,
+		        			5, SpringLayout.WEST, logTranscript_panel);
+		        layout.putConstraint(SpringLayout.NORTH, savetoggler,
+		        			5, SpringLayout.NORTH, logTranscript_panel);
+		 
+		        //file selector button
+		        layout.putConstraint(SpringLayout.EAST, saveFilePicker,
+		        		-5, SpringLayout.EAST, logTranscript_panel);
+		        layout.putConstraint(SpringLayout.NORTH, saveFilePicker,
+		        		3, SpringLayout.NORTH, logTranscript_panel);
+		        layout.putConstraint(SpringLayout.SOUTH, saveFilePicker,
+		        		-3, SpringLayout.NORTH, input);
+		        
+		        //text field .
+		        layout.putConstraint(SpringLayout.NORTH, input,
+		        			5, SpringLayout.SOUTH, savetoggler);
+		        layout.putConstraint(SpringLayout.SOUTH, input,
+	        			30, SpringLayout.SOUTH, savetoggler);
+		        
+		        //Adjust constraints for the content pane. text field assumed to be bottom most component
+		        layout.putConstraint(SpringLayout.EAST, logTranscript_panel,
+		        			1, SpringLayout.EAST, input);
+		        layout.putConstraint(SpringLayout.SOUTH, logTranscript_panel,
+		                    5, SpringLayout.SOUTH, input);
+			}
+			
+		return logTranscript_panel;
+	}
+	
 	/*
 	 * protected static ZipOutputStream getZOStream(Class<? extends Presentable>
 	 * clas) { ZipOutputStream out = null; try { out = new ZipOutputStream( new

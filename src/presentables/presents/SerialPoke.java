@@ -657,7 +657,10 @@ class SerialPokeCommConnection{
 			 		+ "<th>data received</th>"
 			 		+ "</tr>");
 			SimpleAttributeSet logout_sas = new SimpleAttributeSet();
-		tab_cont.add(logout, BorderLayout.CENTER);
+			JScrollPane logout_scroll = new JScrollPane(logout,	
+					JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+					JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		tab_cont.add(logout_scroll, BorderLayout.CENTER);
 		
 		content_tabb.addTab("live info", MainWin.getImageIcon("res/info1.png", MainWin.stdtabIconSize), tab_cont, "event driven info about the connection. read only");
 		
