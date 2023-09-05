@@ -225,6 +225,7 @@ public class SerialPoke extends Presentable{
 		SerialPort sp = SerialPort.getCommPort(editorTab_portDescriptor_txt.getText());		
 		
 		SerialPokeCommConnection spcc = new SerialPokeCommConnection(sp, title);
+		if(spcc.content == null) return;
 		SPCConnections.add(spcc);
 		
 		int tabI = tabbedPane.getTabCount();
@@ -321,7 +322,7 @@ class SerialPokeCommConnection{
 	public int logSettings = Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
 	
 	//gui
-	public JPanel content = new JPanel(new BorderLayout());
+	public JPanel content = null;
 	public JTabbedPane content_tabb = new JTabbedPane();
 	
 	//private
@@ -338,7 +339,19 @@ class SerialPokeCommConnection{
 		this.title = title;
 		this.sp = sp;
 		
+		try {
 		this.logTranscriptPath = Presentable.getRoot(SerialPoke.class).toAbsolutePath().resolve(this.getDefaultSaveName());
+		} catch (java.nio.file.InvalidPathException e) {
+			JLabel jl = new JLabel("connection path is invalid. " + e);
+			JScrollPane _scroll = new JScrollPane(jl,	
+					JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+					JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+				_scroll.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*1/8), (int)MainWin.stdDimension.getHeight()));
+				_scroll.setAutoscrolls(true);
+			
+			JOptionPane.showMessageDialog(content, _scroll);
+			return; 
+		}
 		
 		genGUI();
 		
@@ -360,10 +373,12 @@ class SerialPokeCommConnection{
 //UI
 //////////////////////
 	private void genGUI() {
-		content.setLayout(new BorderLayout());
-		content.setBackground(MainWin.randColor());
+		content = new JPanel(new BorderLayout());
+			content.setLayout(new BorderLayout());
+			content.setBackground(MainWin.randColor());
+			
+			noticeDisplay = new JLabel("notices");
 		
-		noticeDisplay = new JLabel("notices");
 		content.add(noticeDisplay, BorderLayout.PAGE_END);
 		
 		ConCateTree_root = new DefaultMutableTreeNode(new custom_doTheThingIfNotNull<JPanel>() {

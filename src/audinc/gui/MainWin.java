@@ -47,7 +47,8 @@ public class MainWin extends JFrame {
 			presentables.presents.txtToSpeach.class,
 			presentables.presents.BorderLayoutDemo.class,
 			presentables.presents.AutoClicker.class,
-			presentables.presents.SerialPoke.class
+			presentables.presents.SerialPoke.class,
+			presentables.presents.IE3301part1.class
 		).collect(Collectors.collectingAndThen(Collectors.toSet(),Collections::<Class<? extends Presentable>>unmodifiableSet));
 	
 	//standard values
@@ -126,6 +127,7 @@ public class MainWin extends JFrame {
 			return null;
 		}
 	}
+	
 	public static Color randColor() {
 		Random rand = new Random();
 		return new Color(rand.nextFloat(),rand.nextFloat(),rand.nextFloat());
@@ -185,6 +187,7 @@ public class MainWin extends JFrame {
 			help.setMnemonic('H');
 			JMenuItem mainMenu = new JMenuItem("main menu");
 				mainMenu.addActionListener(event -> setPresent(presentables.presents.menu.class));
+				mainMenu.setMnemonic('M');
 			JMenuItem about = new JMenuItem("About");
 				about.setMnemonic('A');
 				about.addActionListener(event -> onAboutClick());
