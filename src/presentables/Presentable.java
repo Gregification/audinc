@@ -32,6 +32,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SpringLayout;
@@ -159,6 +160,32 @@ public abstract class Presentable {
 		return logTranscript_panel;
 	}
 	
+	public static JPanel genLabelInput(JLabel label, JTextField input) {
+		JPanel container = new JPanel();
+			SpringLayout layout = new SpringLayout();
+			container.setLayout(layout);
+		
+			container.add(label);
+			container.add(input);
+			
+			//label
+			layout.putConstraint(SpringLayout.EAST, label,
+					5, SpringLayout.EAST, container);
+			
+			//input
+			layout.putConstraint(SpringLayout.EAST, input,
+					5, SpringLayout.WEST, label);
+			layout.putConstraint(SpringLayout.WEST, input,
+					5, SpringLayout.WEST, container);
+			
+		return container;
+	}
+	public static JPanel genLabelInput(String title, custom_function<JTextField> cf) {
+		return Presentable.genLabelInput(new JLabel(title), cf.doTheThing(null));
+	}
+	public static JPanel genLabelInput(String title, JTextField input) {
+		return Presentable.genLabelInput(new JLabel(title), input);
+	}
 	/*
 	 * protected static ZipOutputStream getZOStream(Class<? extends Presentable>
 	 * clas) { ZipOutputStream out = null; try { out = new ZipOutputStream( new
