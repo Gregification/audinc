@@ -1,11 +1,14 @@
 package presentables.presents;
 
 import presentables.Presentable;
+import presentables.custom_function;
+import temp.XMLElement;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.event.ItemEvent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -24,6 +27,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JFileChooser;
@@ -84,6 +88,17 @@ public class txtToSpeach extends Presentable {
 		);
 	private int importSearchDepth = 5;
 	
+	
+	
+	
+	
+	public boolean useXMLFile = false;
+	public Path XMLPath = null;
+	
+	
+	
+	
+	
 	@Override protected void init(MainWin mw) { initGUI(mw); try { load(); } catch (IOException e) { e.printStackTrace(); }}
 	@Override public void quit() 				{
 		try { save(); } catch (IOException e) { e.printStackTrace(); }
@@ -130,6 +145,45 @@ public class txtToSpeach extends Presentable {
 					runTS_lP_runSettings.add(runTS_lP_voiceCB);
 					runTS_lP_runSettings.add(runTS_lP_runSettings_startBtn);
 			runTS_l.add(runTS_lP_txtEditor_ScrollFrame, BorderLayout.CENTER);
+			
+			
+			
+			
+			{
+				
+				if(XMLPath == null) XMLPath = Presentable.getRoot(this.getClass()); 
+				
+				JCheckBox logToggler =	new JCheckBox("use file", this.useXMLFile);
+					logToggler.addItemListener(il -> {
+				    		if(il.getStateChange() == ItemEvent.SELECTED) {
+				    			useXMLFile = true;
+				    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
+				    			useXMLFile = false;
+				    		}
+				    	});
+				
+				JPanel saveFilePicker = Presentable.genFilePicker(
+						this.getClass(),
+						XMLPath,
+						logToggler,
+						new custom_function<JFileChooser>() {
+							@Override public JFileChooser doTheThing(JFileChooser fc) {
+								switch(fc.showOpenDialog(null)) {
+									case JFileChooser.APPROVE_OPTION : 
+				    					Path newpath = fc.getSelectedFile().toPath();
+				    					XMLPath = newpath;
+			    					break;
+								}
+								return null;
+							}}
+						);
+
+				saveFilePicker.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "xml file picker", TitledBorder.LEFT, TitledBorder.TOP));
+				
+				runTS_lP_runSettings.add(saveFilePicker);
+			}
+						
+			
 			
 			
 			//run/synth tab \ screen right
@@ -259,6 +313,17 @@ public class txtToSpeach extends Presentable {
 	protected void onRunTabStartClick(MainWin mw) {
 		this.setNoticeText("something malicious is (not) brewing...");
 		
+		System.out.println("geting xml from file? " + this.useXMLFile
+				+"\npath: " + this.XMLPath.toAbsolutePath().toString()
+				+"");
+		
+		XMLElement root;
+		if(this.useXMLFile)
+			XMLElement.getElement(this.XMLPath);
+		else		
+			XMLElement.getElement(runTS_rP_txtEditor_input.getText());
+		
+		
 //		try {
 //			Voice[] voices;
 //			VoiceManager vm = VoiceManager.getInstance();
@@ -356,7 +421,7 @@ public class txtToSpeach extends Presentable {
 				break;
 		}
 	}
-		
+	
 	protected void setNoticeText(String text) {
 		this.noticeDisplay.setText(text);
 	}

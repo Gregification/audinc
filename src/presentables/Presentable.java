@@ -1,6 +1,9 @@
 package presentables;
 
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.event.ItemEvent;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -71,6 +74,7 @@ public abstract class Presentable {
 		try { return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png"))); } 
 		catch (IOException e) { e.printStackTrace(); return null; }
 	}
+	
 	/*
 	 * attempts to get the relevant static method from the given Presentable child. ex: getDescription
 	 * - made as a work-around for overriding static methods
@@ -160,28 +164,18 @@ public abstract class Presentable {
 		return logTranscript_panel;
 	}
 	
-	public static JPanel genLabelInput(JLabel label, JTextField input) {
-		JPanel container = new JPanel();
-			SpringLayout layout = new SpringLayout();
-			container.setLayout(layout);
-		
+	public static JPanel genLabelInput(JLabel label, JTextField input) {//orgionaly done with springlayout but that kept breaking
+		JPanel container = new JPanel(new FlowLayout());
 			container.add(label);
 			container.add(input);
-			
-			//label
-			layout.putConstraint(SpringLayout.EAST, label,
-					5, SpringLayout.EAST, container);
-			
-			//input
-			layout.putConstraint(SpringLayout.EAST, input,
-					5, SpringLayout.WEST, label);
-			layout.putConstraint(SpringLayout.WEST, input,
-					5, SpringLayout.WEST, container);
 			
 		return container;
 	}
 	public static JPanel genLabelInput(String title, custom_function<JTextField> cf) {
-		return Presentable.genLabelInput(new JLabel(title), cf.doTheThing(null));
+		return Presentable.genLabelInput(title, cf.doTheThing(null));
+	}
+	public static JPanel genLabelInput(JLabel label, custom_function<JTextField> cf) {
+		return Presentable.genLabelInput(label, cf.doTheThing(null));
 	}
 	public static JPanel genLabelInput(String title, JTextField input) {
 		return Presentable.genLabelInput(new JLabel(title), input);
@@ -214,7 +208,7 @@ public abstract class Presentable {
 			lambda.doTheThing(br);
 		}catch (IOException e) { e.printStackTrace(); }
 	}
-	protected void readFromPath(Path path, custom_bufferedReader lambda) {
+	public static void readFromPath(Path path, custom_bufferedReader lambda) {
 		if(Files.exists(path))
 			try(BufferedReader br = Files.newBufferedReader(path)){
 				lambda.doTheThing(br);
