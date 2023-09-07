@@ -1,5 +1,10 @@
 package presentables.presents;
 
+/*
+ * this thing is NOT thread safe but its patched together just well enough it works
+ * 
+ * sauce http://www.labbookpages.co.uk/audio/javaWavFiles.html
+ */
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -9,6 +14,7 @@ import java.awt.FlowLayout;
 import java.awt.event.ItemEvent;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +32,7 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.Line;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.TargetDataLine;
+import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
@@ -64,6 +71,7 @@ import presentables.custom_function;
 
 public class IE3301 extends Presentable{
 	public JTable part1DataTable;
+	private DefaultTableModel p1dtModle;
 	public Path savePath;
 	
 	//audio
@@ -78,7 +86,7 @@ public class IE3301 extends Presentable{
 	public boolean 
 		audioFormat_bigEndian 	= false,
 		audioFormat_custom		= false;
-	public AudioFormat.Encoding audioFormat_encoding = AudioFormat.Encoding.PCM_FLOAT;
+	public AudioFormat.Encoding audioFormat_encoding = AudioFormat.Encoding.PCM_SIGNED;
 	private TargetDataLine targetLine;
 	private Thread 
 		audio_thread_recording 	= null,
@@ -112,7 +120,12 @@ public class IE3301 extends Presentable{
 		mw.add(container);
 	}
 	
-	@Override public void quit() {}
+	@Override public void quit() {
+		this.stopRecording();
+		
+		//this should be already done but just in case
+		this.targetLine.close();
+	}
 	
 	public void genUI_tab_part1(JTabbedPane host_tabb) {
 		JPanel content = new JPanel(new BorderLayout());
@@ -131,8 +144,9 @@ public class IE3301 extends Presentable{
 				tb_startbtn.addActionListener(e -> {
 						onPlayBtnClick();
 						
-						tb_startbtn.setIcon(MainWin.getImageIcon("res/dot_"+ (isRecording() ? "lime" : "red")+".png", MainWin.stdtabIconSize));
+						tb_startbtn.setIcon(MainWin.getImageIcon("res/"+ (isRecording() ? "dot_red": "playbtn")+".png", MainWin.stdtabIconSize));
 					});
+					tb_startbtn.setIcon(MainWin.getImageIcon("res/"+ (isRecording() ? "dot_red": "playbtn")+".png", MainWin.stdtabIconSize));
 				
 			toolbar.add(tb_logbtn);
 			toolbar.add(tb_startbtn);
@@ -143,10 +157,10 @@ public class IE3301 extends Presentable{
 					private static final long serialVersionUID = 1L;//eclipse complains
 					public boolean isCellEditable(int row, int column) { return true; };
 				};
-			var table_model = (DefaultTableModel)this.part1DataTable.getModel();
-				for(var v : new String[] {"deciable", "time"}) table_model.addColumn(v);
+			p1dtModle = (DefaultTableModel)this.part1DataTable.getModel();
+				for(var v : new String[] {"deciable", "time"}) p1dtModle.addColumn(v);
 				
-			TableRowSorter<TableModel> table_sorter = new TableRowSorter<>(table_model);
+			TableRowSorter<TableModel> table_sorter = new TableRowSorter<>(p1dtModle);
 				table_sorter.setSortKeys(Arrays.asList(
 						new RowSorter.SortKey(0, SortOrder.ASCENDING)
 					));
@@ -174,6 +188,40 @@ public class IE3301 extends Presentable{
 		    			this.setLoggingEnabled(false);
 		    		}
 		    	});
+		
+		//big endian toggler
+	 	JCheckBox bigEndianToggler =	new JCheckBox("big endian", this.audioFormat_bigEndian);
+			bigEndianToggler.addItemListener(il -> {
+		    		if(il.getStateChange() == ItemEvent.SELECTED) {
+		    			this.audioFormat_bigEndian = true;
+		    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
+		    			this.audioFormat_bigEndian = false;
+		    		}
+		    	});
+		
+		//save audio file toggler
+		JCheckBox saveAudioFileToggler =	new JCheckBox("save audio file", this.saveAudio.get());
+			saveAudioFileToggler.addItemListener(il -> {
+		    		if(il.getStateChange() == ItemEvent.SELECTED) {
+		    			this.saveAudio.set(true);
+		    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
+		    			this.saveAudio.set(false);
+		    		}
+		    	});
+			saveAudioFileToggler.setToolTipText(".wav . will save to the same location as logs even if logs are not enableds");
+		
+		JCheckBox useCustomLineToggler =	new JCheckBox("custom format", this.saveAudio.get());
+			useCustomLineToggler.addItemListener(il -> {
+		    		if(il.getStateChange() == ItemEvent.SELECTED) {
+		    			this.audioFormat_custom = true;
+		    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
+		    			this.audioFormat_custom = false;
+		    		}
+		    	});
+			useCustomLineToggler.setToolTipText("selecting this additionaly applies these ontop of everything else ->"
+					+ " frameSize"
+					+ " & frameRate");
+			
 		JPanel saveFilePicker = Presentable.genFilePicker(
 				this.getClass(),
 				this.savePath,
@@ -219,39 +267,11 @@ public class IE3301 extends Presentable{
 					audioEncoding.add(jrb);
 				}
 			}
-		
-		//big endian toggler
-	 	JCheckBox bigEndianToggler =	new JCheckBox("big endian", this.audioFormat_bigEndian);
-			bigEndianToggler.addItemListener(il -> {
-		    		if(il.getStateChange() == ItemEvent.SELECTED) {
-		    			this.audioFormat_bigEndian = true;
-		    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
-		    			this.audioFormat_bigEndian = false;
-		    		}
-		    	});
-		
-		//save audio file toggler
-		JCheckBox saveAudioFileToggler =	new JCheckBox("save audio file", this.saveAudio.get());
-			saveAudioFileToggler.addItemListener(il -> {
-		    		if(il.getStateChange() == ItemEvent.SELECTED) {
-		    			this.saveAudio.set(true);
-		    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
-		    			this.saveAudio.set(false);
-		    		}
-		    	});
-		
-		JCheckBox useCustomLineToggler =	new JCheckBox("custom format", this.saveAudio.get());
-			useCustomLineToggler.addItemListener(il -> {
-		    		if(il.getStateChange() == ItemEvent.SELECTED) {
-		    			this.audioFormat_custom = true;
-		    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
-		    			this.audioFormat_custom = false;
-		    		}
-		    	});
 			
 		//package components
 		JComponent[] objs = {
 				saveFilePicker,
+				saveAudioFileToggler,
 				Presentable.genLabelInput("log interval (mil)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
 						JTextField o = new JTextField((int)Math.ceil(Math.log10(24*60*60*1000)));
@@ -348,6 +368,27 @@ public class IE3301 extends Presentable{
 						});		
 						return o;
 					}}),
+				Presentable.genLabelInput("frame rate	(int)	: ", new custom_function<JTextField>() {
+					@Override public JTextField doTheThing(JTextField thisisnull) {
+						JTextField o = new JTextField(5);
+						o.setText(frameRate+"");
+						o.getDocument().addDocumentListener(new DocumentListener() {
+							@Override public void insertUpdate(DocumentEvent e) {
+								String src = o.getText();
+								if(src.isEmpty() || Integer.parseInt(src) < 1) {
+									o.setText(frameRate+"");
+									setNoticeText("frame size must be at least 1", Color.yellow);
+									return;
+								}
+								int val = Integer.parseInt(src);
+								
+								frameRate = val;
+							}
+							@Override public void removeUpdate(DocumentEvent e)	 {}
+							@Override public void changedUpdate(DocumentEvent e) {}
+						});		
+						return o;
+					}}),
 				Presentable.genLabelInput("sample rate	(float)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
 						JTextField o = new JTextField(10);
@@ -390,8 +431,7 @@ public class IE3301 extends Presentable{
 						});		
 						return o;
 					}}),
-				bigEndianToggler,
-				saveAudioFileToggler
+				bigEndianToggler
 		};
         JPanel wrapper = new JPanel();
         	wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
@@ -405,6 +445,18 @@ public class IE3301 extends Presentable{
         this.setNoticeText("changes in settings will not go into effect untill restart");
         
         JOptionPane.showMessageDialog(cframe, wrapper_scroll, "logging", JOptionPane.PLAIN_MESSAGE);
+	}
+	
+	public void onSaveClick() {
+		
+	}
+	
+	public void onImportClick() {
+		
+	}
+	
+	public synchronized void Part1DataTableModel(custom_function<DefaultTableModel> action) {
+		action.doTheThing(this.p1dtModle);
 	}
 	
 	public boolean isLoggingEnabled() {
@@ -477,25 +529,7 @@ public class IE3301 extends Presentable{
 				+ "\n\rsaveaudio:\t" + this.saveAudio + "");
 		
 		try {
-			AudioFormat audioFormat;
-			if(this.audioFormat_custom) {
-				audioFormat = new AudioFormat(
-		 				this.audioFormat_encoding,
-		 				this.sampleRate,
-		 				this.sampleSize_bits, 
-		 				this.channels,
-		 				this.frameSize,
-		 				this.frameRate,
-		 				false);
-			} else {
-				Line.Info info = selectedLine;
-				audioFormat = new AudioFormat(
-						48000,
-		 				16,
-		 				2,
-		 				true,
-		 				false);
-			}
+			AudioFormat audioFormat = this.getAudioFormat();
 	 		
 	 		DataLine.Info dataInfo = new DataLine.Info(TargetDataLine.class, audioFormat);
 	 		if(!AudioSystem.isLineSupported(dataInfo)) {
@@ -511,18 +545,19 @@ public class IE3301 extends Presentable{
 	 		setNoticeText("starting recording");
 	 		targetLine.start();
 	 		
+	 		AudioInputStream recordingStream = new AudioInputStream(targetLine);
+	 		
 	 		if(this.saveAudio.get()) {
 		 		audio_thread_recording = new Thread() {
 		 			@Override public void run() {
-		 				AudioInputStream recordingStream = new AudioInputStream(targetLine);
 		 				File outputFile;
-		 				synchronized(savePath){
-		 					Path pth = savePath.resolve(savePath.getFileName() + ".wav");
-		 					outputFile = pth.toFile();
-		 					System.out.println("\tpath:\t" + pth);
-		 				}
+		 				
+		 				Path pth = savePath.resolve(savePath.getFileName() + ".wav");
+		 				outputFile = pth.toFile();
+		 				setNoticeText("saving audio to:" + pth.toAbsolutePath().toString(), Color.black);
 		 				
 		 				try {
+		 					System.out.println("writing to recording stream");
 							AudioSystem.write(recordingStream, AudioFileFormat.Type.WAVE, outputFile);
 						} catch (IOException e) {
 							System.out.println(e);
@@ -530,14 +565,36 @@ public class IE3301 extends Presentable{
 		 			}};
 	 		}
 	 		
+	 		//this is live
 	 		audio_thread_analysis = new Thread() {
 	 			@Override public void run() {
+	 				try {
+	 					System.out.println("getting input stream");
+						InputStream input = recordingStream;
+						
+						var dateFormat 	= new SimpleDateFormat("MMddyyyy_HHmmss");
+						var calender 	= Calendar.getInstance();
+						
+						int len;
+						byte[] buffer 	= new byte[1024];
+						
+						while((len = input.read(buffer)) > 0) {
+							System.out.println((calender.getTime().getTime()) +"\t:\t"+ Arrays.toString(buffer));
+						}
+						
+						
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 	 			}};
 	 			
 	 			
  			if(this.saveAudio.get())
 		 		audio_thread_recording.start(); 
- 			audio_thread_analysis.start();
+ 			
+ 			if(audio_thread_analysis != null)
+ 				audio_thread_analysis.start();
  			
 	 	}catch (Exception e) {
 	 		this.setNoticeText(e.toString(), Color.red);
@@ -570,6 +627,29 @@ public class IE3301 extends Presentable{
 	public boolean isRecording() {
 		return targetLine != null && targetLine.isOpen();
 	}
+	private AudioFormat getAudioFormat() {
+		AudioFormat audioFormat;
+		if(this.audioFormat_custom) {
+			audioFormat = new AudioFormat(
+	 				this.audioFormat_encoding,
+	 				this.sampleRate,
+	 				this.sampleSize_bits, 
+	 				this.channels,
+	 				this.frameSize,
+	 				this.frameRate,
+	 				this.audioFormat_bigEndian);
+		} else {
+			Line.Info info = selectedLine;//i have no clue how to get data out if this thing. i thought it was a related to DataLine.Info but it's not :(
+			
+			audioFormat = new AudioFormat(
+					this.sampleRate,
+	 				this.sampleSize_bits,
+	 				this.channels,
+	 				this.audioFormat_encoding == AudioFormat.Encoding.PCM_SIGNED,
+	 				this.audioFormat_bigEndian);
+		}
+		return audioFormat;
+	}
 	
 ///////////////////
 //present statics
@@ -580,3 +660,4 @@ public class IE3301 extends Presentable{
 			+ "<body>a quick slap together to generate datasets for IE3301 course > project part 1<br>"
 			+ "</body>"; }
 }
+
