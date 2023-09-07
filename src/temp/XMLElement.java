@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.Stack;
@@ -30,25 +31,66 @@ public class XMLElement {
 	}
 	
 	public static XMLElement getElement(String src) {
-		if(src == null || src.isBlank() || src.isEmpty()) return null;
+		if(src == null || src.isBlank() || src.isEmpty() || !src.startsWith("<")) return null;
 		
-		int idx = 0;
 		XMLElement container = new XMLElement();
 		
-		
-		
-		System.out.println("src\n"+src);
-		
-		while(true) {
-			XMLElement pointer = getElement(src.substring(idx));
+		ArrayList<String> sets = new ArrayList<>();
+		for(int idx = 0, end = 0;idx < src.length();) {			
+			String set = src.substring(idx, (end = getStrEle(idx, src, new char[]{' '})));
+			sets.add(set);
+			idx = end;
+		}
 			
-			if(pointer != null)
-				container.children.add(pointer);
-			else break;
+		for(var v : sets) {
+			System.out.println("\tset:"+v);
 		}
 		
 		return container;
 	}
+	
+	private static int getStrEle(int i, String src, char[] whitespace) {
+		HashMap<Character, Character> delims = new HashMap<>();
+			delims.put('<','>');
+			delims.put('"', '"');
+			var arr_keys = delims.keySet();
+		
+		char
+			deil = 0, //there can only be one 1 at a time
+			charAt;
+		
+		int orgIdx = i;
+		
+		do {
+			charAt = src.charAt(i);
+//			System.out.println("\t\""+charAt+"\"");
+			
+			if(deil == 0) {	//if not in a set
+				if(Arrays.asList(whitespace).contains(charAt)) { //if it hits white space => break
+//					System.out.println("\t[found white space]");
+					return ++i;
+				}
+				
+				if(arr_keys.contains(charAt)) {
+//					System.out.println("\t[DATASET FOUND]");
+					deil = charAt;
+					
+					if(deil == '<' && src.charAt(i+1) == '/' && orgIdx+1 < i) return i;
+				}
+			}else{
+				if(delims.get(deil) == charAt) { //it is in a set -> is it the end of the set?
+					//end of set means end of data
+//					System.out.println("\t[end of dataset]");
+					return ++i;
+				}
+			}
+			
+			i++;
+		}while(i < src.length());
+		
+		return i;//something went wrong
+	}
+	
 	public static XMLElement getElement(Path path) {
 		StringBuilder src = new StringBuilder();
 		Presentable.readFromPath(path, br -> { 
@@ -62,47 +104,7 @@ public class XMLElement {
 				}
 			});
 		return getElement(src.toString());
-	}	
-	
-	//finds the end of the starting element ex:[<book id="10">], the start index gives the first '<' and returns the index of '>'
-	public static int getEndOfEle(int start, String src) {
-		Stack<Character> q = new Stack<Character>();
-		HashMap<Character, Character> delims = new HashMap<>();
-		int 
-			idx = 0;
-		
-		//xml should only contain these two
-		delims.put('<', '>');
-		delims.put('"', '"');
-		
-		var arr_keys = delims.keySet();
-		
-		while(idx != src.length()) {
-			char charAt = src.charAt(idx);
-			
-			//if charAt is a ending deliminator
-			if(q.size() > 0 && charAt == q.peek()) {
-				
-			}
-			
-			//if it is a starting deliminator. this should alwayse trigger on the first loop
-			else if(arr_keys.contains(charAt)) { 
-				q.push(delims.get(charAt));
-			}
-			
-			idx++;
-			
-			if(q.size() == 0) break; //successful! :D
-		}		
-		
-		if(q.size() != 0) {
-			//a element was misssing a closing statement
-			System.out.println("index:"+idx + "\nSOMETHIGN BROKE :(");
-		}
-		
-		return idx;
-	}
-	
+	}		
 	
 	//this is just printing
 	public String prettyPrint(int idx) {
