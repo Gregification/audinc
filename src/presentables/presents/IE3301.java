@@ -13,12 +13,18 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
+import javax.sound.sampled.Line;
+import javax.sound.sampled.Mixer;
 import javax.sound.sampled.TargetDataLine;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -26,6 +32,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -69,18 +76,27 @@ public class IE3301 extends Presentable{
 		sampleRate	= 44100,
 		frameRate	= 44100;
 	public boolean 
-		audioFormat_bigEndian = false,
-		saveAudio = false;
+		audioFormat_bigEndian 	= false,
+		audioFormat_custom		= false;
 	public AudioFormat.Encoding audioFormat_encoding = AudioFormat.Encoding.PCM_FLOAT;
+	private TargetDataLine targetLine;
+	private Thread 
+		audio_thread_recording 	= null,
+		audio_thread_analysis 	= null;
+	private final AtomicBoolean saveAudio = new AtomicBoolean(true);
+	public ArrayList<Line.Info> detectedLines = new ArrayList<>();
 	
-	private boolean logginEnabled = false;
+	private Line.Info selectedLine = null;
+	private boolean logginEnabled = true;
 	private JLabel noticeDisplay = new JLabel("");
 	
 	@Override protected void start()	{
-		
+        
 	}
 	
 	@Override protected void init(MainWin mw) 	{
+		this.checkDataLines();
+		
 		this.savePath = Presentable.getRoot(this.getClass());
 		initGUI(mw);
 	}	
@@ -109,10 +125,14 @@ public class IE3301 extends Presentable{
 				tb_logbtn.setBorder(emptyBorder);
 				tb_logbtn.setToolTipText("log settings");
 				tb_logbtn.addActionListener(e -> openSettingsDialoug());
-			JButton tb_startbtn = new JButton(MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize));
+			JButton tb_startbtn = new JButton(MainWin.getImageIcon("res/dot_lime.png", MainWin.stdtabIconSize));
 				tb_startbtn.setBorder(emptyBorder);
 				tb_startbtn.setToolTipText("play/stop button");
-				tb_startbtn.addActionListener(e -> onPlayBtnClick());
+				tb_startbtn.addActionListener(e -> {
+						onPlayBtnClick();
+						
+						tb_startbtn.setIcon(MainWin.getImageIcon("res/dot_"+ (isRecording() ? "lime" : "red")+".png", MainWin.stdtabIconSize));
+					});
 				
 			toolbar.add(tb_logbtn);
 			toolbar.add(tb_startbtn);
@@ -121,7 +141,7 @@ public class IE3301 extends Presentable{
 		//log table
 		this.part1DataTable = new JTable() {
 					private static final long serialVersionUID = 1L;//eclipse complains
-					public boolean isCellEditable(int row, int column) { return false; }; //disables user editing of table
+					public boolean isCellEditable(int row, int column) { return true; };
 				};
 			var table_model = (DefaultTableModel)this.part1DataTable.getModel();
 				for(var v : new String[] {"deciable", "time"}) table_model.addColumn(v);
@@ -211,19 +231,27 @@ public class IE3301 extends Presentable{
 		    	});
 		
 		//save audio file toggler
-		JCheckBox saveAudioFileToggler =	new JCheckBox("save audio", this.saveAudio);
+		JCheckBox saveAudioFileToggler =	new JCheckBox("save audio file", this.saveAudio.get());
 			saveAudioFileToggler.addItemListener(il -> {
 		    		if(il.getStateChange() == ItemEvent.SELECTED) {
-		    			this.saveAudio = true;
+		    			this.saveAudio.set(true);
 		    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
-		    			this.saveAudio = false;
+		    			this.saveAudio.set(false);
+		    		}
+		    	});
+		
+		JCheckBox useCustomLineToggler =	new JCheckBox("custom format", this.saveAudio.get());
+			useCustomLineToggler.addItemListener(il -> {
+		    		if(il.getStateChange() == ItemEvent.SELECTED) {
+		    			this.audioFormat_custom = true;
+		    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
+		    			this.audioFormat_custom = false;
 		    		}
 		    	});
 			
 		//package components
 		JComponent[] objs = {
 				saveFilePicker,
-				audioEncoding,
 				Presentable.genLabelInput("log interval (mil)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
 						JTextField o = new JTextField((int)Math.ceil(Math.log10(24*60*60*1000)));
@@ -246,6 +274,16 @@ public class IE3301 extends Presentable{
 							@Override public void changedUpdate(DocumentEvent e) {} // this dosen't trigger when inside a joptionpane. the same actions that trigger this also close the host panel
 						});		
 						return o;
+					}}),
+				audioEncoding,
+				Presentable.genLabelInput((JComponent)useCustomLineToggler, new custom_function<JComponent>() {
+					@Override public JComponent doTheThing(JComponent o) {
+						var v = new JComboBox(detectedLines.toArray());
+							v.setSelectedIndex(0);
+							v.addActionListener(e -> {
+								selectedLine = (Line.Info)v.getSelectedItem();
+							});
+						return v;
 					}}),
 				Presentable.genLabelInput("sample size 	(bits)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
@@ -400,24 +438,64 @@ public class IE3301 extends Presentable{
 		}
 	}
 	
-	public void setNoticeText(String text) {
+	public void checkDataLines() {
+		detectedLines.clear();
+		
+		for (Mixer.Info i : AudioSystem.getMixerInfo()) {
+            Line.Info[] tli = AudioSystem.getMixer(i).getTargetLineInfo();
+            if (tli.length != 0) {
+                for (int f = 0; f < tli.length; f += 1) {
+                    detectedLines.add(tli[f]);
+                }
+            }
+        }
+		
+		selectedLine = detectedLines.get(0);
+	}
+	
+	public synchronized void setNoticeText(String text) {
 		this.noticeDisplay.setText(text);
 	}
-	public void setNoticeText(String text, Color color) {
+	public synchronized void setNoticeText(String text, Color color) {
 		this.noticeDisplay.setForeground(color);
 		setNoticeText(text);
 	}
 	
 	public void onPlayBtnClick() {
-	 	try {
-	 		AudioFormat audioFormat = new AudioFormat(
-	 				this.audioFormat_encoding,
-	 				this.sampleRate,
-	 				this.sampleSize_bits, 
-	 				this.channels,
-	 				this.frameSize,
-	 				this.frameRate,
-	 				false);
+		if(isRecording())
+			stopRecording();
+		else
+			startRecording();
+	}
+	
+	public void startRecording() {
+		if(isRecording()) {
+			stopRecording();
+		}
+		
+		System.out.println("starting recording. "
+				+ "\n\rsaveaudio:\t" + this.saveAudio + "");
+		
+		try {
+			AudioFormat audioFormat;
+			if(this.audioFormat_custom) {
+				audioFormat = new AudioFormat(
+		 				this.audioFormat_encoding,
+		 				this.sampleRate,
+		 				this.sampleSize_bits, 
+		 				this.channels,
+		 				this.frameSize,
+		 				this.frameRate,
+		 				false);
+			} else {
+				Line.Info info = selectedLine;
+				audioFormat = new AudioFormat(
+						48000,
+		 				16,
+		 				2,
+		 				true,
+		 				false);
+			}
 	 		
 	 		DataLine.Info dataInfo = new DataLine.Info(TargetDataLine.class, audioFormat);
 	 		if(!AudioSystem.isLineSupported(dataInfo)) {
@@ -426,16 +504,71 @@ public class IE3301 extends Presentable{
 		 		JOptionPane.showConfirmDialog(null, message,  "fatal", JOptionPane.PLAIN_MESSAGE);
 	 		}
 	 		
-	 		TargetDataLine targetLine = (TargetDataLine)AudioSystem.getLine(dataInfo);
+
+	 		targetLine = (TargetDataLine)AudioSystem.getLine(dataInfo);
 	 		targetLine.open();
 	 		
-	 		JOptionPane.showMessageDialog(null, "hit ok to start recording");
+	 		setNoticeText("starting recording");
 	 		targetLine.start();
 	 		
+	 		if(this.saveAudio.get()) {
+		 		audio_thread_recording = new Thread() {
+		 			@Override public void run() {
+		 				AudioInputStream recordingStream = new AudioInputStream(targetLine);
+		 				File outputFile;
+		 				synchronized(savePath){
+		 					Path pth = savePath.resolve(savePath.getFileName() + ".wav");
+		 					outputFile = pth.toFile();
+		 					System.out.println("\tpath:\t" + pth);
+		 				}
+		 				
+		 				try {
+							AudioSystem.write(recordingStream, AudioFileFormat.Type.WAVE, outputFile);
+						} catch (IOException e) {
+							System.out.println(e);
+						}
+		 			}};
+	 		}
+	 		
+	 		audio_thread_analysis = new Thread() {
+	 			@Override public void run() {
+	 			}};
+	 			
+	 			
+ 			if(this.saveAudio.get())
+		 		audio_thread_recording.start(); 
+ 			audio_thread_analysis.start();
+ 			
 	 	}catch (Exception e) {
 	 		this.setNoticeText(e.toString(), Color.red);
 	 		System.out.println(e);
 	 	}
+	}
+	public void stopRecording() {
+		System.out.println("stopping recording");
+		try {
+			synchronized(targetLine) {
+				targetLine.stop();
+				targetLine.close();
+				
+				if(audio_thread_analysis != null) {
+					setNoticeText("stopping analysis", Color.black);
+					audio_thread_analysis.join();
+					setNoticeText("analysis stopped");
+				}
+				
+				if(audio_thread_recording != null) {
+					setNoticeText("stopping recording", Color.black);
+					audio_thread_recording.join();
+					setNoticeText("recording stopped");
+				}
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	public boolean isRecording() {
+		return targetLine != null && targetLine.isOpen();
 	}
 	
 ///////////////////

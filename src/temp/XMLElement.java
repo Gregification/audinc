@@ -7,6 +7,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Queue;
 import java.util.Stack;
 
@@ -49,49 +50,49 @@ public class XMLElement {
 		return container;
 	}
 	
-	private static int getStrEle(int i, String src, char[] whitespace) {
+	//can throw exception if given invalid xml
+	private static int getStrEle(int i, String src, char[] whitespace) throws IndexOutOfBoundsException{
+		var whiteSpace = Arrays.asList(whitespace);
 		HashMap<Character, Character> delims = new HashMap<>();
 			delims.put('<','>');
 			delims.put('"', '"');
 			var arr_keys = delims.keySet();
-		
+			
 		char
-			deil = 0, //there can only be one 1 at a time
+			deil = 0, //set id
 			charAt;
 		
-		int orgIdx = i;
+		int orgIdx = i; //the starting index. used to tell when to read "</" as a end or start of a set
 		
 		do {
 			charAt = src.charAt(i);
-//			System.out.println("\t\""+charAt+"\"");
 			
 			if(deil == 0) {	//if not in a set
-				if(Arrays.asList(whitespace).contains(charAt)) { //if it hits white space => break
-//					System.out.println("\t[found white space]");
+				if(whiteSpace.contains(charAt)) { //if it hits white space => break
 					return ++i;
 				}
 				
-				if(arr_keys.contains(charAt)) {
-//					System.out.println("\t[DATASET FOUND]");
+				if(arr_keys.contains(charAt)) { //if it is the start of a new set
 					deil = charAt;
 					
-					if(deil == '<' && src.charAt(i+1) == '/' && orgIdx+1 < i) return i;
+					//if it is a ending element of a alligator ["</"]
+					if(deil == '<' && src.charAt(i+1) == '/' && orgIdx+1 < i) return i; //possibly exception source 
 				}
-			}else{
-				if(delims.get(deil) == charAt) { //it is in a set -> is it the end of the set?
+			}else{ // it is in a set
+				if(delims.get(deil) == charAt) { //if is it the end of the set
 					//end of set means end of data
-//					System.out.println("\t[end of dataset]");
 					return ++i;
 				}
 			}
 			
 			i++;
-		}while(i < src.length());
-		
-		return i;//something went wrong
+		}while(true);
 	}
 	
 	public static XMLElement getElement(Path path) {
+		if(!path.toFile().isFile() || !path.getFileName().endsWith(".xml"))
+			return null;
+		
 		StringBuilder src = new StringBuilder();
 		Presentable.readFromPath(path, br -> { 
 				String line;

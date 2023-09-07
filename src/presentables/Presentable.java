@@ -33,6 +33,7 @@ import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -164,7 +165,7 @@ public abstract class Presentable {
 		return logTranscript_panel;
 	}
 	
-	public static JPanel genLabelInput(JLabel label, JTextField input) {//orgionaly done with springlayout but that kept breaking
+	public static JPanel genLabelInput(JComponent label, JComponent input) {//orgionaly done with springlayout but that kept breaking
 		JPanel container = new JPanel(new FlowLayout());
 			container.add(label);
 			container.add(input);
@@ -172,6 +173,9 @@ public abstract class Presentable {
 		return container;
 	}
 	public static JPanel genLabelInput(String title, custom_function<JTextField> cf) {
+		return Presentable.genLabelInput(title, cf.doTheThing(null));
+	}
+	public static JPanel genLabelInput(JComponent title, custom_function<JComponent> cf) {
 		return Presentable.genLabelInput(title, cf.doTheThing(null));
 	}
 	public static JPanel genLabelInput(JLabel label, custom_function<JTextField> cf) {
