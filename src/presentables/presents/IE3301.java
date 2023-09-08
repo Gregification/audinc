@@ -3,7 +3,10 @@ package presentables.presents;
 /*
  * this thing is NOT thread safe but its patched together just well enough it works
  * 
- * sauce http://www.labbookpages.co.uk/audio/javaWavFiles.html
+ * sauce 
+ * 		generic java uses 	: http://www.labbookpages.co.uk/audio/javaWavFiles.html
+ * 		general info 		: https://en.wikipedia.org/wiki/WAV#:~:text=Waveform%20Audio%20File%20Format%20(WAVE,Windows%20systems%20for%20uncompressed%20audio.
+ * 		wave format			: http://soundfile.sapp.org/doc/WaveFormat/
  */
 
 import java.awt.BorderLayout;
@@ -14,6 +17,8 @@ import java.awt.event.ItemEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
@@ -71,10 +76,10 @@ public class IE3301 extends Presentable{
 	public Path savePath;
 	
 	//audio
-	public int 
+	public volatile int 
 		logInterval_mill 	= 5000,
-		logLength_mill		= 500,
-		sampleSize_bits		= 16,
+		logSamples			= 5,
+		sampleSize_bytes	= 2,
 		channels 		= 2,
 		frameSize		= 4;
 	public float
@@ -153,7 +158,7 @@ public class IE3301 extends Presentable{
 					public boolean isCellEditable(int row, int column) { return true; };
 				};
 			p1dtModle = (DefaultTableModel)this.part1DataTable.getModel();
-				for(var v : new String[] {"deciable", "time"}) p1dtModle.addColumn(v);
+				for(var v : new String[] {"val", "time(mill-epoch)", "channel#"}) p1dtModle.addColumn(v);
 				
 			TableRowSorter<TableModel> table_sorter = new TableRowSorter<>(p1dtModle);
 				table_sorter.setSortKeys(Arrays.asList(
@@ -318,16 +323,16 @@ public class IE3301 extends Presentable{
 							v.setToolTipText("honstley this selector dosnet do anything. the check box does tho");
 						return v;
 					}}),
-				Presentable.genLabelInput("sample size 	(bits)	: ", new custom_function<JTextField>() {
+				Presentable.genLabelInput("sample size 	(bytes)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
 						JTextField tf = new JTextField(5);
-						tf.setText(sampleSize_bits+"");
+						tf.setText(sampleSize_bytes+"");
 						
 						custom_function<Boolean> isValid = new custom_function<>() {
 							@Override public Boolean doTheThing(Boolean o) {
 								String s = tf.getText();
 								int v;
-								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > 100000) {
+								if(s.isBlank() || (v = Integer.parseInt(s)) <=0 || v > 100) {
 									setNoticeText("invalid", Color.red);
 									return false;
 								}
@@ -342,13 +347,13 @@ public class IE3301 extends Presentable{
 								if(!isValid.doTheThing(false)) {
 									JOptionPane.showInternalMessageDialog(
 											null,
-											"invalid sample bit count : " + tf.getText(),
+											"invalid sample bit count (bytes): " + tf.getText(),
 											"unable to set value",
 											JOptionPane.OK_OPTION);
 									return;
 								}
 								
-								sampleSize_bits = Integer.parseInt(tf.getText());
+								sampleSize_bytes = Integer.parseInt(tf.getText());
 							}
 						};
 						
@@ -361,11 +366,13 @@ public class IE3301 extends Presentable{
 						JTextField tf = new JTextField(5);
 						tf.setText(channels+"");
 						
+						int maxChannels = 65535;
+						
 						custom_function<Boolean> isValid = new custom_function<>() {
 							@Override public Boolean doTheThing(Boolean o) {
 								String s = tf.getText();
 								int v;
-								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > 100) {
+								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > maxChannels) {
 									setNoticeText("invalid", Color.red);
 									return false;
 								}
@@ -380,7 +387,7 @@ public class IE3301 extends Presentable{
 								if(!isValid.doTheThing(false)) {
 									JOptionPane.showInternalMessageDialog(
 											null,
-											"invalid channel count : " + tf.getText(),
+											"invalid channel count (0-"+maxChannels+"): " + tf.getText(),
 											"unable to set value",
 											JOptionPane.OK_OPTION);
 									return;
@@ -548,9 +555,6 @@ public class IE3301 extends Presentable{
 		
 	}
 	
-	public synchronized void Part1DataTableModel(custom_function<DefaultTableModel> action) {
-		action.doTheThing(this.p1dtModle);
-	}
 	
 	public boolean isLoggingEnabled() {
 		return this.logginEnabled;
@@ -618,6 +622,7 @@ public class IE3301 extends Presentable{
 			stopRecording();
 		}
 		
+		System.out.println("starting recording");
 //		System.out.println("starting recording. "
 //				+ "\n\rsaveaudio:\t" + this.saveAudio + "");
 		
@@ -651,7 +656,6 @@ public class IE3301 extends Presentable{
 		 				setNoticeText("saving audio to:" + pth.toAbsolutePath().toString(), Color.black);
 		 				
 		 				try {
-		 					System.out.println("writing to recording stream");
 							AudioSystem.write(recordingStream, AudioFileFormat.Type.WAVE, outputFile);
 						} catch (IOException e) {
 							System.out.println(e);
@@ -659,72 +663,31 @@ public class IE3301 extends Presentable{
 		 			}};
 	 		}
 	 		
-	 		if(this.isLoggingEnabled()) {
-	 			//Cheese way to pass data safely.
-	 			final long 
-	 				temp_logInterval = logInterval_mill,
-	 				temp_logLen = this.logLength_mill;
-	 			
+	 		if(this.isLoggingEnabled()) {	 			
 		 		audio_thread_analysis = new Thread() {
-		 			@SuppressWarnings("static-access")
 					@Override public void run() {
-		 				AudioInputStream analyzingStream = new AudioInputStream(targetLine);
-		 				try(InputStream input = analyzingStream) {
-		 					System.out.println("getting input stream");
-							
-//							var dateFormat 	= new SimpleDateFormat("MMddyyyy_HHmmss");
-//							var calender 	= Calendar.getInstance();
-							var format 		= getAudioFormat();
-							
-							int len;
-							
-							float 
-								samp_rate 	= format.getSampleRate(),
-								samp_size 	= format.getSampleSizeInBits();
-							long
-								logLen		= temp_logLen;
-							
-							byte[] buffer 	= new byte[1024];
-							
-							//loop vars
-							long
-								e6		= 1000000,
-								start 	= 0,
-								last	= System.nanoTime(),
-								elapsed = 0,
-								interval= temp_logInterval;
-							
-							//main loop
-							while((len = input.read(buffer)) > 0) {
-								start = System.nanoTime();		//n
-								elapsed = (start - last) / e6; 	//u
-								last = start;					//n
-								
-								System.out.println((start / e6) +"\t:\t"+ Arrays.toString(buffer));
-								
-								System.out.print("\telapsed:" + elapsed + "\t < interval? ");
-								if(elapsed < interval) {
-									System.out.println("true");
-									try {
-										this.sleep(interval-elapsed);
-									} catch (InterruptedException e) { e.printStackTrace(); }
-								}else {
-									System.out.println("false");
-								}
-							}
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
+		 				try(AudioInputStream input = new AudioInputStream(targetLine);) {
+		 					analizeWav(input,getAudioFormat());
+		 				} catch (IOException e) {
 							e.printStackTrace();
 						}
 		 				
 		 			}};
-	 		}	
-	 			
- 			if(this.saveAudio.get())
-		 		audio_thread_recording.start(); 
+	 		}
+	 		
+	 		System.out.print("\t starting thread : ");
+	 		
+ 			if(this.saveAudio.get()) {
+ 				System.out.print("\trecording_t");
+		 		audio_thread_recording.start();
+ 			}
  			
- 			if(this.isLoggingEnabled())
+ 			if(this.isLoggingEnabled()) {
+ 				System.out.print("\tanalysis_t");
  				audio_thread_analysis.start();
+ 			}
+ 			
+ 			System.out.println();
  			
 	 	}catch (Exception e) {
 	 		this.setNoticeText(e.toString(), Color.red);
@@ -759,11 +722,14 @@ public class IE3301 extends Presentable{
 	}
 	private synchronized AudioFormat getAudioFormat() {
 		AudioFormat audioFormat;
+		
+		int sampleSize_bits = this.sampleSize_bytes * 8;
+		
 		if(this.audioFormat_custom) {
 			audioFormat = new AudioFormat(
 	 				this.audioFormat_encoding,
 	 				this.sampleRate,
-	 				this.sampleSize_bits, 
+	 				sampleSize_bits, 
 	 				this.channels,
 	 				this.frameSize,
 	 				this.frameRate,
@@ -773,12 +739,79 @@ public class IE3301 extends Presentable{
 			
 			audioFormat = new AudioFormat(
 					this.sampleRate,
-	 				this.sampleSize_bits,
+	 				sampleSize_bits,
 	 				this.channels,
 	 				this.audioFormat_encoding == AudioFormat.Encoding.PCM_SIGNED,
 	 				this.audioFormat_bigEndian);
 		}
 		return audioFormat;
+	}
+	
+	private void analizeWav(InputStream input, AudioFormat format) throws IOException{		
+		int
+			nChans 			= format.getChannels(),
+			nChanSize_byte	= sampleSize_bytes,
+			nSamples 		= logSamples,
+			nSpSize_byte	= nChans * nChanSize_byte,
+			bufferSize_byte	= nSamples * nSpSize_byte;
+		
+		ByteOrder byteOrder	= format.isBigEndian() ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
+		
+		byte[] 	
+			buffer 		= new byte[bufferSize_byte],	//raw input
+			spBuffer	= new byte[nChanSize_byte];		//bytes per float 
+		
+		float[][]
+			chanBuffer	= new float[nChans][nSamples]; //the actual input data translated from bytes.
+		
+		//loop vars
+		long
+			e6		= 1000000,
+			start 	= 0,
+			last	= System.nanoTime() /e6,
+			elapsed = 0;
+		
+		System.out.println("analize thread:"
+				+ "\n\tinput buffer size: \t"	+ bufferSize_byte
+				+ "\n\tnum channel: \t" + nChans
+				+ "\n\t\tsize: \t"	+ nChanSize_byte
+				+ "\n\tnum samples: \t"	+ nSamples 
+				+ "\n\t\tsize: \t"	+ nSpSize_byte
+				+ "");
+		
+		//main loop
+		while(input.read(buffer) > 0) {
+			start = System.nanoTime() /e6;	//u
+			elapsed = (start - last); 		//u
+			last = start;					//u
+			
+			//cat input buffer -> channel data
+			for(int iSp = 0, iChan, iByte, iTotal; iSp < nSamples; iSp++) { 	//per sample
+				
+				for(iChan = 0; iChan < nChans; iChan++){							//per channel
+					iTotal = iSp*nSpSize_byte + iChan*nChanSize_byte;
+					
+					for(iByte = 0; iByte < nChanSize_byte; iByte++) { 					//per byte
+						spBuffer[iByte] = buffer[iTotal + iByte];
+					}
+					
+					chanBuffer[iChan][iSp] = ByteBuffer.wrap(spBuffer).order(byteOrder).getInt();
+					p1dtModle.addRow(new Object[] {chanBuffer[iChan][iSp], (start / e6), iChan});
+				}
+			}
+			
+			System.out.println(start +"\t:\t"+ Arrays.toString(buffer));
+			
+			System.out.print("\telapsed:" + elapsed + "\t < interval? ");
+			if(elapsed < logInterval_mill) {
+				System.out.println("true");
+				try {
+					Thread.sleep(logInterval_mill-elapsed);
+				} catch (InterruptedException e) { e.printStackTrace(); }
+			}else {
+				System.out.println("false");
+			}
+		}
 	}
 	
 ///////////////////
@@ -788,6 +821,9 @@ public class IE3301 extends Presentable{
 	public static ImageIcon getImgIcon() 	{	return MainWin.getImageIcon("res/aboutbg.png", MainWin.stbPresentIconSize); } //giving a invalid name will default to a blank icon
 	public static String getDescription() 	{	return "<html>"
 			+ "<body>a quick slap together to generate datasets for IE3301 course > project part 1<br>"
+			+ "<ul>"
+			+ "<li><a href=\"http://soundfile.sapp.org/doc/WaveFormat/\">wav file refrence</a></li>"
+			+ "</ul>"
 			+ "</body>"; }
 }
 
