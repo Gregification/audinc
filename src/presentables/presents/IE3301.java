@@ -10,12 +10,10 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.event.ItemEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
@@ -32,7 +30,6 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.Line;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.TargetDataLine;
-import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
@@ -54,7 +51,6 @@ import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.RowSorter;
 import javax.swing.SortOrder;
-import javax.swing.border.BevelBorder;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.DocumentEvent;
@@ -77,6 +73,7 @@ public class IE3301 extends Presentable{
 	//audio
 	public int 
 		logInterval_mill 	= 5000,
+		logLength_mill		= 500,
 		sampleSize_bits		= 16,
 		channels 		= 2,
 		frameSize		= 4;
@@ -269,31 +266,48 @@ public class IE3301 extends Presentable{
 			}
 			
 		//package components
+		ArrayList<DocumentListener> docListeners = new ArrayList<>(5);	
+		
 		JComponent[] objs = {
 				saveFilePicker,
 				saveAudioFileToggler,
 				Presentable.genLabelInput("log interval (mil)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
-						JTextField o = new JTextField((int)Math.ceil(Math.log10(24*60*60*1000)));
-						o.setText(logInterval_mill+"");
-						o.getDocument().addDocumentListener(new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) {
-								String src = o.getText();
-								if(src.isEmpty()) {
-									o.setText(logInterval_mill+"");
-									setNoticeText("cannot set log interval to nothing", Color.yellow);
+						JTextField tf = new JTextField(5);
+						tf.setText(logInterval_mill+"");
+						
+						custom_function<Boolean> isValid = new custom_function<>() {
+							@Override public Boolean doTheThing(Boolean o) {
+								String s = tf.getText();
+								int v;
+								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > 100000) {
+									setNoticeText("invalid", Color.red);
+									return false;
+								}
+								
+								setNoticeText(":D", Color.green);
+								return true;
+							}};
+						var v = new DocumentListener() {
+							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void changedUpdate(DocumentEvent e) {								
+								if(!isValid.doTheThing(false)) {
+									JOptionPane.showInternalMessageDialog(
+											null,
+											"invalid log interval : " + tf.getText(),
+											"unable to set value",
+											JOptionPane.OK_OPTION);
 									return;
 								}
-								int val = Integer.parseInt(src);
 								
-								if(false) {} //something something reasonable
-								
-								logInterval_mill = val;
+								logInterval_mill = Integer.parseInt(tf.getText());
 							}
-							@Override public void removeUpdate(DocumentEvent e)	 {}
-							@Override public void changedUpdate(DocumentEvent e) {} // this dosen't trigger when inside a joptionpane. the same actions that trigger this also close the host panel
-						});		
-						return o;
+						};
+						
+						docListeners.add(v);
+						tf.getDocument().addDocumentListener(v);		
+						return tf;
 					}}),
 				audioEncoding,
 				Presentable.genLabelInput((JComponent)useCustomLineToggler, new custom_function<JComponent>() {
@@ -303,136 +317,203 @@ public class IE3301 extends Presentable{
 							v.addActionListener(e -> {
 								selectedLine = (Line.Info)v.getSelectedItem();
 							});
+							v.setToolTipText("honstley this selector dosnet do anything. the check box does tho");
 						return v;
 					}}),
 				Presentable.genLabelInput("sample size 	(bits)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
-						JTextField o = new JTextField(5);
-						o.setText(sampleSize_bits+"");
-						o.getDocument().addDocumentListener(new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) {
-								String src = o.getText();
-								if(src.isEmpty()) {
-									o.setText(sampleSize_bits+"");
-									setNoticeText("cannot set sample size to nothing", Color.yellow);
+						JTextField tf = new JTextField(5);
+						tf.setText(sampleSize_bits+"");
+						
+						custom_function<Boolean> isValid = new custom_function<>() {
+							@Override public Boolean doTheThing(Boolean o) {
+								String s = tf.getText();
+								int v;
+								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > 100000) {
+									setNoticeText("invalid", Color.red);
+									return false;
+								}
+								
+								setNoticeText(":D", Color.green);
+								return true;
+							}};
+						var v = new DocumentListener() {
+							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void changedUpdate(DocumentEvent e) {								
+								if(!isValid.doTheThing(false)) {
+									JOptionPane.showInternalMessageDialog(
+											null,
+											"invalid sample bit count : " + tf.getText(),
+											"unable to set value",
+											JOptionPane.OK_OPTION);
 									return;
 								}
-								int val = Integer.parseInt(src);
 								
-								sampleSize_bits = val;
+								sampleSize_bits = Integer.parseInt(tf.getText());
 							}
-							@Override public void removeUpdate(DocumentEvent e)	 {}
-							@Override public void changedUpdate(DocumentEvent e) {}
-						});		
-						return o;
+						};
+						
+						docListeners.add(v);
+						tf.getDocument().addDocumentListener(v);		
+						return tf;
 					}}),
 				Presentable.genLabelInput("channels 	(int)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
-						JTextField o = new JTextField(5);
-						o.setText(channels+"");
-						o.getDocument().addDocumentListener(new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) {
-								String src = o.getText();
-								if(src.isEmpty() || Integer.parseInt(src) < 1) {
-									o.setText(channels+"");
-									setNoticeText("must be at least 1 channel", Color.yellow);
+						JTextField tf = new JTextField(5);
+						tf.setText(channels+"");
+						
+						custom_function<Boolean> isValid = new custom_function<>() {
+							@Override public Boolean doTheThing(Boolean o) {
+								String s = tf.getText();
+								int v;
+								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > 100) {
+									setNoticeText("invalid", Color.red);
+									return false;
+								}
+								
+								setNoticeText(":D", Color.green);
+								return true;
+							}};
+						var v = new DocumentListener() {
+							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void changedUpdate(DocumentEvent e) {								
+								if(!isValid.doTheThing(false)) {
+									JOptionPane.showInternalMessageDialog(
+											null,
+											"invalid channel count : " + tf.getText(),
+											"unable to set value",
+											JOptionPane.OK_OPTION);
 									return;
 								}
-								int val = Integer.parseInt(src);
 								
-								channels = val;
+								channels = Integer.parseInt(tf.getText());
 							}
-							@Override public void removeUpdate(DocumentEvent e)	 {}
-							@Override public void changedUpdate(DocumentEvent e) {}
-						});		
-						return o;
+						};
+						
+						docListeners.add(v);
+						tf.getDocument().addDocumentListener(v);		
+						return tf;
 					}}),
 				Presentable.genLabelInput("frame size 	(int)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
-						JTextField o = new JTextField(5);
-						o.setText(frameSize+"");
-						o.getDocument().addDocumentListener(new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) {
-								String src = o.getText();
-								if(src.isEmpty() || Integer.parseInt(src) < 1) {
-									o.setText(frameSize+"");
-									setNoticeText("frame size must be at least 1", Color.yellow);
+						JTextField tf = new JTextField(10);
+						tf.setText(frameSize+"");
+						
+						custom_function<Boolean> isValid = new custom_function<>() {
+							@Override public Boolean doTheThing(Boolean o) {
+								String s = tf.getText();
+								
+								if(s.isBlank() || Integer.parseInt(s) <= 0) {
+									setNoticeText("invalid", Color.red);
+									return false;
+								}
+								
+								setNoticeText(":D", Color.green);
+								return true;
+							}};
+						var v = new DocumentListener() {
+							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void changedUpdate(DocumentEvent e) {
+								if(!isValid.doTheThing(false)) {
+									JOptionPane.showInternalMessageDialog(
+											null,
+											"invalid frame size : " + tf.getText(),
+											"unable to set value",
+											JOptionPane.OK_OPTION);
 									return;
 								}
-								int val = Integer.parseInt(src);
 								
-								frameSize = val;
+								frameSize = Integer.parseInt(tf.getText());
 							}
-							@Override public void removeUpdate(DocumentEvent e)	 {}
-							@Override public void changedUpdate(DocumentEvent e) {}
-						});		
-						return o;
-					}}),
-				Presentable.genLabelInput("frame rate	(int)	: ", new custom_function<JTextField>() {
-					@Override public JTextField doTheThing(JTextField thisisnull) {
-						JTextField o = new JTextField(5);
-						o.setText(frameRate+"");
-						o.getDocument().addDocumentListener(new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) {
-								String src = o.getText();
-								if(src.isEmpty() || Integer.parseInt(src) < 1) {
-									o.setText(frameRate+"");
-									setNoticeText("frame size must be at least 1", Color.yellow);
-									return;
-								}
-								int val = Integer.parseInt(src);
-								
-								frameRate = val;
-							}
-							@Override public void removeUpdate(DocumentEvent e)	 {}
-							@Override public void changedUpdate(DocumentEvent e) {}
-						});		
-						return o;
+						};
+						
+						docListeners.add(v);
+						tf.getDocument().addDocumentListener(v);		
+						return tf;
 					}}),
 				Presentable.genLabelInput("sample rate	(float)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
-						JTextField o = new JTextField(10);
-						o.setText(sampleRate+"");
-						o.getDocument().addDocumentListener(new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) {
-								String src = o.getText();
-								float val;
-								if(src.isEmpty() || (val = Float.parseFloat(src)) < 1) {
-									o.setText(sampleRate+"");
-									setNoticeText("sample rate must be at least 1", Color.yellow);
+						JTextField tf = new JTextField(10);
+						tf.setText(sampleRate+"");
+						
+						custom_function<Boolean> isValid = new custom_function<>() {
+							@Override public Boolean doTheThing(Boolean o) {
+								String s = tf.getText();
+								
+								if(s.isBlank() || Float.parseFloat(s) <= 0) {
+									setNoticeText("invalid", Color.red);
+									return false;
+								}
+								
+								setNoticeText(":D", Color.green);
+								return true;
+							}};
+						var v = new DocumentListener() {
+							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void changedUpdate(DocumentEvent e) {
+								if(!isValid.doTheThing(false)) {
+									JOptionPane.showInternalMessageDialog(
+											null,
+											"invalid sample rate : " + tf.getText(),
+											"unable to set value",
+											JOptionPane.OK_OPTION);
 									return;
 								}
 								
-								sampleRate= val;
+								sampleRate = Float.parseFloat(tf.getText());
 							}
-							@Override public void removeUpdate(DocumentEvent e)	 {}
-							@Override public void changedUpdate(DocumentEvent e) {}
-						});		
-						return o;
+						};
+						
+						docListeners.add(v);
+						tf.getDocument().addDocumentListener(v);		
+						return tf;
 					}}),
 				Presentable.genLabelInput("frame rate	(float)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
-						JTextField o = new JTextField(10);
-						o.setText(frameRate+"");
-						o.getDocument().addDocumentListener(new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) {
-								String src = o.getText();
-								float val;
-								if(src.isEmpty() || (val = Float.parseFloat(src)) < 1) {
-									o.setText(frameRate+"");
-									setNoticeText("sample rate must be at least 1", Color.yellow);
+						JTextField tf = new JTextField(10);
+						tf.setText(frameRate+"");
+						
+						custom_function<Boolean> isValid = new custom_function<>() {
+							@Override public Boolean doTheThing(Boolean o) {
+								String s = tf.getText();
+								
+								if(s.isBlank() || Float.parseFloat(s) <= 0) {
+									setNoticeText("invalid", Color.red);
+									return false;
+								}
+								
+								setNoticeText(":D", Color.green);
+								return true;
+							}};
+						var v = new DocumentListener() {
+							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void changedUpdate(DocumentEvent e) {
+								if(!isValid.doTheThing(false)) {
+									JOptionPane.showInternalMessageDialog(
+											null,
+											"invalid frame rate : " + tf.getText(),
+											"unable to set value",
+											JOptionPane.OK_OPTION);
 									return;
 								}
 								
-								frameRate= val;
+								frameRate = Float.parseFloat(tf.getText());
 							}
-							@Override public void removeUpdate(DocumentEvent e)	 {}
-							@Override public void changedUpdate(DocumentEvent e) {}
-						});		
-						return o;
+						};
+						
+						docListeners.add(v);
+						tf.getDocument().addDocumentListener(v);		
+						return tf;
 					}}),
 				bigEndianToggler
 		};
+		docListeners.trimToSize();
+		
         JPanel wrapper = new JPanel();
         	wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
         for(JComponent v : objs) {v.setAlignmentX(Component.LEFT_ALIGNMENT); wrapper.add(v);}
@@ -444,14 +525,28 @@ public class IE3301 extends Presentable{
         
         this.setNoticeText("changes in settings will not go into effect untill restart");
         
-        JOptionPane.showMessageDialog(cframe, wrapper_scroll, "logging", JOptionPane.PLAIN_MESSAGE);
+        switch (JOptionPane.showConfirmDialog(cframe, wrapper_scroll, "logging", JOptionPane.OK_CANCEL_OPTION)) {
+        	case JOptionPane.YES_OPTION:
+        			setNoticeText("saving changes ...", Color.black);
+        			
+        			for(var dl : docListeners)
+        				dl.changedUpdate(null);
+        			
+        			setNoticeText("changes saved!", Color.black);
+        		break;
+        		
+        	case JOptionPane.NO_OPTION:
+        	default:
+        			setNoticeText("changes cancled.", Color.black);
+        		break;
+        }
 	}
 	
-	public void onSaveClick() {
+	public void onSaveLogClick() {
 		
 	}
 	
-	public void onImportClick() {
+	public void onImportAudioClick() {
 		
 	}
 	
@@ -545,14 +640,13 @@ public class IE3301 extends Presentable{
 	 		setNoticeText("starting recording");
 	 		targetLine.start();
 	 		
-	 		AudioInputStream recordingStream = new AudioInputStream(targetLine);
-	 		
 	 		if(this.saveAudio.get()) {
 		 		audio_thread_recording = new Thread() {
 		 			@Override public void run() {
 		 				File outputFile;
 		 				
-		 				Path pth = savePath.resolve(savePath.getFileName() + ".wav");
+		 				AudioInputStream recordingStream = new AudioInputStream(targetLine);
+		 				Path pth = savePath.resolve(savePath.getFileName().toString()+(int)(System.nanoTime()/1000000) + ".wav");
 		 				outputFile = pth.toFile();
 		 				setNoticeText("saving audio to:" + pth.toAbsolutePath().toString(), Color.black);
 		 				
@@ -565,35 +659,71 @@ public class IE3301 extends Presentable{
 		 			}};
 	 		}
 	 		
-	 		//this is live
-	 		audio_thread_analysis = new Thread() {
-	 			@Override public void run() {
-	 				try {
-	 					System.out.println("getting input stream");
-						InputStream input = recordingStream;
-						
-						var dateFormat 	= new SimpleDateFormat("MMddyyyy_HHmmss");
-						var calender 	= Calendar.getInstance();
-						
-						int len;
-						byte[] buffer 	= new byte[1024];
-						
-						while((len = input.read(buffer)) > 0) {
-							System.out.println((calender.getTime().getTime()) +"\t:\t"+ Arrays.toString(buffer));
-						}
-						
-						
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-	 			}};
+	 		if(this.isLoggingEnabled()) {
+	 			//Cheese way to pass data safely.
+	 			final long 
+	 				temp_logInterval = logInterval_mill,
+	 				temp_logLen = this.logLength_mill;
 	 			
+		 		audio_thread_analysis = new Thread() {
+		 			@SuppressWarnings("static-access")
+					@Override public void run() {
+		 				AudioInputStream analyzingStream = new AudioInputStream(targetLine);
+		 				try(InputStream input = analyzingStream) {
+		 					System.out.println("getting input stream");
+							
+//							var dateFormat 	= new SimpleDateFormat("MMddyyyy_HHmmss");
+//							var calender 	= Calendar.getInstance();
+							var format 		= getAudioFormat();
+							
+							int len;
+							
+							float 
+								samp_rate 	= format.getSampleRate(),
+								samp_size 	= format.getSampleSizeInBits();
+							long
+								logLen		= temp_logLen;
+							
+							byte[] buffer 	= new byte[1024];
+							
+							//loop vars
+							long
+								e6		= 1000000,
+								start 	= 0,
+								last	= System.nanoTime(),
+								elapsed = 0,
+								interval= temp_logInterval;
+							
+							//main loop
+							while((len = input.read(buffer)) > 0) {
+								start = System.nanoTime();		//n
+								elapsed = (start - last) / e6; 	//u
+								last = start;					//n
+								
+								System.out.println((start / e6) +"\t:\t"+ Arrays.toString(buffer));
+								
+								System.out.print("\telapsed:" + elapsed + "\t < interval? ");
+								if(elapsed < interval) {
+									System.out.println("true");
+									try {
+										this.sleep(interval-elapsed);
+									} catch (InterruptedException e) { e.printStackTrace(); }
+								}else {
+									System.out.println("false");
+								}
+							}
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+		 				
+		 			}};
+	 		}	
 	 			
  			if(this.saveAudio.get())
 		 		audio_thread_recording.start(); 
  			
- 			if(audio_thread_analysis != null)
+ 			if(this.isLoggingEnabled())
  				audio_thread_analysis.start();
  			
 	 	}catch (Exception e) {
@@ -627,7 +757,7 @@ public class IE3301 extends Presentable{
 	public boolean isRecording() {
 		return targetLine != null && targetLine.isOpen();
 	}
-	private AudioFormat getAudioFormat() {
+	private synchronized AudioFormat getAudioFormat() {
 		AudioFormat audioFormat;
 		if(this.audioFormat_custom) {
 			audioFormat = new AudioFormat(
