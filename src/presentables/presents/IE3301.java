@@ -118,10 +118,8 @@ public class IE3301 extends Presentable{
 	}
 	
 	@Override public void quit() {
+		//stops & cleans up streams and threads
 		this.stopRecording();
-		
-		//this should be already done but just in case
-		this.targetLine.close();
 	}
 	
 	public void genUI_tab_part1(JTabbedPane host_tabb) {
@@ -396,7 +394,7 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
-				Presentable.genLabelInput("frame size 	(int)	: ", new custom_function<JTextField>() {
+				Presentable.genLabelInput("frame size  (float)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
 						JTextField tf = new JTextField(10);
 						tf.setText(frameSize+"");
@@ -434,7 +432,7 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
-				Presentable.genLabelInput("sample rate	(float)	: ", new custom_function<JTextField>() {
+				Presentable.genLabelInput("sample rate (float-Hz)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
 						JTextField tf = new JTextField(10);
 						tf.setText(sampleRate+"");
@@ -472,7 +470,7 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
-				Presentable.genLabelInput("frame rate	(float)	: ", new custom_function<JTextField>() {
+				Presentable.genLabelInput("frame rate (float-Hz): ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
 						JTextField tf = new JTextField(10);
 						tf.setText(frameRate+"");
@@ -620,8 +618,8 @@ public class IE3301 extends Presentable{
 			stopRecording();
 		}
 		
-		System.out.println("starting recording. "
-				+ "\n\rsaveaudio:\t" + this.saveAudio + "");
+//		System.out.println("starting recording. "
+//				+ "\n\rsaveaudio:\t" + this.saveAudio + "");
 		
 		try {
 			AudioFormat audioFormat = this.getAudioFormat();
@@ -639,6 +637,8 @@ public class IE3301 extends Presentable{
 	 		
 	 		setNoticeText("starting recording");
 	 		targetLine.start();
+	 		
+	 		AudioInputStream stream = new AudioInputStream(targetLine);
 	 		
 	 		if(this.saveAudio.get()) {
 		 		audio_thread_recording = new Thread() {
@@ -732,8 +732,8 @@ public class IE3301 extends Presentable{
 	 	}
 	}
 	public void stopRecording() {
-		System.out.println("stopping recording");
 		try {
+			if(targetLine != null)
 			synchronized(targetLine) {
 				targetLine.stop();
 				targetLine.close();
