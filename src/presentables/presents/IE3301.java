@@ -107,7 +107,7 @@ public class IE3301 extends Presentable{
 	@Override protected void init(MainWin mw) 	{
 		this.checkDataLines();
 		
-		this.savePath = Presentable.getRoot(this.getClass());
+		this.savePath = Presentable.makeRoot(this.getClass());
 		initGUI(mw);
 	}	
 	@Override protected void initGUI(MainWin mw){
@@ -695,6 +695,8 @@ public class IE3301 extends Presentable{
 	 	}
 	}
 	public void stopRecording() {
+		this.setNoticeText("stopping recording ... ", Color.black);
+		
 		try {
 			if(targetLine != null)
 			synchronized(targetLine) {
@@ -716,6 +718,8 @@ public class IE3301 extends Presentable{
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		
+		this.setNoticeText("recording stopped", Color.black);
 	}
 	public boolean isRecording() {
 		return targetLine != null && targetLine.isOpen();
@@ -747,6 +751,8 @@ public class IE3301 extends Presentable{
 		return audioFormat;
 	}
 	
+	
+	//dosent work even if the buffer-underflow-exception is patched. not quite sure why. 
 	private void analizeWav(InputStream input, AudioFormat format) throws IOException{		
 		int
 			nChans 			= format.getChannels(),
@@ -785,8 +791,12 @@ public class IE3301 extends Presentable{
 			elapsed = (start - last); 		//u
 			last = start;					//u
 			
+			System.out.println(start +"\t:\t"+ Arrays.toString(buffer));
+			
 			//cat input buffer -> channel data
-			for(int iSp = 0, iChan, iByte, iTotal; iSp < nSamples; iSp++) { 	//per sample
+			for(int iSp = 0, iChan = 0, iByte = 0, iTotal = 0; iSp < nSamples; iSp++) { 	//per sample
+				
+				System.out.println(String.format("sample %%%2.0f : %d\t\t%3d /%3d",(float)iTotal/(float)buffer.length*100,iSp, iTotal, buffer.length));
 				
 				for(iChan = 0; iChan < nChans; iChan++){							//per channel
 					iTotal = iSp*nSpSize_byte + iChan*nChanSize_byte;
@@ -795,21 +805,21 @@ public class IE3301 extends Presentable{
 						spBuffer[iByte] = buffer[iTotal + iByte];
 					}
 					
-					chanBuffer[iChan][iSp] = ByteBuffer.wrap(spBuffer).order(byteOrder).getInt();
-					p1dtModle.addRow(new Object[] {chanBuffer[iChan][iSp], (start / e6), iChan});
+					System.out.println("\tchannel:" + iChan + "\tvalue:"+Arrays.toString(spBuffer));
+					
+//					chanBuffer[iChan][iSp] = ByteBuffer.wrap(spBuffer).order(byteOrder).getInt();
+//					p1dtModle.addRow(new Object[] {chanBuffer[iChan][iSp], (start / e6), iChan});
 				}
 			}
 			
-			System.out.println(start +"\t:\t"+ Arrays.toString(buffer));
-			
-			System.out.print("\telapsed:" + elapsed + "\t < interval? ");
+			System.out.print("\n\nelapsed:" + elapsed + "\t< interval:"+logInterval_mill+"? ");
 			if(elapsed < logInterval_mill) {
-				System.out.println("true");
+				System.out.println("true \t-> snoozing\n");
 				try {
 					Thread.sleep(logInterval_mill-elapsed);
 				} catch (InterruptedException e) { e.printStackTrace(); }
 			}else {
-				System.out.println("false");
+				System.out.println("false \t-> losing :(\n");
 			}
 		}
 	}

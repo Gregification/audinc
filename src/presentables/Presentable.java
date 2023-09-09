@@ -71,6 +71,21 @@ public abstract class Presentable {
 	public static String getDescription() 	{ return "no description avaliable";	}
 	public static String getDisplayTitle() 	{ return "default display title";		}
 	public static Path getRoot(Class<? extends Presentable> clas)		{ return MainWin.settingsDir.resolve(clas.getName()); };
+	public static Path makeRoot(Class<? extends Presentable> clas) {
+		Path path = Presentable.getRoot(clas);
+			
+		var file = path.toFile();
+		if(!file.exists()) {
+			try {
+				Files.createDirectories(path);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		return path;
+	}
 	public static ImageIcon getImgIcon() {
 		try { return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png"))); } 
 		catch (IOException e) { e.printStackTrace(); return null; }
