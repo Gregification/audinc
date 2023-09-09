@@ -2,20 +2,37 @@ package audinc.gui;
 
 import javax.swing.JFrame;           // for main window
 import javax.swing.JOptionPane;      // for standard dialogs
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.JMenuBar;         // row of menu selections
 import javax.swing.JMenu;            // menu selection that offers another menu
 import javax.swing.JMenuItem;        // menu selection that does something
 import javax.swing.JLabel;           // text or image holder
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;        // holds a custom icon
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.SwingConstants;   // useful values for Swing method calls
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Image;
+import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 
@@ -24,6 +41,8 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.imageio.ImageIO;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.Line;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +52,7 @@ import java.util.stream.Stream;
 import java.util.Random;
 
 import presentables.Presentable;
+import presentables.custom_function;
 
 public class MainWin extends JFrame {
 	/**
@@ -52,7 +72,12 @@ public class MainWin extends JFrame {
 		).collect(Collectors.collectingAndThen(Collectors.toSet(),Collections::<Class<? extends Presentable>>unmodifiableSet));
 	
 	//standard values
-	public static final float stdDimensionScale = 1.75f;
+	public static final float stdDimensionScale_default = 1.75f;
+	public static float 
+		stdDimensionScale 		= stdDimensionScale_default,
+		DimensionScale_window	= 1,
+		DimensionScale_icon		= 1,
+		DimensionScale_present	= 1;
 	public static int 
 			stdTextSpace 			= 40,	//standard spacing unit between gui components 
 			stdStructSpace 			= 15,
@@ -73,8 +98,32 @@ public class MainWin extends JFrame {
 		} catch(InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | SecurityException e) { e.printStackTrace(); }
 	}
 	
+	public static void setUIScale(float scale) {
+		MainWin.stdDimensionScale = scale;
+			MainWin.setUIWindowScale(DimensionScale_window);
+			MainWin.setUIIconScale(DimensionScale_icon);
+			MainWin.setUIPresentScale(DimensionScale_present);
+	}
+	public static void setUIWindowScale(float scale) {
+		DimensionScale_window = scale; 
+		scale = stdDimensionScale * DimensionScale_window;
+			stdDimension 		= new Dimension((int)(480*scale),	(int)(270*scale));
+	}
+	public static void setUIIconScale(float scale) {
+		DimensionScale_icon = scale;
+		scale = stdDimensionScale * DimensionScale_icon;
+			stdtabIconSize 		= new Dimension((int)(11*scale),	(int)(11*scale));
+	}
+	public static void setUIPresentScale(float scale) {
+		DimensionScale_present = scale;
+		scale = stdDimensionScale * DimensionScale_present;
+			stbPresentIconSize 	= new Dimension((int)(32*scale), 	(int)(30*scale));
+	}
+	
 	public MainWin(String title) {
 		super(title);
+		
+		MainWin.setUIScale(MainWin.stdDimensionScale);
 		
 		//create save
 		settingsDir = settingsDir.toAbsolutePath();
@@ -164,6 +213,14 @@ public class MainWin extends JFrame {
             JOptionPane.PLAIN_MESSAGE);
 	}
 	
+	public void onRestartPresentClick() {
+		if(currPresent == null) 
+			return; 
+		
+		currPresent.quit();
+		setPresent(currPresent.getClass());
+	}
+	
 	public void quit() {
 		if(currPresent != null) {
 			currPresent.quit();
@@ -172,7 +229,164 @@ public class MainWin extends JFrame {
 		dispose();
 		System.exit(0);
 	}
-
+	
+	public static void openScaleUIDialoug(MainWin host) {
+			JFrame cframe= new JFrame();
+			
+			//package components
+			ArrayList<DocumentListener> docListeners = new ArrayList<>(5);	
+			
+			JComponent[] objs = {
+					Presentable.genLabelInput("general scale (float): ", new custom_function<JTextField>() {
+						@Override public JTextField doTheThing(JTextField thisisnull) {
+							JTextField tf = new JTextField(5);
+							tf.setText(MainWin.stdDimensionScale+"");
+							
+							custom_function<Boolean> isValid = new custom_function<>() {
+								@Override public Boolean doTheThing(Boolean o) {
+									String s = tf.getText();
+									return !(s.isBlank() || Float.parseFloat(s) <= 0);
+								}};
+								
+							var v = new DocumentListener() {
+								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void changedUpdate(DocumentEvent e) {
+									if(!isValid.doTheThing(false)) {
+										JOptionPane.showInternalMessageDialog(
+												null,
+												"invalid general scale : " + tf.getText(),
+												"unable to set value",
+												JOptionPane.OK_OPTION);
+										return;
+									}
+									
+									MainWin.setUIScale(Float.parseFloat(tf.getText()));
+								}
+							};
+							
+							docListeners.add(v);
+							tf.getDocument().addDocumentListener(v);		
+							return tf;
+						}}),
+					Presentable.genLabelInput("window scale (float): ", new custom_function<JTextField>() {
+						@Override public JTextField doTheThing(JTextField thisisnull) {
+							JTextField tf = new JTextField(5);
+							tf.setText(MainWin.DimensionScale_window+"");
+							
+							custom_function<Boolean> isValid = new custom_function<>() {
+								@Override public Boolean doTheThing(Boolean o) {
+									String s = tf.getText();
+									return !(s.isBlank() || Float.parseFloat(s) <= 0);
+								}};
+								
+							var v = new DocumentListener() {
+								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void changedUpdate(DocumentEvent e) {
+									if(!isValid.doTheThing(false)) {
+										JOptionPane.showInternalMessageDialog(
+												null,
+												"invalid window scale : " + tf.getText(),
+												"unable to set value",
+												JOptionPane.OK_OPTION);
+										return;
+									}
+									
+									MainWin.setUIWindowScale(Float.parseFloat(tf.getText()));
+								}
+							};
+							
+							docListeners.add(v);
+							tf.getDocument().addDocumentListener(v);		
+							return tf;
+						}}),
+					Presentable.genLabelInput("icon scale (float): ", new custom_function<JTextField>() {
+						@Override public JTextField doTheThing(JTextField thisisnull) {
+							JTextField tf = new JTextField(5);
+							tf.setText(MainWin.DimensionScale_icon+"");
+							
+							custom_function<Boolean> isValid = new custom_function<>() {
+								@Override public Boolean doTheThing(Boolean o) {
+									String s = tf.getText();
+									return !(s.isBlank() || Float.parseFloat(s) <= 0);
+								}};
+								
+							var v = new DocumentListener() {
+								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void changedUpdate(DocumentEvent e) {
+									if(!isValid.doTheThing(false)) {
+										JOptionPane.showInternalMessageDialog(
+												null,
+												"invalid icon scale : " + tf.getText(),
+												"unable to set value",
+												JOptionPane.OK_OPTION);
+										return;
+									}
+									
+									MainWin.setUIIconScale(Float.parseFloat(tf.getText()));
+								}
+							};
+							
+							docListeners.add(v);
+							tf.getDocument().addDocumentListener(v);		
+							return tf;
+						}}),
+					Presentable.genLabelInput("present scale (float): ", new custom_function<JTextField>() {
+						@Override public JTextField doTheThing(JTextField thisisnull) {
+							JTextField tf = new JTextField(5);
+							tf.setText(MainWin.DimensionScale_present+"");
+							
+							custom_function<Boolean> isValid = new custom_function<>() {
+								@Override public Boolean doTheThing(Boolean o) {
+									String s = tf.getText();
+									return !(s.isBlank() || Float.parseFloat(s) <= 0);
+								}};
+								
+							var v = new DocumentListener() {
+								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void changedUpdate(DocumentEvent e) {
+									if(!isValid.doTheThing(false)) {
+										JOptionPane.showInternalMessageDialog(
+												null,
+												"invalid presnet scale : " + tf.getText(),
+												"unable to set value",
+												JOptionPane.OK_OPTION);
+										return;
+									}
+									
+									MainWin.setUIPresentScale(Float.parseFloat(tf.getText()));
+								}
+							};
+							
+							docListeners.add(v);
+							tf.getDocument().addDocumentListener(v);		
+							return tf;
+						}})
+			};
+			docListeners.trimToSize();
+			
+	        JPanel wrapper = new JPanel();
+	        	wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+	        for(JComponent v : objs) {v.setAlignmentX(Component.LEFT_ALIGNMENT); wrapper.add(v);}
+	        JScrollPane wrapper_scroll = new JScrollPane(wrapper,
+	        		JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+	        		JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+	        	wrapper_scroll.setBorder(BorderFactory.createEmptyBorder());
+	        	wrapper_scroll.setMaximumSize(new Dimension(MainWin.stdDimension.width * 2, MainWin.stdDimension.height * 2));
+	        
+	        switch (JOptionPane.showConfirmDialog(cframe, wrapper_scroll, "options", JOptionPane.OK_CANCEL_OPTION)) {
+	        	case JOptionPane.YES_OPTION:
+	        			for(var dl : docListeners)
+	        				dl.changedUpdate(null);
+	        			
+	        			if(host != null)
+	        				host.onRestartPresentClick();
+	        		break;
+	        }
+	}
 //////////////////
 // private
 /////////////////
@@ -196,9 +410,13 @@ public class MainWin extends JFrame {
 				quit.addActionListener(event -> quit());
 			JMenuItem restartPresent = new JMenuItem("restart present");
 				restartPresent.setMnemonic('R');
-				restartPresent.addActionListener(event -> {if(currPresent == null) return; this.currPresent.quit(); this.setPresent(currPresent.getClass());});
+				restartPresent.addActionListener(event -> onRestartPresentClick());
+			JMenuItem scaleoptions = new JMenuItem("options");
+				scaleoptions.setMnemonic('S');
+				scaleoptions.addActionListener(event -> MainWin.openScaleUIDialoug(this));
 				
 		help.add(mainMenu);
+		help.add(scaleoptions);
 		help.add(about);
 		help.addSeparator();
 		help.add(restartPresent);

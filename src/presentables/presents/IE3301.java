@@ -36,6 +36,7 @@ import javax.sound.sampled.Line;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.TargetDataLine;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
@@ -147,9 +148,26 @@ public class IE3301 extends Presentable{
 						tb_startbtn.setIcon(MainWin.getImageIcon("res/"+ (isRecording() ? "dot_red": "playbtn")+".png", MainWin.stdtabIconSize));
 					});
 					tb_startbtn.setIcon(MainWin.getImageIcon("res/"+ (isRecording() ? "dot_red": "playbtn")+".png", MainWin.stdtabIconSize));
+			JButton tb_deleteBtn = new JButton(MainWin.getImageIcon("res/trashCan.png", MainWin.stdtabIconSize));
+				tb_deleteBtn.addActionListener(event -> onDeleteClick());
+				tb_deleteBtn.setBorder(emptyBorder);
+				tb_deleteBtn.setToolTipText("clear table contents. (non recoverable and will not save)");
+			JButton tb_importAudioBtn = new JButton(MainWin.getImageIcon("res/import.png", MainWin.stdtabIconSize));
+				tb_importAudioBtn.addActionListener(event -> this.onImportAudioClick());
+				tb_importAudioBtn.setBorder(emptyBorder);
+				tb_importAudioBtn.setToolTipText("import a wav file to analyze. (will first clear table)");
+			JButton tb_saveLogBtn = new JButton(MainWin.getImageIcon("res/save.png", MainWin.stdtabIconSize));
+				tb_saveLogBtn.addActionListener(event -> onSaveLogClick());
+				tb_saveLogBtn.setBorder(emptyBorder);
+				tb_saveLogBtn.setToolTipText("save the tables contents to the log path (overwrite)");
 				
 			toolbar.add(tb_logbtn);
 			toolbar.add(tb_startbtn);
+			toolbar.add(Box.createHorizontalGlue());
+			toolbar.add(tb_importAudioBtn);
+			toolbar.add(tb_saveLogBtn);
+			toolbar.add(Box.createHorizontalStrut(MainWin.stdStructSpace));
+			toolbar.add(tb_deleteBtn);
 		content.add(toolbar, BorderLayout.PAGE_START);
 		
 		//log table
@@ -164,6 +182,7 @@ public class IE3301 extends Presentable{
 				table_sorter.setSortKeys(Arrays.asList(
 						new RowSorter.SortKey(0, SortOrder.ASCENDING)
 					));
+			part1DataTable.setAutoCreateRowSorter(true);
 		JScrollPane table_scroll = new JScrollPane(this.part1DataTable,	
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -555,6 +574,9 @@ public class IE3301 extends Presentable{
 		
 	}
 	
+	public void onDeleteClick() {
+		this.part1DataTable.removeAll();
+	}
 	
 	public boolean isLoggingEnabled() {
 		return this.logginEnabled;
@@ -752,7 +774,10 @@ public class IE3301 extends Presentable{
 	}
 	
 	
-	//dosent work even if the buffer-underflow-exception is patched. not quite sure why. 
+	/*
+	 * dosen't work even if the buffer-underflow-exception is patched. not quite sure why.
+	 * - made going off the diagrams shown here http://soundfile.sapp.org/doc/WaveFormat/
+	 */
 	private void analizeWav(InputStream input, AudioFormat format) throws IOException{		
 		int
 			nChans 			= format.getChannels(),
@@ -765,7 +790,7 @@ public class IE3301 extends Presentable{
 		
 		byte[] 	
 			buffer 		= new byte[bufferSize_byte],	//raw input
-			spBuffer	= new byte[nChanSize_byte];		//bytes per float 
+			spBuffer	= new byte[nChanSize_byte];		//bytes per float (or not... womp womp)
 		
 		float[][]
 			chanBuffer	= new float[nChans][nSamples]; //the actual input data translated from bytes.
@@ -806,9 +831,10 @@ public class IE3301 extends Presentable{
 					}
 					
 					System.out.println("\tchannel:" + iChan + "\tvalue:"+Arrays.toString(spBuffer));
+					p1dtModle.addRow(new Object[] {chanBuffer[iChan][iSp], start, iChan});
 					
-//					chanBuffer[iChan][iSp] = ByteBuffer.wrap(spBuffer).order(byteOrder).getInt();
-//					p1dtModle.addRow(new Object[] {chanBuffer[iChan][iSp], (start / e6), iChan});
+//					chanBuffer[iChan][iSp] = ByteBuffer.wrap(spBuffer).order(byteOrder).getInt(); //throws underFlowException
+//					p1dtModle.addRow(new Object[] {chanBuffer[iChan][iSp], start, iChan});
 				}
 			}
 			
