@@ -76,9 +76,9 @@ import presentables.Presentable;
 import presentables.custom_function;
 
 public class IE3301 extends Presentable{
-	public JTable part1DataTable;
-	private DefaultTableModel p1dtModle;
-	public Path savePath;
+	public 	volatile JTable part1DataTable;
+	private volatile DefaultTableModel p1dtModle;
+	public 	volatile Path savePath;
 	
 	//audio
 	public volatile int 
@@ -276,6 +276,8 @@ public class IE3301 extends Presentable{
 					}}
 				);
 			saveFilePicker.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "log to", TitledBorder.LEFT, TitledBorder.TOP));
+			
+		JLabel data_format_img = new JLabel(MainWin.getImageIcon("res/ie3301/wav_data_format.png"));
 			
 		//general settings
 		JPanel audioEncoding = new JPanel();
@@ -590,6 +592,7 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
+				data_format_img,
 				bigEndianToggler
 		};
 		docListeners.trimToSize();
@@ -648,29 +651,73 @@ public class IE3301 extends Presentable{
 			JProgressBar pb = new JProgressBar(SwingConstants.HORIZONTAL);
 				pb.setSize(new Dimension((int)(MainWin.DimensionScale_window * 4/5), (int)(MainWin.stdStructSpace * 2)));
 		container.add(pb);
-		JOptionPane optionPane = new JOptionPane(message, JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{container}, null);
+		JOptionPane optionPane = new JOptionPane(container, JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
 			
 		JDialog dialog = new JDialog();
 			dialog.setTitle("saving to csv ...");
 			dialog.setModal(true);
-			dialog.setContentPane(optionPane);
-			dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+			dialog.setContentPane(container);
+			dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 			dialog.pack();
+		
+		if(path.toFile().isDirectory()) {
+			path = path.resolve((System.nanoTime()/1000000) + ".csv");
+		} else if(!path.endsWith(".csv")) {
+			System.out.println("correcting to .csv file");
+			String src = path.toAbsolutePath().toString();
+			if(src.endsWith(".wav"))
+				src = src.substring(0, src.length() - (".wav").length());
+			
+			path = Path.of(src + ".csv");
+		}
+		
+		Path pas = path;
+		System.out.println(pas.toAbsolutePath().toString());
 		
 		Thread loader = new Thread() {
  			@Override public void run() {
- 				float progress = 0;
- 				int i = 0;
- 				do {
- 					System.out.println("finish meeee ie3301");
- 					pb.setValue(channelSize_byte);
- 				}while(i < 1);
+ 				System.out.println("path:"+ pas.toString());
+ 				int 
+ 					rowCount 	= part1DataTable.getRowCount(),
+ 					columnCount = part1DataTable.getColumnCount();
+ 				
+ 				StringBuilder sb 	= new StringBuilder();
+ 				String newLine 		= System.getProperty("line.separator");
+ 				
+ 				writeToPath(pas, bw -> {
+ 						Object obj;
+ 						try {
+	 						for(int iR = 0, iC = 0; iR < rowCount; iR++) {
+	 							for(iC = 0; iC < columnCount; iC++) {
+	 								obj = part1DataTable.getValueAt(iR, iC);
+	 								
+	 								sb.append(obj != null ? obj.toString() : ' ');
+	 								
+	 								sb.append(',');
+	 							}
+	 							
+	 							//trim off trailing comma
+	 							sb.setLength(sb.length()-1);
+	 							
+	 							sb.append(newLine);
+	 							
+								bw.write(sb.toString());
+								
+	 	 						sb.setLength(0);
+	 	 						
+	 	 						if(iR % 2 == 0)
+	 	 							pb.setValue(iR / rowCount * 100);
+	 						}
+	 						bw.flush();
+ 						} catch (IOException e) { e.printStackTrace(); }
+ 					});
  				
  				dialog.dispose();
 			}};
 		
 		setNoticeText("saving csv to:" + path.toAbsolutePath().toString(), Color.black);
 		
+		loader.start();
 		dialog.setVisible(true);
 	}
 	
