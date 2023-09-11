@@ -79,8 +79,8 @@ public class IE3301 extends Presentable{
 	//audio
 	public volatile int 
 		logInterval_mill 	= 5000,
-		logSamples			= 5,
-		sampleSize_bytes	= 2,
+		logLength_mill 		= 1000,
+		channelSize_byte	= 2,
 		channels 		= 2,
 		frameSize		= 4;
 	public float
@@ -229,7 +229,8 @@ public class IE3301 extends Presentable{
 		    	});
 			saveAudioFileToggler.setToolTipText(".wav . will save to the same location as logs even if logs are not enableds");
 		
-		JCheckBox useCustomLineToggler =	new JCheckBox("custom format", this.saveAudio.get());
+		//custom data line toggler
+		JCheckBox useCustomLineToggler =	new JCheckBox("custom format", this.audioFormat_custom);
 			useCustomLineToggler.addItemListener(il -> {
 		    		if(il.getStateChange() == ItemEvent.SELECTED) {
 		    			this.audioFormat_custom = true;
@@ -331,6 +332,44 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
+				Presentable.genLabelInput("log length (mil)	: ", new custom_function<JTextField>() {
+					@Override public JTextField doTheThing(JTextField thisisnull) {
+						JTextField tf = new JTextField(5);
+						tf.setText(logLength_mill+"");
+						
+						custom_function<Boolean> isValid = new custom_function<>() {
+							@Override public Boolean doTheThing(Boolean o) {
+								String s = tf.getText();
+								int v;
+								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > logInterval_mill) {
+									setNoticeText("invalid", Color.red);
+									return false;
+								}
+								
+								setNoticeText(":D", Color.BLUE);
+								return true;
+							}};
+						var v = new DocumentListener() {
+							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void changedUpdate(DocumentEvent e) {								
+								if(!isValid.doTheThing(false)) {
+									JOptionPane.showInternalMessageDialog(
+											null,
+											"invalid log length : " + tf.getText(),
+											"unable to set value",
+											JOptionPane.OK_OPTION);
+									return;
+								}
+								
+								logLength_mill = Integer.parseInt(tf.getText());
+							}
+						};
+						
+						docListeners.add(v);
+						tf.getDocument().addDocumentListener(v);		
+						return tf;
+					}}),
 				audioEncoding,
 				Presentable.genLabelInput((JComponent)useCustomLineToggler, new custom_function<JComponent>() {
 					@Override public JComponent doTheThing(JComponent o) {
@@ -342,16 +381,16 @@ public class IE3301 extends Presentable{
 							v.setToolTipText("honstley this selector dosnet do anything. the check box does tho");
 						return v;
 					}}),
-				Presentable.genLabelInput("sample size 	(bytes)	: ", new custom_function<JTextField>() {
+				Presentable.genLabelInput("channel size 	(bytes)	: ", new custom_function<JTextField>() {
 					@Override public JTextField doTheThing(JTextField thisisnull) {
 						JTextField tf = new JTextField(5);
-						tf.setText(sampleSize_bytes+"");
+						tf.setText(channelSize_byte+"");
 						
 						custom_function<Boolean> isValid = new custom_function<>() {
 							@Override public Boolean doTheThing(Boolean o) {
 								String s = tf.getText();
 								int v;
-								if(s.isBlank() || (v = Integer.parseInt(s)) <=0 || v > 100) {
+								if(s.isBlank() || (v = Integer.parseInt(s)) <=0 || v > 8) {
 									setNoticeText("invalid", Color.red);
 									return false;
 								}
@@ -372,7 +411,7 @@ public class IE3301 extends Presentable{
 									return;
 								}
 								
-								sampleSize_bytes = Integer.parseInt(tf.getText());
+								channelSize_byte = Integer.parseInt(tf.getText());
 							}
 						};
 						
@@ -688,11 +727,13 @@ public class IE3301 extends Presentable{
 	 		if(this.isLoggingEnabled()) {	 			
 		 		audio_thread_analysis = new Thread() {
 					@Override public void run() {
-		 				try(AudioInputStream input = new AudioInputStream(targetLine);) {
-		 					analizeWav(input,getAudioFormat());
-		 				} catch (IOException e) {
-							e.printStackTrace();
-						}
+						try {
+							analizeWav(targetLine);
+						} catch (IOException e) { e.printStackTrace(); }
+						
+//		 				try(AudioInputStream input = new AudioInputStream(targetLine);) {
+//		 					analizeWav(input,getAudioFormat());
+//		 				} catch (IOException e) { e.printStackTrace(); }
 		 				
 		 			}};
 	 		}
@@ -749,7 +790,7 @@ public class IE3301 extends Presentable{
 	private synchronized AudioFormat getAudioFormat() {
 		AudioFormat audioFormat;
 		
-		int sampleSize_bits = this.sampleSize_bytes * 8;
+		int sampleSize_bits = this.channelSize_byte * 8;
 		
 		if(this.audioFormat_custom) {
 			audioFormat = new AudioFormat(
@@ -774,6 +815,118 @@ public class IE3301 extends Presentable{
 	}
 	
 	
+	private void analizeWav(TargetDataLine dataLine) throws IOException{
+		/*
+		 * logging vars
+		 * [#frames to analyze] = [frames per second] * [logging length (seconds)] + 1
+		 * [frames per second]	= [samples per second] / [#samples in a frame]
+		 * [#samples in a frame]= [#channels] 											//since each frame is made up of 1 of each channel & each channel is 1 sample
+		 * 
+		 * => [#frames to analyze] = [samples per second] * [logging length (mill)]  / ([#channels] 1000) + 1
+		 */
+		
+		//general
+		int 
+			nCh 	= dataLine.getFormat().getChannels(),				//#channels
+			sCh_byte= dataLine.getFormat().getSampleSizeInBits() / 8, 	//channel 	size(bytes). SHOULD ALWAYSE BE 2 until the the parser gets updated to handle different things
+			sF_byte = nCh * sCh_byte,									
+			nF		= (int)(logLength_mill* sampleRate / (1000 * nCh)) + 1;
+		byte[] buffer = new byte[sF_byte * nF];
+		
+		//main loop
+		long
+			e6		= 1000000,
+			start 	= 0,
+			last	= System.nanoTime() /e6,
+			elapsed = 0;
+		
+		//parsing
+		int
+			i		= 0,
+			iF		= 0,
+			iCh		= 0,
+			iByte	= 0, //i hope not
+			read	= 0; //red
+		
+		double[] chMeans = new double[nCh];
+			Arrays.fill(chMeans, 0);
+		
+		ByteBuffer bb = ByteBuffer.allocate(sCh_byte);
+			bb.order(dataLine.getFormat().isBigEndian() ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
+		
+			
+		System.out.println(""
+				+ "numframes:\t" + nF
+				+ "\nnum channels:\t" + nCh
+				+ "\nframe   size(byte):\t" + sF_byte
+				+ "\nchannel size(byte):\t" + sCh_byte
+				+ "\nbuffer  size(byte):\t" + buffer.length);
+		if(sCh_byte != 2)
+			System.out.println("WARNING: CHANNEL SIZE IS NOT 2 BYTES, will continue as if it was 2");
+			
+			
+		//main loop
+		while((read = dataLine.read(buffer, 0, buffer.length)) != 0) {
+			System.out.println(String.format(
+					"frame:%2d\tread:%d",
+					dataLine.getFramePosition(),
+					read
+				));
+			
+			//timing
+			start = System.nanoTime() /e6;	//u
+			elapsed = (start - last); 		//u
+			last = start;					//u
+			
+			
+			//parsing
+			for(iF = 0, i = 0; iF < nF; iF++) {					//per frame
+				for(iCh = 0; iCh < nCh; iCh++) {				//per channel
+					for(iByte = 0; iByte < sCh_byte; iByte++) {		//get byte
+						bb.put(buffer[i]);
+						
+						i++;
+						if(i == read) break;
+					}
+					
+					System.out.println("bb:" + Arrays.toString(bb.array()));
+					short channelValue = bb.getShort(0);
+						bb.rewind();
+					
+					chMeans[iCh] += channelValue;						
+				}
+			}
+			
+			for(i = 0; i < chMeans.length; i++) {
+				chMeans[i] /= chMeans.length;
+				
+				var value 	= chMeans[i];
+				var time	= start;
+				var channel = i;
+				System.out.println(String.format(
+						"\tchannel:%d\t\tmean:%3.1f",
+						channel,
+						value
+					));
+				p1dtModle.addRow(new Object[] {value, time, channel});
+				
+				chMeans[i] = 0;
+			}
+			
+			//timing
+			System.out.print("\n\nelapsed:" + elapsed + "\t< interval:"+logInterval_mill+"? ");
+			if(elapsed < logInterval_mill) {
+				System.out.println("true \t-> snoozing\n");
+				try {
+					Thread.sleep(logInterval_mill-elapsed);
+				} catch (InterruptedException e) { e.printStackTrace(); }
+			}else {
+				System.out.println("false \t-> losing :(\n");
+			}
+		}
+		System.out.println("new thread thing quitting");
+	}
+	
 	/*
 	 * dosen't work even if the buffer-underflow-exception is patched. not quite sure why.
 	 * - made going off the diagrams shown here http://soundfile.sapp.org/doc/WaveFormat/
@@ -781,8 +934,8 @@ public class IE3301 extends Presentable{
 	private void analizeWav(InputStream input, AudioFormat format) throws IOException{		
 		int
 			nChans 			= format.getChannels(),
-			nChanSize_byte	= sampleSize_bytes,
-			nSamples 		= logSamples,
+			nChanSize_byte	= channelSize_byte * 8 * channels,//sampleSize_bytes,
+			nSamples 		= 1,//logSamples,
 			nSpSize_byte	= nChans * nChanSize_byte,
 			bufferSize_byte	= nSamples * nSpSize_byte;
 		
@@ -849,6 +1002,7 @@ public class IE3301 extends Presentable{
 			}
 		}
 	}
+
 	
 ///////////////////
 //present statics
