@@ -49,18 +49,22 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
+import javax.swing.JDialog;
 import javax.swing.RowSorter;
 import javax.swing.SortOrder;
+import javax.swing.SwingConstants;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
@@ -109,6 +113,7 @@ public class IE3301 extends Presentable{
 		this.checkDataLines();
 		
 		this.savePath = Presentable.makeRoot(this.getClass());
+		this.setLoggingTo(savePath);
 		initGUI(mw);
 	}	
 	@Override protected void initGUI(MainWin mw){
@@ -128,6 +133,7 @@ public class IE3301 extends Presentable{
 		this.stopRecording();
 	}
 	
+	@SuppressWarnings("serial")
 	public void genUI_tab_part1(JTabbedPane host_tabb) {
 		JPanel content = new JPanel(new BorderLayout());
 		
@@ -171,17 +177,28 @@ public class IE3301 extends Presentable{
 		content.add(toolbar, BorderLayout.PAGE_START);
 		
 		//log table
-		this.part1DataTable = new JTable() {
+		p1dtModle = new DefaultTableModel(
+				new Object[][] {null}, //data
+				new String[] {"val", "time(mill-epoch)", "channel#"}) //columns 
+				{
+		            @SuppressWarnings({ "unchecked", "rawtypes" })
+					@Override public Class getColumnClass(int column) {
+		                switch (column) {
+		                    case 0:
+		                        return Long.class;
+		                    case 1:
+		                        return Long.class;
+		                    case 2:
+		                        return Integer.class;
+		                    default:
+		                        return String.class;
+		                }
+		            }
+		        };
+		part1DataTable = new JTable(p1dtModle) {
 					private static final long serialVersionUID = 1L;//eclipse complains
 					public boolean isCellEditable(int row, int column) { return true; };
 				};
-			p1dtModle = (DefaultTableModel)this.part1DataTable.getModel();
-				for(var v : new String[] {"val", "time(mill-epoch)", "channel#"}) p1dtModle.addColumn(v);
-				
-			TableRowSorter<TableModel> table_sorter = new TableRowSorter<>(p1dtModle);
-				table_sorter.setSortKeys(Arrays.asList(
-						new RowSorter.SortKey(0, SortOrder.ASCENDING)
-					));
 			part1DataTable.setAutoCreateRowSorter(true);
 		JScrollPane table_scroll = new JScrollPane(this.part1DataTable,	
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -606,7 +623,55 @@ public class IE3301 extends Presentable{
 	}
 	
 	public void onSaveLogClick() {
+		var file = savePath.toFile();
+		Path path = file.toPath();
 		
+		if(!file.exists())
+			this.setLoggingTo(savePath);
+		
+		if(file.isFile()) {
+			switch(JOptionPane.showConfirmDialog(null, "file already exists, do you want to override? " + path.toAbsolutePath().toString())) {
+				case JFileChooser.APPROVE_OPTION : 
+					break;
+					
+				default: return;
+			}
+		}
+		
+		if(file.isDirectory()) {
+			path = savePath.resolve((int)(System.nanoTime()/1000000) + ".wav");
+		}
+		
+		String message = "saving csv to:" + path.toAbsolutePath().toString();
+		
+		JLabel container = new JLabel(message);
+			JProgressBar pb = new JProgressBar(SwingConstants.HORIZONTAL);
+				pb.setSize(new Dimension((int)(MainWin.DimensionScale_window * 4/5), (int)(MainWin.stdStructSpace * 2)));
+		container.add(pb);
+		JOptionPane optionPane = new JOptionPane(message, JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{container}, null);
+			
+		JDialog dialog = new JDialog();
+			dialog.setTitle("saving to csv ...");
+			dialog.setModal(true);
+			dialog.setContentPane(optionPane);
+			dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+			dialog.pack();
+		
+		Thread loader = new Thread() {
+ 			@Override public void run() {
+ 				float progress = 0;
+ 				int i = 0;
+ 				do {
+ 					System.out.println("finish meeee ie3301");
+ 					pb.setValue(channelSize_byte);
+ 				}while(i < 1);
+ 				
+ 				dialog.dispose();
+			}};
+		
+		setNoticeText("saving csv to:" + path.toAbsolutePath().toString(), Color.black);
+		
+		dialog.setVisible(true);
 	}
 	
 	public void onImportAudioClick() {
@@ -712,7 +777,7 @@ public class IE3301 extends Presentable{
 		 				File outputFile;
 		 				
 		 				AudioInputStream recordingStream = new AudioInputStream(targetLine);
-		 				Path pth = savePath.resolve(savePath.getFileName().toString()+(int)(System.nanoTime()/1000000) + ".wav");
+		 				Path pth = savePath.resolve((int)(System.nanoTime()/1000000) + ".wav");
 		 				outputFile = pth.toFile();
 		 				setNoticeText("saving audio to:" + pth.toAbsolutePath().toString(), Color.black);
 		 				
@@ -814,7 +879,9 @@ public class IE3301 extends Presentable{
 		return audioFormat;
 	}
 	
-	
+	/*
+	 * works
+	 */
 	private void analizeWav(TargetDataLine dataLine) throws IOException{
 		/*
 		 * logging vars
@@ -874,9 +941,9 @@ public class IE3301 extends Presentable{
 				));
 			
 			//timing
-			start = System.nanoTime() /e6;	//u
-			elapsed = (start - last); 		//u
-			last = start;					//u
+			start = System.nanoTime();		//n
+			elapsed = (start - last); 		//n
+			last = start;					//n
 			
 			
 			//parsing
@@ -901,7 +968,7 @@ public class IE3301 extends Presentable{
 				chMeans[i] /= chMeans.length;
 				
 				var value 	= chMeans[i];
-				var time	= start;
+				var time	= start / e6;
 				var channel = i;
 				System.out.println(String.format(
 						"\tchannel:%d\t\tmean:%3.1f",
@@ -925,11 +992,14 @@ public class IE3301 extends Presentable{
 			}
 		}
 		System.out.println("new thread thing quitting");
+		dataLine.close();
 	}
 	
 	/*
-	 * dosen't work even if the buffer-underflow-exception is patched. not quite sure why.
+	 * dosen't work even if the buffer-underflow-exception is patched.
 	 * - made going off the diagrams shown here http://soundfile.sapp.org/doc/WaveFormat/
+	 * 
+	 * : update - reason it dosent work is because i screwed up what a frame and sample represents
 	 */
 	private void analizeWav(InputStream input, AudioFormat format) throws IOException{		
 		int
