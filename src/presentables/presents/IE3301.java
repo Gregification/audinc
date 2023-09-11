@@ -115,6 +115,8 @@ public class IE3301 extends Presentable{
 		this.savePath = Presentable.makeRoot(this.getClass());
 		this.setLoggingTo(savePath);
 		initGUI(mw);
+		
+		this.onDeleteClick();
 	}	
 	@Override protected void initGUI(MainWin mw){
 		JPanel container = new JPanel(new BorderLayout()); // add notice later
@@ -225,6 +227,17 @@ public class IE3301 extends Presentable{
 		    		}
 		    	});
 		
+		//log to table toggler
+		JCheckBox logToTableToggler =	new JCheckBox("save analysis", this.isLoggingEnabled());
+			logToggler.addItemListener(il -> {
+		    		if(il.getStateChange() == ItemEvent.SELECTED) {
+		    			this.setLoggingEnabled(true);
+		    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
+		    			this.setLoggingEnabled(false);
+		    		}
+		    	});
+			
+			
 		//big endian toggler
 	 	JCheckBox bigEndianToggler =	new JCheckBox("big endian", this.audioFormat_bigEndian);
 			bigEndianToggler.addItemListener(il -> {
@@ -726,7 +739,8 @@ public class IE3301 extends Presentable{
 	}
 	
 	public void onDeleteClick() {
-		this.part1DataTable.removeAll();
+		var v = (DefaultTableModel)(part1DataTable.getModel());
+		v.setRowCount(0);
 	}
 	
 	public boolean isLoggingEnabled() {
@@ -1101,6 +1115,7 @@ public class IE3301 extends Presentable{
 					}
 					
 					System.out.println("\tchannel:" + iChan + "\tvalue:"+Arrays.toString(spBuffer));
+					
 					p1dtModle.addRow(new Object[] {chanBuffer[iChan][iSp], start, iChan});
 					
 //					chanBuffer[iChan][iSp] = ByteBuffer.wrap(spBuffer).order(byteOrder).getInt(); //throws underFlowException
