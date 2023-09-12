@@ -87,8 +87,8 @@ public class IE3301 extends Presentable{
 	
 	//audio
 	public volatile int 
-		logInterval_mill 	= 1000,
-		logLength_mill 		= 500,
+		logInterval_mill 	= 5000,
+		logLength_mill 		= 1000,
 		channelSize_byte	= 2,
 		channels 		= 2,
 		frameSize		= 4;
@@ -268,7 +268,7 @@ public class IE3301 extends Presentable{
 				for(int i = l; i < n; i++)
 					this.rawSamplePoints.add(new ArrayList<AudioRecord>());
 			}else {
-				for(int i = n; i < l; i++)
+				for(int i = n; i+1 < l; i++)
 					this.rawSamplePoints.remove(l);
 			}
 			
@@ -322,7 +322,8 @@ public class IE3301 extends Presentable{
 		synchronized(this.rawSamplePoints) {			
 			this.rawSamplePoints.get(channel).add(ar);
 				
-			p1dtModle.addRow(arrangeIntoRow(ar, channel));
+			if(this.isLoggingEnabled())
+				p1dtModle.addRow(arrangeIntoRow(ar, channel));
 		}
 	}
 	
@@ -1087,9 +1088,8 @@ public class IE3301 extends Presentable{
 		 		audio_thread_recording.start();
  			}
  			
- 			if(this.isLoggingEnabled()) {
- 				audio_thread_analysis.start();
- 			}
+ 			
+ 			audio_thread_analysis.start();
  			
 // 			System.out.println();
  			
@@ -1203,7 +1203,7 @@ public class IE3301 extends Presentable{
 			start 	= 0,
 			last	= System.nanoTime() /e6,
 			elapsed = 0,
-			sleepIntervals 	= 4,
+			sleepIntervals 	= 2,
 			sleepStep 		= 0;
 		
 		while((read = dataLine.read(buffer, 0, buffer.length)) != 0) {
