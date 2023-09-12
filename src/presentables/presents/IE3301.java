@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
@@ -64,7 +65,10 @@ import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
@@ -82,24 +86,36 @@ public class IE3301 extends Presentable{
 	
 	//audio
 	public volatile int 
-		logInterval_mill 	= 5000,
-		logLength_mill 		= 1000,
+		logInterval_mill 	= 1000,
+		logLength_mill 		= 500,
 		channelSize_byte	= 2,
 		channels 		= 2,
 		frameSize		= 4;
-	public float
+	public volatile float
 		sampleRate	= 44100,
-		frameRate	= 44100;
+		frameRate	= 44100,
+		ampRef	= 1.228f;
 	public boolean 
 		audioFormat_bigEndian 	= false,
 		audioFormat_custom		= false;
+	public volatile boolean
+		thread_stopTableRefresh = false;
 	public AudioFormat.Encoding audioFormat_encoding = AudioFormat.Encoding.PCM_SIGNED;
 	private TargetDataLine targetLine;
 	private Thread 
 		audio_thread_recording 	= null,
-		audio_thread_analysis 	= null;
+		audio_thread_analysis 	= null,
+		thread_tableRefresh		= null;
 	private final AtomicBoolean saveAudio = new AtomicBoolean(true);
 	public ArrayList<Line.Info> detectedLines = new ArrayList<>();
+	public volatile ArrayList<ArrayList<AudioRecord>> rawSamplePoints = new ArrayList<>();
+	
+	public final int
+		PART1_TABLE_COLUMN_VALUE 	= 0,
+		PART1_TABLE_COLUMN_dB		= 1,
+		PART1_TABLE_COLUMN_TIME		= 2,
+		PART1_TABLE_COLUMN_CHANNEL	= 3;	
+	public Class[] rowClasses = new Class[4]; //effectively final
 	
 	private Line.Info selectedLine = null;
 	private boolean logginEnabled = true;
@@ -109,14 +125,29 @@ public class IE3301 extends Presentable{
         
 	}
 	
+	public Object[] arrangeIntoRow(AudioRecord ar, int channel) {
+		var arr = new Object[4];
+			arr[PART1_TABLE_COLUMN_VALUE] 	= ar.value; 
+			arr[PART1_TABLE_COLUMN_dB] 		= AudioRecord.evaluatedB(ar.value, ampRef);		
+			arr[PART1_TABLE_COLUMN_TIME] 	= ar.time;		
+			arr[PART1_TABLE_COLUMN_CHANNEL] = channel;	
+		return arr;
+	}
+	
 	@Override protected void init(MainWin mw) 	{
+		rowClasses[PART1_TABLE_COLUMN_VALUE] 	= Float.class; 
+		rowClasses[PART1_TABLE_COLUMN_dB] 		= Float.class;		
+		rowClasses[PART1_TABLE_COLUMN_TIME] 	= Long.class;		
+		rowClasses[PART1_TABLE_COLUMN_CHANNEL] 	= Integer.class;
+		
 		this.checkDataLines();
 		
 		this.savePath = Presentable.makeRoot(this.getClass());
 		this.setLoggingTo(savePath);
 		initGUI(mw);
 		
-		this.onDeleteClick();
+		this.setChannelCount(channels);
+		this.onDeleteClick();		
 	}	
 	@Override protected void initGUI(MainWin mw){
 		JPanel container = new JPanel(new BorderLayout()); // add notice later
@@ -156,10 +187,14 @@ public class IE3301 extends Presentable{
 						tb_startbtn.setIcon(MainWin.getImageIcon("res/"+ (isRecording() ? "dot_red": "playbtn")+".png", MainWin.stdtabIconSize));
 					});
 					tb_startbtn.setIcon(MainWin.getImageIcon("res/"+ (isRecording() ? "dot_red": "playbtn")+".png", MainWin.stdtabIconSize));
+			JButton tb_refreshbtn = new JButton(MainWin.getImageIcon("res/refresh.png", MainWin.stdtabIconSize));
+				tb_refreshbtn.setBorder(emptyBorder);
+				tb_refreshbtn.setToolTipText("refresh table to local data points");
+				tb_refreshbtn.addActionListener(e -> refreshTable());
 			JButton tb_deleteBtn = new JButton(MainWin.getImageIcon("res/trashCan.png", MainWin.stdtabIconSize));
 				tb_deleteBtn.addActionListener(event -> onDeleteClick());
 				tb_deleteBtn.setBorder(emptyBorder);
-				tb_deleteBtn.setToolTipText("clear table contents. (non recoverable and will not save)");
+				tb_deleteBtn.setToolTipText("delete selected rows of the table. (non recoverable)");
 			JButton tb_importAudioBtn = new JButton(MainWin.getImageIcon("res/import.png", MainWin.stdtabIconSize));
 				tb_importAudioBtn.addActionListener(event -> this.onImportAudioClick());
 				tb_importAudioBtn.setBorder(emptyBorder);
@@ -171,6 +206,7 @@ public class IE3301 extends Presentable{
 				
 			toolbar.add(tb_logbtn);
 			toolbar.add(tb_startbtn);
+			toolbar.add(tb_refreshbtn);
 			toolbar.add(Box.createHorizontalGlue());
 			toolbar.add(tb_importAudioBtn);
 			toolbar.add(tb_saveLogBtn);
@@ -179,20 +215,28 @@ public class IE3301 extends Presentable{
 		content.add(toolbar, BorderLayout.PAGE_START);
 		
 		//log table
+		String[] columns = new String[4];
+				columns[PART1_TABLE_COLUMN_VALUE] 	= "val";
+				columns[PART1_TABLE_COLUMN_dB] 		= "dB";
+				columns[PART1_TABLE_COLUMN_TIME] 	= "time(mill-epoch)";
+				columns[PART1_TABLE_COLUMN_CHANNEL] = "channel";
 		p1dtModle = new DefaultTableModel(
 				new Object[][] {null}, //data
-				new String[] {"val", "time(mill-epoch)", "channel#"}) //columns 
+				columns) 
 				{
 		            @SuppressWarnings({ "unchecked", "rawtypes" })
 					@Override public Class getColumnClass(int column) {
 		                switch (column) {
-		                    case 0:
-		                        return Long.class;
-		                    case 1:
-		                        return Long.class;
-		                    case 2:
-		                        return Integer.class;
+		                    case PART1_TABLE_COLUMN_VALUE:
+		                        return rowClasses[column];
+		                    case PART1_TABLE_COLUMN_dB:
+		                        return rowClasses[column];
+		                    case PART1_TABLE_COLUMN_TIME:
+		                        return rowClasses[column];
+		                    case PART1_TABLE_COLUMN_CHANNEL:
+		                        return rowClasses[column];
 		                    default:
+		                    	System.out.println("ie3301 / genUI_tab_part1 / missing a columns somewhow");
 		                        return String.class;
 		                }
 		            }
@@ -201,13 +245,84 @@ public class IE3301 extends Presentable{
 					private static final long serialVersionUID = 1L;//eclipse complains
 					public boolean isCellEditable(int row, int column) { return true; };
 				};
-			part1DataTable.setAutoCreateRowSorter(true);
+		DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+			rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
+		part1DataTable.setDefaultRenderer(Object.class, rightRenderer);
+		
+		part1DataTable.setAutoCreateRowSorter(true);
+		
 		JScrollPane table_scroll = new JScrollPane(this.part1DataTable,	
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		content.add(table_scroll, BorderLayout.CENTER);
 	
 		host_tabb.addTab("part 1", null, content, "data set1 generation");
+	}
+
+	public void setChannelCount(int n) {
+		synchronized(this.rawSamplePoints) {
+			int l = rawSamplePoints.size();
+			
+			if(n > l) {
+				for(int i = l; i < n; i++)
+					this.rawSamplePoints.add(new ArrayList<AudioRecord>());
+			}else {
+				for(int i = n; i < l; i++)
+					this.rawSamplePoints.remove(l);
+			}
+			
+			this.rawSamplePoints.trimToSize();
+//			System.out.println("sample array count:" + this.rawSamplePoints.size() + " / " + n);
+		}
+	}
+	
+	public boolean isValidChannelCount(int n) {
+		return !(n <= 0 || n > 65535);
+	}
+	
+	
+	public void refreshTable() {		
+		setNoticeText("refreshing table ...", Color.yellow);
+		
+		p1dtModle.setRowCount(0);
+		
+		thread_stopTableRefresh = false;
+		if(thread_tableRefresh != null && thread_tableRefresh.isAlive()) {
+			thread_stopTableRefresh = true;
+			try {
+				thread_tableRefresh.join();
+			} catch (InterruptedException e1) { e1.printStackTrace(); }
+		}
+		
+		thread_tableRefresh = new Thread(() -> {
+//				System.out.println("refresh table > start");
+				synchronized(this.rawSamplePoints) {
+					for(int channel = 0, totalChannels = this.rawSamplePoints.size(); channel < totalChannels; channel++) {
+						for(AudioRecord ar : this.rawSamplePoints.get(channel)) {
+							if(thread_stopTableRefresh) {
+//								System.out.println("refresh table > stopped early");
+								return;
+							}
+							
+//							System.out.println("refresh table > add row");
+							
+							p1dtModle.addRow(arrangeIntoRow(ar, channel));
+						}
+					}
+//					System.out.println("refresh table > thread ended");
+				}
+			});
+		thread_tableRefresh.start();
+		
+		setNoticeText("table has been refreshed", Color.black);
+	}
+	
+	public void addSamplePoint(int channel, AudioRecord ar) {
+		synchronized(this.rawSamplePoints) {			
+			this.rawSamplePoints.get(channel).add(ar);
+				
+			p1dtModle.addRow(arrangeIntoRow(ar, channel));
+		}
 	}
 	
 ///////////////////
@@ -402,6 +517,47 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
+				Presentable.genLabelInput("refrence amp (float): ", new custom_function<JTextField>() {
+					@Override public JTextField doTheThing(JTextField thisisnull) {
+						JTextField tf = new JTextField(5);
+						tf.setText(ampRef+"");
+						
+						custom_function<Boolean> isValid = new custom_function<>() {
+							@Override public Boolean doTheThing(Boolean o) {
+								String s = tf.getText();try {
+								if(s.isBlank() || Float.parseFloat(s) == 0) {
+									setNoticeText("invalid", Color.red);
+									return false;
+								}}catch(NumberFormatException e ) {
+									return false;
+								}
+								
+								setNoticeText(":D", Color.BLUE);
+								return true;
+							}};
+						var v = new DocumentListener() {
+							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void changedUpdate(DocumentEvent e) {								
+								if(!isValid.doTheThing(false)) {
+									JOptionPane.showInternalMessageDialog(
+											null,
+											"invalid refrence amp : " + tf.getText(),
+											"unable to set value",
+											JOptionPane.OK_OPTION);
+									return;
+								}
+								
+								ampRef = Float.parseFloat(tf.getText());
+								
+								refreshTable();
+							}
+						};
+						
+						docListeners.add(v);
+						tf.getDocument().addDocumentListener(v);		
+						return tf;
+					}}),
 				audioEncoding,
 				Presentable.genLabelInput((JComponent)useCustomLineToggler, new custom_function<JComponent>() {
 					@Override public JComponent doTheThing(JComponent o) {
@@ -456,13 +612,11 @@ public class IE3301 extends Presentable{
 						JTextField tf = new JTextField(5);
 						tf.setText(channels+"");
 						
-						int maxChannels = 65535;
-						
 						custom_function<Boolean> isValid = new custom_function<>() {
 							@Override public Boolean doTheThing(Boolean o) {
 								String s = tf.getText();
-								int v;
-								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > maxChannels) {
+								
+								if(s.isBlank() || !isValidChannelCount(Integer.parseInt(s))) {
 									setNoticeText("invalid", Color.red);
 									return false;
 								}
@@ -477,13 +631,13 @@ public class IE3301 extends Presentable{
 								if(!isValid.doTheThing(false)) {
 									JOptionPane.showInternalMessageDialog(
 											null,
-											"invalid channel count (0-"+maxChannels+"): " + tf.getText(),
+											"invalid channel count : " + tf.getText(),
 											"unable to set value",
 											JOptionPane.OK_OPTION);
 									return;
 								}
 								
-								channels = Integer.parseInt(tf.getText());
+								setChannelCount(Integer.parseInt(tf.getText()));
 							}
 						};
 						
@@ -676,7 +830,7 @@ public class IE3301 extends Presentable{
 		if(path.toFile().isDirectory()) {
 			path = path.resolve((System.nanoTime()/1000000) + ".csv");
 		} else if(!path.endsWith(".csv")) {
-			System.out.println("correcting to .csv file");
+//			System.out.println("correcting to .csv file");
 			String src = path.toAbsolutePath().toString();
 			if(src.endsWith(".wav"))
 				src = src.substring(0, src.length() - (".wav").length());
@@ -684,12 +838,10 @@ public class IE3301 extends Presentable{
 			path = Path.of(src + ".csv");
 		}
 		
-		Path pas = path;
-		System.out.println(pas.toAbsolutePath().toString());
 		
+		Path pas = path;
 		Thread loader = new Thread() {
  			@Override public void run() {
- 				System.out.println("path:"+ pas.toString());
  				int 
  					rowCount 	= part1DataTable.getRowCount(),
  					columnCount = part1DataTable.getColumnCount();
@@ -739,8 +891,53 @@ public class IE3301 extends Presentable{
 	}
 	
 	public void onDeleteClick() {
-		var v = (DefaultTableModel)(part1DataTable.getModel());
-		v.setRowCount(0);
+//		System.out.println("on delete click");
+		var model = (DefaultTableModel)(this.p1dtModle);
+		int[] rows = part1DataTable.getSelectedRows();
+		
+		if(rows.length == 0 || rows.length == part1DataTable.getRowCount()) {
+			rawSamplePoints.clear();
+			setChannelCount(channels);
+			model.setRowCount(0);
+		}else {
+			for(int r : rows){
+				int channel = (int) model.getValueAt(r, 3);
+				
+				Predicate<? super AudioRecord> filter;
+					switch(part1DataTable.getSelectedColumn()) {
+						case PART1_TABLE_COLUMN_CHANNEL:
+	                    	rawSamplePoints.get(channel).clear();
+	                    	return;
+	                    	
+						case PART1_TABLE_COLUMN_VALUE:{
+	                    	short value = (short)part1DataTable.getValueAt(r, PART1_TABLE_COLUMN_dB);
+	                    	filter = ar -> ar.value == value;
+	                    	}break;
+	                    	
+	                    case PART1_TABLE_COLUMN_dB:{
+	                    	float db = (float)part1DataTable.getValueAt(r, PART1_TABLE_COLUMN_dB);
+	                    	filter = ar -> AudioRecord.evaluatedB(ar.value, ampRef) == db;
+	                    	}break;
+	                    	
+	                    case PART1_TABLE_COLUMN_TIME:{
+	                    	long time = (long)part1DataTable.getValueAt(r, PART1_TABLE_COLUMN_TIME);
+	                    	filter = ar -> ar.time == time;
+	                    	}break;
+	                    	
+	                    default:
+	                    	filter = ar -> true;
+	                    	break;
+					}
+					
+				rawSamplePoints.get(channel).remove(filter);
+				
+				this.refreshTable();
+			}
+		}
+		
+		synchronized(this.rawSamplePoints) {
+			this.rawSamplePoints.clear();
+		}
 	}
 	
 	public boolean isLoggingEnabled() {
@@ -773,7 +970,7 @@ public class IE3301 extends Presentable{
 			} catch (IOException e) { e.printStackTrace(); }
 		}
 	}
-	
+		
 	public void checkDataLines() {
 		detectedLines.clear();
 		
@@ -805,13 +1002,10 @@ public class IE3301 extends Presentable{
 	}
 	
 	public void startRecording() {
+//		System.out.println("start recording");
 		if(isRecording()) {
 			stopRecording();
 		}
-		
-		System.out.println("starting recording");
-//		System.out.println("starting recording. "
-//				+ "\n\rsaveaudio:\t" + this.saveAudio + "");
 		
 		try {
 			AudioFormat audioFormat = this.getAudioFormat();
@@ -845,7 +1039,7 @@ public class IE3301 extends Presentable{
 		 				try {
 							AudioSystem.write(recordingStream, AudioFileFormat.Type.WAVE, outputFile);
 						} catch (IOException e) {
-							System.out.println(e);
+							System.out.println("ie3301 / start recording / recording thread setup failed");
 						}
 		 			}};
 	 		}
@@ -855,33 +1049,26 @@ public class IE3301 extends Presentable{
 					@Override public void run() {
 						try {
 							analizeWav(targetLine);
-						} catch (IOException e) { e.printStackTrace(); }
-						
-//		 				try(AudioInputStream input = new AudioInputStream(targetLine);) {
-//		 					analizeWav(input,getAudioFormat());
-//		 				} catch (IOException e) { e.printStackTrace(); }
-		 				
+						} catch (IOException e) { e.printStackTrace(); }		 				
 		 			}};
 	 		}
 	 		
-	 		System.out.print("\t starting thread : ");
-	 		
  			if(this.saveAudio.get()) {
- 				System.out.print("\trecording_t");
 		 		audio_thread_recording.start();
  			}
  			
  			if(this.isLoggingEnabled()) {
- 				System.out.print("\tanalysis_t");
  				audio_thread_analysis.start();
  			}
  			
- 			System.out.println();
+// 			System.out.println();
  			
 	 	}catch (Exception e) {
+	 		System.out.print("ie3301 / startRecording errored");
 	 		this.setNoticeText(e.toString(), Color.red);
-	 		System.out.println(e);
 	 	}
+		
+//		System.out.println("start recording ended");
 	}
 	public void stopRecording() {
 		this.setNoticeText("stopping recording ... ", Color.black);
@@ -961,12 +1148,8 @@ public class IE3301 extends Presentable{
 			nF		= (int)(logLength_mill* sampleRate / (1000 * nCh)) + 1;
 		byte[] buffer = new byte[sF_byte * nF];
 		
-		//main loop
-		long
-			e6		= 1000000,
-			start 	= 0,
-			last	= System.nanoTime() /e6,
-			elapsed = 0;
+		if(this.rawSamplePoints.size() != nCh)
+			this.setChannelCount(nCh);
 		
 		//parsing
 		int
@@ -982,31 +1165,18 @@ public class IE3301 extends Presentable{
 		ByteBuffer bb = ByteBuffer.allocate(sCh_byte);
 			bb.order(dataLine.getFormat().isBigEndian() ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
 		
-			
-		System.out.println(""
-				+ "numframes:\t" + nF
-				+ "\nnum channels:\t" + nCh
-				+ "\nframe   size(byte):\t" + sF_byte
-				+ "\nchannel size(byte):\t" + sCh_byte
-				+ "\nbuffer  size(byte):\t" + buffer.length);
-		if(sCh_byte != 2)
-			System.out.println("WARNING: CHANNEL SIZE IS NOT 2 BYTES, will continue as if it was 2");
-			
+		
 			
 		//main loop
+		long
+			e6		= 1000000,
+			start 	= 0,
+			last	= System.nanoTime() /e6,
+			elapsed = 0,
+			sleepIntervals 	= 4,
+			sleepStep 		= 0;
+		
 		while((read = dataLine.read(buffer, 0, buffer.length)) != 0) {
-			System.out.println(String.format(
-					"frame:%2d\tread:%d",
-					dataLine.getFramePosition(),
-					read
-				));
-			
-			//timing
-			start = System.nanoTime();		//n
-			elapsed = (start - last); 		//n
-			last = start;					//n
-			
-			
 			//parsing
 			for(iF = 0, i = 0; iF < nF; iF++) {					//per frame
 				for(iCh = 0; iCh < nCh; iCh++) {				//per channel
@@ -1017,7 +1187,6 @@ public class IE3301 extends Presentable{
 						if(i == read) break;
 					}
 					
-					System.out.println("bb:" + Arrays.toString(bb.array()));
 					short channelValue = bb.getShort(0);
 						bb.rewind();
 					
@@ -1025,114 +1194,38 @@ public class IE3301 extends Presentable{
 				}
 			}
 			
+			
+			//analysis			
 			for(i = 0; i < chMeans.length; i++) {
 				chMeans[i] /= chMeans.length;
 				
-				var value 	= chMeans[i];
-				var time	= start / e6;
-				var channel = i;
-				System.out.println(String.format(
-						"\tchannel:%d\t\tmean:%3.1f",
-						channel,
-						value
-					));
-				p1dtModle.addRow(new Object[] {value, time, channel});
+				addSamplePoint(
+						i,
+						new AudioRecord((float)chMeans[i],last)
+					);
 				
 				chMeans[i] = 0;
 			}
 			
 			//timing
-			System.out.print("\n\nelapsed:" + elapsed + "\t< interval:"+logInterval_mill+"? ");
+			start = System.nanoTime() / e6;		//n
+			elapsed = (start - last); 		//n
+			last = start;					//n
 			if(elapsed < logInterval_mill) {
-				System.out.println("true \t-> snoozing\n");
 				try {
-					Thread.sleep(logInterval_mill-elapsed);
-				} catch (InterruptedException e) { e.printStackTrace(); }
-			}else {
-				System.out.println("false \t-> losing :(\n");
-			}
-		}
-		System.out.println("new thread thing quitting");
-		dataLine.close();
-	}
-	
-	/*
-	 * dosen't work even if the buffer-underflow-exception is patched.
-	 * - made going off the diagrams shown here http://soundfile.sapp.org/doc/WaveFormat/
-	 * 
-	 * : update - reason it dosent work is because i screwed up what a frame and sample represents
-	 */
-	private void analizeWav(InputStream input, AudioFormat format) throws IOException{		
-		int
-			nChans 			= format.getChannels(),
-			nChanSize_byte	= channelSize_byte * 8 * channels,//sampleSize_bytes,
-			nSamples 		= 1,//logSamples,
-			nSpSize_byte	= nChans * nChanSize_byte,
-			bufferSize_byte	= nSamples * nSpSize_byte;
-		
-		ByteOrder byteOrder	= format.isBigEndian() ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-		
-		byte[] 	
-			buffer 		= new byte[bufferSize_byte],	//raw input
-			spBuffer	= new byte[nChanSize_byte];		//bytes per float (or not... womp womp)
-		
-		float[][]
-			chanBuffer	= new float[nChans][nSamples]; //the actual input data translated from bytes.
-		
-		//loop vars
-		long
-			e6		= 1000000,
-			start 	= 0,
-			last	= System.nanoTime() /e6,
-			elapsed = 0;
-		
-		System.out.println("analize thread:"
-				+ "\n\tinput buffer size: \t"	+ bufferSize_byte
-				+ "\n\tnum channel: \t" + nChans
-				+ "\n\t\tsize: \t"	+ nChanSize_byte
-				+ "\n\tnum samples: \t"	+ nSamples 
-				+ "\n\t\tsize: \t"	+ nSpSize_byte
-				+ "");
-		
-		//main loop
-		while(input.read(buffer) > 0) {
-			start = System.nanoTime() /e6;	//u
-			elapsed = (start - last); 		//u
-			last = start;					//u
-			
-			System.out.println(start +"\t:\t"+ Arrays.toString(buffer));
-			
-			//cat input buffer -> channel data
-			for(int iSp = 0, iChan = 0, iByte = 0, iTotal = 0; iSp < nSamples; iSp++) { 	//per sample
-				
-				System.out.println(String.format("sample %%%2.0f : %d\t\t%3d /%3d",(float)iTotal/(float)buffer.length*100,iSp, iTotal, buffer.length));
-				
-				for(iChan = 0; iChan < nChans; iChan++){							//per channel
-					iTotal = iSp*nSpSize_byte + iChan*nChanSize_byte;
+					sleepStep = (long)((logInterval_mill-elapsed) / sleepIntervals) + 1;
 					
-					for(iByte = 0; iByte < nChanSize_byte; iByte++) { 					//per byte
-						spBuffer[iByte] = buffer[iTotal + iByte];
+					for(i = 0; i < sleepIntervals; i++) {
+						Thread.sleep(sleepStep);
+						if(!dataLine.isActive()) break;
 					}
-					
-					System.out.println("\tchannel:" + iChan + "\tvalue:"+Arrays.toString(spBuffer));
-					
-					p1dtModle.addRow(new Object[] {chanBuffer[iChan][iSp], start, iChan});
-					
-//					chanBuffer[iChan][iSp] = ByteBuffer.wrap(spBuffer).order(byteOrder).getInt(); //throws underFlowException
-//					p1dtModle.addRow(new Object[] {chanBuffer[iChan][iSp], start, iChan});
-				}
-			}
-			
-			System.out.print("\n\nelapsed:" + elapsed + "\t< interval:"+logInterval_mill+"? ");
-			if(elapsed < logInterval_mill) {
-				System.out.println("true \t-> snoozing\n");
-				try {
-					Thread.sleep(logInterval_mill-elapsed);
-				} catch (InterruptedException e) { e.printStackTrace(); }
-			}else {
-				System.out.println("false \t-> losing :(\n");
+
+					last = System.nanoTime() / e6;
+				} catch (InterruptedException e) { System.out.println("analize wav (data line). timing"); e.printStackTrace(); }
 			}
 		}
+		
+		dataLine.close();
 	}
 
 	
@@ -1147,5 +1240,20 @@ public class IE3301 extends Presentable{
 			+ "<li><a href=\"http://soundfile.sapp.org/doc/WaveFormat/\">wav file refrence</a></li>"
 			+ "</ul>"
 			+ "</body>"; }
+	
 }
 
+class AudioRecord{
+	public final float 	value;
+	public final long 	time;
+	
+	public AudioRecord(float value, long time) {
+		this.value 	= value;
+		this.time	= time;
+	}
+	
+	public static float evaluatedB(float value, float refrenceAmp) {
+		float ratio = value / refrenceAmp;
+		return  20 * (float)(Math.log10(Math.abs(ratio)) * Math.signum(ratio));
+	}
+}
