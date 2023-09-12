@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
@@ -796,6 +797,8 @@ public class IE3301 extends Presentable{
 		var file = savePath.toFile();
 		Path path = file.toPath();
 		
+		
+		//file validatation
 		if(!file.exists())
 			this.setLoggingTo(savePath);
 		
@@ -806,14 +809,55 @@ public class IE3301 extends Presentable{
 					
 				default: return;
 			}
-		}
-		
-		if(file.isDirectory()) {
-			path = savePath.resolve((int)(System.nanoTime()/1000000) + ".wav");
+		} else if(file.isDirectory()) {
+			path = path.resolve((System.nanoTime()/1000000) + ".csv");
+		} else if(!path.endsWith(".csv")) {
+			String src = path.toAbsolutePath().toString();
+			if(src.endsWith(".wav"))
+				src = src.substring(0, src.length() - (".wav").length());
+			
+			path = Path.of(src + ".csv");
 		}
 		
 		String message = "saving csv to:" + path.toAbsolutePath().toString();
 		
+		
+		//user selects desired columns
+		int[] columnsToLog;
+		{
+			ArrayList<Integer> ctl = new ArrayList<>(rowClasses.length);
+			JPanel columnsContainer = new JPanel();
+			
+			for(int i = 0, l = this.p1dtModle.getColumnCount(); i < l; i++) {
+				String name = this.p1dtModle.getColumnName(i);
+				int idx = i;
+				
+				JCheckBox toggler =	new JCheckBox(name, this.isLoggingEnabled());
+					toggler.addItemListener(il -> {
+				    		if(il.getStateChange() == ItemEvent.SELECTED) {
+				    			ctl.add(idx);
+				    		}else if(il.getStateChange() == ItemEvent.DESELECTED) {
+				    			ctl.remove(Integer.valueOf(idx));
+				    		}
+				    	});
+					
+				columnsContainer.add(toggler);
+			}
+			
+			switch(JOptionPane.showConfirmDialog(null, columnsContainer, "logging", JOptionPane.OK_CANCEL_OPTION)) {
+				case JOptionPane.CANCEL_OPTION:
+					setNoticeText("cancled saving table");
+					return;
+			}
+			
+			columnsToLog = new int[ctl.size()];
+			for(int i = 0, l = ctl.size(); i < l; i++)
+				columnsToLog[i] = ctl.get(i);
+		}
+		
+		
+		
+		//loading UI
 		JLabel container = new JLabel(message);
 			JProgressBar pb = new JProgressBar(SwingConstants.HORIZONTAL);
 				pb.setSize(new Dimension((int)(MainWin.DimensionScale_window * 4/5), (int)(MainWin.stdStructSpace * 2)));
@@ -826,17 +870,6 @@ public class IE3301 extends Presentable{
 			dialog.setContentPane(container);
 			dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 			dialog.pack();
-		
-		if(path.toFile().isDirectory()) {
-			path = path.resolve((System.nanoTime()/1000000) + ".csv");
-		} else if(!path.endsWith(".csv")) {
-//			System.out.println("correcting to .csv file");
-			String src = path.toAbsolutePath().toString();
-			if(src.endsWith(".wav"))
-				src = src.substring(0, src.length() - (".wav").length());
-			
-			path = Path.of(src + ".csv");
-		}
 		
 		
 		Path pas = path;
@@ -853,8 +886,8 @@ public class IE3301 extends Presentable{
  						Object obj;
  						try {
 	 						for(int iR = 0, iC = 0; iR < rowCount; iR++) {
-	 							for(iC = 0; iC < columnCount; iC++) {
-	 								obj = part1DataTable.getValueAt(iR, iC);
+	 							for(iC = 0; iC < columnsToLog.length; iC++) {
+	 								obj = part1DataTable.getValueAt(iR, columnsToLog[iC]);
 	 								
 	 								sb.append(obj != null ? obj.toString() : ' ');
 	 								
@@ -902,6 +935,7 @@ public class IE3301 extends Presentable{
 		}else {
 			for(int r : rows){
 				int channel = (int) model.getValueAt(r, 3);
+				float errorRate = .01f;
 				
 				Predicate<? super AudioRecord> filter;
 					switch(part1DataTable.getSelectedColumn()) {
@@ -910,13 +944,13 @@ public class IE3301 extends Presentable{
 	                    	return;
 	                    	
 						case PART1_TABLE_COLUMN_VALUE:{
-	                    	short value = (short)part1DataTable.getValueAt(r, PART1_TABLE_COLUMN_dB);
+	                    	float value = (float)part1DataTable.getValueAt(r, PART1_TABLE_COLUMN_dB);
 	                    	filter = ar -> ar.value == value;
 	                    	}break;
 	                    	
 	                    case PART1_TABLE_COLUMN_dB:{
 	                    	float db = (float)part1DataTable.getValueAt(r, PART1_TABLE_COLUMN_dB);
-	                    	filter = ar -> AudioRecord.evaluatedB(ar.value, ampRef) == db;
+	                    	filter = ar -> Math.abs(AudioRecord.evaluatedB(ar.value, ampRef) - db) < errorRate;
 	                    	}break;
 	                    	
 	                    case PART1_TABLE_COLUMN_TIME:{
@@ -930,14 +964,10 @@ public class IE3301 extends Presentable{
 					}
 					
 				rawSamplePoints.get(channel).remove(filter);
-				
-				this.refreshTable();
 			}
 		}
 		
-		synchronized(this.rawSamplePoints) {
-			this.rawSamplePoints.clear();
-		}
+		this.refreshTable();
 	}
 	
 	public boolean isLoggingEnabled() {
@@ -1048,7 +1078,7 @@ public class IE3301 extends Presentable{
 		 		audio_thread_analysis = new Thread() {
 					@Override public void run() {
 						try {
-							analizeWav(targetLine);
+							analizeLiveWav(targetLine);
 						} catch (IOException e) { e.printStackTrace(); }		 				
 		 			}};
 	 		}
@@ -1130,7 +1160,7 @@ public class IE3301 extends Presentable{
 	/*
 	 * works
 	 */
-	private void analizeWav(TargetDataLine dataLine) throws IOException{
+	private void analizeLiveWav(TargetDataLine dataLine) throws IOException{
 		/*
 		 * logging vars
 		 * [#frames to analyze] = [frames per second] * [logging length (seconds)] + 1
