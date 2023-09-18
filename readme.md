@@ -17,5 +17,7 @@
 1. start making what ever you want.
 1. when pushing to the repo plz make a pull or merge request
 
+currently only compatiable with eclipse2022-03 , will eventually make it fully maven when ever i or someone elsle gets to it.
+
 ### Trouble shooting
 if your having issues with other presents try removing them from the <code>Presents</code> array in <code>audinc.gui</code> first. if that dosent work, just delete those files but dont push those changes.
