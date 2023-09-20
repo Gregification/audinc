@@ -9,6 +9,11 @@
 - auto clicker : a auto clicker
 - tts  : text to speach using the FreeTTS libary
   
+# setup
+ - use eclipse ide for java, will eventually make it fully maven when ever i or someone elsle gets to it.
+1. pull this repo
+1. within eclipse > file > import existing project >  select the folder that teh git project was cloned into > import
+2. withineclipse > select the audinc project > prject > properties > java build path > libraries > classpath > add Jar > audinc > refrence libs > JSerial > the jar in that folder
 
 # How to contribute
 1. make a new class inside the <code>presentables.presents</code> package that extends the <code>presentables.Presentable</code> class. the Presentable class will allow your tool to interface with the gui.
@@ -16,8 +21,6 @@
 1. add your class path to the <code>Presents</code> variable in the <code>audinc.gui.MainWin</code> class.
 1. start making what ever you want.
 1. when pushing to the repo plz make a pull or merge request
-
-currently only compatiable with eclipse2022-03 , will eventually make it fully maven when ever i or someone elsle gets to it.
 
 ### Trouble shooting
 if your having issues with other presents try removing them from the <code>Presents</code> array in <code>audinc.gui</code> first. if that dosent work, just delete those files but dont push those changes.
