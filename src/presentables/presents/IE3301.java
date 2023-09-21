@@ -1208,7 +1208,7 @@ public class IE3301 extends Presentable{
 		
 		while((read = dataLine.read(buffer, 0, buffer.length)) != 0) {
 			//parsing
-			for(iF = 0, i = 0; iF < nF; iF++) {					//per frame
+			for(iF = 0, i = 0; iF < nF; iF++) {	//per frame
 				for(iCh = 0; iCh < nCh; iCh++) {				//per channel
 					for(iByte = 0; iByte < sCh_byte; iByte++) {		//get byte
 						bb.put(buffer[i]);

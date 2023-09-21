@@ -1,4 +1,4 @@
-package temp;
+package xmlparser;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -22,10 +22,15 @@ public class XMLElement {
 		elementType = null,
 		data 		= null;
 	
-	public XMLElement() {
-		
-	}
 	
+	public XMLElement() {}
+	public XMLElement(String elementType) {
+		this.elementType = elementType;
+	}
+	public XMLElement(String elementType, String data) {
+		this(elementType);
+		this.data = data;
+	}
 	public XMLElement(XMLElement[] children) {
 		for(var v : children) 
 			this.children.add(v);
