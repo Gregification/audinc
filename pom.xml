@@ -38,12 +38,13 @@
 	
   <build>
 	  	<finalName>${project.name}-${project.version}</finalName>
-		<resources>
-			<resource>
-	            <directory>${project.basedir}/res/main/res</directory>
-	            <filtering>false</filtering>
-			</resource>
-		</resources>
+		<!-- duplicating resources -->
+		<!-- <resources>
+		  <resource>
+	        <directory>${project.basedir}/src/main/res</directory>
+	        <filtering>false</filtering>
+		  </resource>
+		</resources> -->
 	    <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
 	      <plugins>
 	        <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
