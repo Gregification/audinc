@@ -168,7 +168,11 @@ public class menu extends Presentable{
 		
 		try {
 			Thread.sleep(300);
-		} catch (InterruptedException e) { e.printStackTrace(); }
+		}
+		//thread may die during wait.
+		catch (InterruptedException e) { 
+			//e.printStackTrace();
+		}
 		
 		screenLeft.validate();
 	}
