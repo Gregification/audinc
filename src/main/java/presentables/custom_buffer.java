@@ -30,7 +30,7 @@ public class custom_buffer<T> {
 	}
 	
 	public void clear() {
-		for(var v : buffer)
+		for(T v : buffer)
 			v = null;
 	}
 	

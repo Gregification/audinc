@@ -112,6 +112,9 @@ public abstract class Presentable {
 		} catch (IOException e) {}
 		
 		try {
+			var v = new File("res/presentIcons/default.png");
+			System.out.println("abs resource path: \t" + v.getAbsolutePath());
+			
 			return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png")));
 		} catch (IOException e) {
 			e.printStackTrace();
