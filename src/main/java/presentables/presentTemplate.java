@@ -3,7 +3,6 @@ package presentables;
 import javax.swing.ImageIcon;
 
 import audinc.gui.MainWin;
-import presentables.Presentable;
 
 public class presentTemplate extends Presentable{
 	/*

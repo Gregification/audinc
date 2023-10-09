@@ -607,6 +607,7 @@ class SerialPokeCommConnection{
 		return true;
 	}
 	public boolean setLoggingTranscript(String setTo) {
+		setLoggingTranscript(this.loggingEnabled, setTo);
 		return false;
 	}
 	public String getDefaultSaveName() {
