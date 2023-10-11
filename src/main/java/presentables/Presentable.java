@@ -87,6 +87,7 @@ public abstract class Presentable {
 		return path;
 	}
 	public static ImageIcon getImgIcon() {
+//		System.out.println("presentable>getImgIcon(),default path");
 		try { return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png"))); } 
 		catch (IOException e) { e.printStackTrace(); return null; }
 	}
@@ -106,6 +107,7 @@ public abstract class Presentable {
 		return null;
 	}
 	public static ImageIcon getImageIcon(String prefereed) {
+//		System.out.println("presentable>getImagIcon(),prefereed : " + prefereed);
 		try {
 			ImageIcon ii = new ImageIcon( ImageIO.read(new File(prefereed)));
 			if(ii != null) return ii;
@@ -113,7 +115,7 @@ public abstract class Presentable {
 		
 		try {
 			var v = new File("res/presentIcons/default.png");
-			System.out.println("abs resource path: \t" + v.getAbsolutePath());
+			System.out.println("presentable>getImageIcon()> unable to find : "+prefereed+" : => using : " + v.getAbsolutePath());
 			
 			return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png")));
 		} catch (IOException e) {

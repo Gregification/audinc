@@ -70,7 +70,7 @@ public class MainWin extends JFrame {
 			presentables.presents.SerialPoke.class,
 			presentables.presents.IE3301.class,
 			presentables.presents.Awake.class,
-			presentables.presents.XMLpresent.class
+			presentables.presents.XMLparser.class
 		).collect(Collectors.collectingAndThen(Collectors.toSet(),Collections::<Class<? extends Presentable>>unmodifiableSet));
 	
 	//standard values
@@ -169,6 +169,7 @@ public class MainWin extends JFrame {
 	//make a icon of specified size from a file
 	public static ImageIcon getImageIcon(String src, Dimension size) { return getImageIcon(src, size, Image.SCALE_FAST); }
 	public static ImageIcon getImageIcon(String src, Dimension size, int scaleMethod) {
+//		System.out.println("MainWin>getImagIcon(),src:"+src);
 		try {
 			Image img = ImageIO.read(new File(src));
 			Image imgScaled = img.getScaledInstance(size.width, size.height, scaleMethod);
