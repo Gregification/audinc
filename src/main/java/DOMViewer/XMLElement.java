@@ -1,4 +1,4 @@
-package xmlparser;
+package DOMViewer;
 
 import java.io.BufferedWriter;
 import java.io.IOException;

@@ -70,7 +70,7 @@ public class MainWin extends JFrame {
 			presentables.presents.SerialPoke.class,
 			presentables.presents.IE3301.class,
 			presentables.presents.Awake.class,
-			presentables.presents.XMLparser.class
+			presentables.presents.DOMViewer.class
 		).collect(Collectors.collectingAndThen(Collectors.toSet(),Collections::<Class<? extends Presentable>>unmodifiableSet));
 	
 	//standard values

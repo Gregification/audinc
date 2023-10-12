@@ -2,7 +2,6 @@ package presentables.presents;
 
 import presentables.Presentable;
 import presentables.custom_function;
-import xmlparser.XMLElement;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -55,6 +54,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
+
+import DOMViewer.XMLElement;
 
 //import com.sun.speech.freetts.Voice;w
 

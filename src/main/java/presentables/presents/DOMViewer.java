@@ -14,7 +14,7 @@ import javax.swing.JToolBar;
 import audinc.gui.MainWin;
 import presentables.Presentable;
 
-public class XMLparser extends Presentable{
+public class DOMViewer extends Presentable{
 	private Thread parser_thread;
 	
 	@Override protected void start()	{
@@ -79,12 +79,16 @@ public class XMLparser extends Presentable{
 ///////////////////
 //Presentable statics
 ///////////////////
-public static String getDisplayTitle() 	{ 	return "XML parser";	}
-public static ImageIcon getImgIcon() 	{	return MainWin.getImageIcon("res/presentIcons/xmlparser.png", new Dimension((int)(MainWin.stbPresentIconSize.width * 1.5),(int)(MainWin.stbPresentIconSize.height * 1.0))); }
+public static String getDisplayTitle() 	{ 	return "DOM viewer";	}
+public static ImageIcon getImgIcon() 	{	return MainWin.getImageIcon("res/presentIcons/domviewer.png", MainWin.stbPresentIconSize); }
 public static String getDescription() 	{	return "<html>"
-+ "<body> xml parser<br>"
-+ "parse and view XML the way you never knew! (idk)"
-+ "<br>- if using JAR, see the src file \"src/main/java/xmlparser/XMLElement.java\"<a href='https://github.com/Gregification/audinc/tree/main'>(github)</a> for methods"
++ "<body> dom viewer<br>"
++ "parse and view dom's the way you never knew! (idk)"
++ "<ul>"
++ "<li>XML</li>"
++ "<li>json</li>"
++ "<li>files</li>"
++ "</ul>"
 + "</body>"
 + "</html>"; }
 }
