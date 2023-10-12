@@ -37,6 +37,11 @@ public class DOMViewer extends Presentable{
 	
 	@Override public void quit() {}
 	
+	public void openPath(Path path) {
+		this.source = path;
+		this.domView.setRoot(path);
+	}
+	
 ///////////////////
 //getters and setters 
 ///////////////////
@@ -77,7 +82,6 @@ public class DOMViewer extends Presentable{
 		for(var v : DOModel.values()) {
 			FileNameExtensionFilter allowedFiles = new FileNameExtensionFilter(v.name(), v.extensions());
 			fc.addChoosableFileFilter(allowedFiles);
-			fc.setFileFilter(allowedFiles);
 			fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 		}
 		
@@ -85,6 +89,8 @@ public class DOMViewer extends Presentable{
 			case JFileChooser.APPROVE_OPTION : 
 				this.source = fc.getSelectedFile().toPath();
 				this.preferredPath = this.source.getParent();
+				System.out.println(source);
+				openPath(source);
 				break;
 			case JFileChooser.CANCEL_OPTION : 
 				break;

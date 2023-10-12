@@ -1,9 +1,9 @@
 package DOMViewer;
 
 public enum DOModel {
-	XML		("XML"	, ".xml"),
-	JSON	("JSON"	, ".json"),
-	CSV		("CSV"	, ".csv", ".txt")
+	XML		("XML"	, "xml"),
+	JSON	("JSON"	, "json"),
+	CSV		("CSV"	, "csv", "txt")
 	;
 	
 	private String name;

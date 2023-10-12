@@ -20,7 +20,7 @@ import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreePath;
+import javax.swing.tree.DefaultTreeModel;
 
 import audinc.gui.MainWin;
 
@@ -41,9 +41,16 @@ public class DOMView extends JPanel {
 		initGUI();
 	}
 	
-	
 	public void parse(InputStream is) {
 		
+	}
+	
+	public void setRoot(Object newObj) {
+		domTree_root.setUserObject(newObj);
+		System.out.println("validating");
+		
+		var v = (DefaultTreeModel)domTree.getModel();
+		v.nodeChanged(domTree_root);
 	}
 	
 ///////////////////
