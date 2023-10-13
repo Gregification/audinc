@@ -11,6 +11,7 @@
 - awake : Tells you the time that you should wake up based on sleep cycles. So that you don't interupt your REM sleep.
 
 # How to contribute a present
+recommended IDE: Eclipse 2023-09
 fork & create a branch for your changes. submit a pull request when ready. 
 1. make a new class inside the <code>presentables.presents</code> package that extends the <code>presentables.Presentable</code> class. the Presentable class will allow your tool to interface with the gui.
 1. copy and paste everyting from the <code>presentables.presentTemplate</code> class into your newly created .java file & change the class name to the correct one.
