@@ -6,9 +6,10 @@ package DOMViewer;
 public enum treeNodeOption {
 	DELETE			("delete"),
 	PARSE			("parse"),
-	PARSE_SELF		("parse: only this element"),
-	PARSE_CHILDREN	("parse: only the children of this element"),
-	REFRESH			("refresh")
+	PARSE_SELF		("parse: this"),
+	PARSE_CHILDREN	("parse: children"),
+	REFRESH			("refresh"),
+	SAVE			("save to file")
 	;
 	
 	private String description;

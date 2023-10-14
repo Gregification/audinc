@@ -21,7 +21,7 @@ import audinc.gui.MainWin;
 import presentables.Presentable;
 
 public class DOMViewer extends Presentable{
-	public DOMView domView = new DOMView("ligima");
+	public DOMView domView = new DOMView();
 	public Path source;
 
 	private Thread[] parser_threads = new Thread[Math.max(MainWin.stdPreferredNumThreads, 1)];

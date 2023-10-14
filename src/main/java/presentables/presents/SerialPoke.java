@@ -797,6 +797,14 @@ class SerialPokeCommConnection{
 						}
 						}, true);
 					cat_connection.add(cat_connection_flowControl);
+					//sub category flow control
+					DefaultMutableTreeNode cat_connection_temp = new DefaultMutableTreeNode(new custom_doTheThingIfNotNull<JPanel>() {
+						@Override public String toString() { return "test"; }
+						@Override public void doTheThing(JPanel pan) {
+							pan.add(new JLabel("connection>test"));
+						}
+						}, true);
+					cat_connection.add(cat_connection_temp);
 				
 				//top level categories
 				ConCateTree_root.add(cat_session);
