@@ -9,12 +9,24 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
 import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.function.Function;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.stream.Collectors;
 
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -29,6 +41,9 @@ import javax.swing.tree.TreePath;
 
 import audinc.gui.MainWin;
 
+/*
+ * made for file trees
+ */
 public class DOMView extends JPanel {
 	public JPanel eleView;
 	public final JTree domTree;
@@ -47,10 +62,14 @@ public class DOMView extends JPanel {
 		initGUI();
 	}
 	
-	public DOMView(Object root) {
+	public DOMView(Path root) {
 		super(new GridBagLayout());
 		
-		domTree_root = new DefaultMutableTreeNode(root, true);
+		domTree_root = new DefaultMutableTreeNode(
+				new DOMNodeObject(
+						root.getFileName().toString(),
+						root)
+				, true);
 		
 		domTree = new JTree(this.domTree_root);
 		initMouseListener();
@@ -81,10 +100,6 @@ public class DOMView extends JPanel {
 			case DELETE :
 				nodeOptions_deleteSelected();
 				break;
-			case PARSE :
-				nodeOptions_parseSelf();
-				nodeOptions_parseChildren();
-				break;
 			case PARSE_SELF : 
 				nodeOptions_parseSelf();
 				break;
@@ -104,22 +119,24 @@ public class DOMView extends JPanel {
 		domTree.removeSelectionPaths(domTree.getSelectionPaths());
 	}
 	private void nodeOptions_refresh() {
-		var list = new ArrayList<>(List.of(domTree.getSelectionPaths()));
+		var nodes = List.of(domTree.getSelectionPaths());
 		 
 		/*
+		 * filter for relevant nodes
+		 * details:
 		 * only allow BRANCHES that are NOT DECENDENTS of other selected branches.
 		 * see diagram for details: https://media.discordapp.net/attachments/1162543720613302293/1162558001211768892/image.png?ex=653c5f82&is=6529ea82&hm=616f0aee041238ed943ab11f215dae8909324701d1815e17129f953892f36dbd&= 
 		 * 	- circled 	=> selected paths
 		 *  	- red 		=> ignored & filtered out
 		 *  	- blue 		=> keep
 		 */
-		TreePath current, latestParent = list.get(0);
-		var itt = list.iterator(); 
-			if(itt.hasNext()) itt.next(); //skip first element
+		TreePath current, latestParent = nodes.get(0);
+		var itt = nodes.iterator(); 
+			if(itt.hasNext()) itt.next(); //skip first element since its the first possible parent
 			
 		while(itt.hasNext()) {
 			current = itt.next();
-			if(current.isDescendant(latestParent) ||		//if is decendent of another node
+			if(current.isDescendant(latestParent) ||		//if is a decendent of another node
 				!((DefaultMutableTreeNode)current.getLastPathComponent()).getAllowsChildren()	//if is not a branch
 				){
 				System.out.println("removing: \t" + current);
@@ -131,23 +148,92 @@ public class DOMView extends JPanel {
 			latestParent = current;
 		}
 		System.out.println("final:");
-		list.forEach(System.out::println);
+		nodes.forEach(System.out::println);
+		
+		
+		//re-traverse nodes. using executor to handle work loading.
+		
+//		 steveJobs = new PriorityBlockingQueue<DefaultMutableTreeNode>(	//(he holds all the jobs)
+//				nodes.size() + 5, 							//initial size 
+//				(o1, o2) -> Boolean.compare(o1.getAllowsChildren(), o2.getAllowsChildren())	//files get higher priority than folders
+//			);
+		
+		ExecutorService executor = Executors.newCachedThreadPool();//(we want jobs)
+		
+		nodes.stream()	//init jobs. a small initial investment(1 bajillion baboons)
+			.map(e -> ((DefaultMutableTreeNode)e.getLastPathComponent()))
+			.forEach(e -> parse_recursive1(e, executor));
+		nodes.clear();
 		
 	}
 	private void nodeOptions_parseSelf() {}
 	private void nodeOptions_parseChildren() {}
 	
+	//parse and add to GUI
+	protected void ParseFile(File file, DefaultMutableTreeNode relRoot) {
+		
+	}
+	
+	/*
+	 * - self populates new jobs
+	 * - prioritizes folders over files
+	 * - no file filter
+	 */
+	protected Runnable parse_recursive1(DefaultMutableTreeNode treenode, ExecutorService executor) {
+		return () -> {
+			var node	= (DOMNodeObject)treenode.getUserObject();
+			File src	= ((Path)node.value()).toFile();
+			
+			if(src.exists()) {
+				if(src.isDirectory()) {	
+					List.of(src.listFiles()).stream()
+						.sorted((o1, o2) -> Boolean.compare(o1.isDirectory(), o2.isDirectory()))	//priority = directories
+						.forEach(subFile -> {	//parse folder contents back onto the queue
+							var subPath 	= src.toPath();
+							var subObject 	= new DOMNodeObject(subPath.getFileName().toString(), subPath);
+							
+							var subNode 	= new DefaultMutableTreeNode(subObject, true);	//hard coded [true] because its a folder => will always be able to have children
+							
+							treenode.add(subNode);
+							
+							//create new job
+							executor.execute(parse_recursive1(subNode, executor));
+						});
+				}else {	
+					//parse the file
+					ParseFile(src, treenode);
+				}
+			}
+		};
+	}
+	
 	private void initNodeOptionsPopupMenu() {
 		this.nodeOptionsPopupMenu = new JPopupMenu("popup menu");
-		for(var v : treeNodeOption.values()) {
-			JMenuItem mi = new JMenuItem(v.toString());
-			this.nodeOptionsPopupMenu.add(mi);
-			
-			mi.addActionListener(new ActionListener() {
-				@Override public void actionPerformed(ActionEvent e) {
-					nodeOptionsPopupMenu_actionEvent(v);
-				}});
-		}
+		
+		//create JMenu object for everything that should have one
+		Map<treeNodeOption, JMenu> jmenus = List.of(treeNodeOption.values()).stream()
+				.map(treeNodeOption::getChildOf)
+				.filter(e -> e != null)
+				.distinct()
+				.collect(Collectors.toMap(
+						e -> e, 
+						e -> new JMenu(e.toString())));
+		
+		//link JMenus & JMenuItems to corresponding JMenus
+		List.of(treeNodeOption.values()).stream()
+			.forEach(e ->{
+				JMenuItem item = null;
+				
+				if(jmenus.containsKey(e))
+					item = jmenus.get(e);
+				else
+					item = new JMenuItem(e.toString());
+				
+				if(e.getChildOf() == null)
+					this.nodeOptionsPopupMenu.add(item);
+				else
+					jmenus.get(e.getChildOf()).add(item);
+			});
 	}
 	
 	protected void initGUI() {

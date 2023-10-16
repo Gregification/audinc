@@ -83,7 +83,7 @@ public class MainWin extends JFrame {
 	public static int 
 			stdTextSpace 			= 40,	//standard spacing unit between gui components 
 			stdStructSpace 			= 15,
-			stdPreferredNumThreads 	= 2;
+			stdPreferredNumThreads 	= 3;	//applies to other things besides threads (CompleteableFuture, ...etc)	
 	public static Dimension 
 			stdDimension 		= new Dimension((int)(480*stdDimensionScale),	(int)(270*stdDimensionScale)),
 			stdtabIconSize 		= new Dimension((int)(11*stdDimensionScale),	(int)(11*stdDimensionScale)),
@@ -361,6 +361,39 @@ public class MainWin extends JFrame {
 									}
 									
 									MainWin.setUIPresentScale(Float.parseFloat(tf.getText()));
+								}
+							};
+							
+							docListeners.add(v);
+							tf.getDocument().addDocumentListener(v);		
+							return tf;
+						}}),
+					Presentable.genLabelInput("thread pool size (int): ", new custom_function<JTextField>() {
+						@Override public JTextField doTheThing(JTextField thisisnull) {
+							JTextField tf = new JTextField(5);
+							tf.setText(MainWin.stdPreferredNumThreads+"");
+							
+							custom_function<Boolean> isValid = new custom_function<>() {
+								@Override public Boolean doTheThing(Boolean o) {
+									String s = tf.getText();
+									float f;
+									return !(s.isBlank() || (f = Integer.parseInt(s)) <= 0 || f > 15);
+								}};
+								
+							var v = new DocumentListener() {
+								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void changedUpdate(DocumentEvent e) {
+									if(!isValid.doTheThing(false)) {
+										JOptionPane.showInternalMessageDialog(
+												null,
+												"invalid presnet scale : " + tf.getText(),
+												"unable to set value",
+												JOptionPane.OK_OPTION);
+										return;
+									}
+									
+									MainWin.stdPreferredNumThreads = Integer.parseInt(tf.getText());
 								}
 							};
 							

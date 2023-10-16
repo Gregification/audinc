@@ -24,7 +24,6 @@ public class DOMViewer extends Presentable{
 	public DOMView domView = new DOMView();
 	public Path source;
 
-	private Thread[] parser_threads = new Thread[Math.max(MainWin.stdPreferredNumThreads, 1)];
 	private Path preferredPath = null;//pretty much used the same as [this.source:Path] but may do something more with this later 
 	
 	@Override protected void start()	{
@@ -59,7 +58,7 @@ public class DOMViewer extends Presentable{
 	public static String getDisplayTitle() 	{ 	return "DOM viewer";	}
 	public static ImageIcon getImgIcon() 	{	return MainWin.getImageIcon("res/presentIcons/domviewer.png", MainWin.stbPresentIconSize); }
 	public static String getDescription() 	{	return "<html>"
-	+ "<body> dom viewer<br>"
+	+ "<body> dom viewer for file trees"
 	+ "parse and view dom's the way you never knew! (idk)"
 	+ "<ul>"
 	+ "<li>XML</li>"
