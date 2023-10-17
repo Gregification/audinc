@@ -67,7 +67,7 @@ public class DOMView extends JPanel {
 	
 	public void setRoot(Path root) {
 		domTree_root.setUserObject(
-				new DOMNodeObject(
+				new NFSystem(
 					root.getFileName().toString() + " | " +root.toAbsolutePath().toString(),
 					root)
 			);
@@ -195,11 +195,11 @@ public class DOMView extends JPanel {
 		return () -> {
 //			System.out.println("parse_recursive1 | \t" + treenode.toString() +  "\t | "+ Thread.currentThread().getName());
 			
-			assert treenode.getUserObject() instanceof DOMNodeObject	//constructor & this.setRoot(Path) should guarantee this
+			assert treenode.getUserObject() instanceof NFSystem	//constructor & this.setRoot(Path) should guarantee this
 				: "\tnode object is not instanceof DOMNodeObject, userobject -> "+(treenode.getUserObject() == null ? "IS NULL" : (treenode.getUserObject().getClass()));
 			
-			var node	= (DOMNodeObject)treenode.getUserObject();
-			File src	= ((Path)node.value()).toFile();
+			var node	= (NFSystem)treenode.getUserObject();
+			File src	= node.path.toFile();
 			
 			if(src.exists()) {
 				if(src.isDirectory()) {						
@@ -207,7 +207,7 @@ public class DOMView extends JPanel {
 						.sorted((o1, o2) -> Boolean.compare(o1.isFile(), o2.isFile()))	//priority = directories
 						.forEach(subFile -> {	//parse folder contents back onto the queue
 							var subPath 	= subFile.toPath();
-							var subObject 	= new DOMNodeObject(subPath.getFileName().toString(), subPath);
+							var subObject 	= new NFSystem(subPath.getFileName().toString(), subPath);
 							
 							var subNode 	= new DefaultMutableTreeNode(subObject, true);	//hard coded [true] because its a item => will always be able to have children
 							
@@ -221,7 +221,7 @@ public class DOMView extends JPanel {
 					//parse the file
 					DOMParser.Parse(src, treenode);
 				}
-				System.out.println(treenode + " \t:isLeaf=" + ((DOMNodeObject)treenode.getUserObject()).isLeaf());
+				System.out.println(treenode + " \t[is leaf]=" + (node));
 				updateTreeViewForNode(treenode);
 			}
 		};
