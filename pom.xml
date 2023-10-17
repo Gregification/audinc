@@ -26,6 +26,13 @@
       <scope>test</scope>
     </dependency>
     
+    <!-- file management with apache -->
+    <dependency>
+	  <groupId>commons-io</groupId>
+	  <artifactId>commons-io</artifactId>
+	  <version>2.6</version>
+	</dependency>
+    
     <!-- external jars -->
   	<dependency>
         <groupId>lib</groupId>

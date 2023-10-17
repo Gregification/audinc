@@ -34,7 +34,9 @@ public class DOMViewer extends Presentable{
 		initGUI(mw);
 	}	
 	
-	@Override public void quit() {}
+	@Override public void quit() {
+		domView.close();
+	}
 	
 	public void openPath(Path path) {
 		this.source = path;

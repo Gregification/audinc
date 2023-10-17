@@ -10,20 +10,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
-import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.function.Function;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.swing.JMenu;
@@ -48,66 +40,79 @@ public class DOMView extends JPanel {
 	public JPanel eleView;
 	public final JTree domTree;
 	public final DefaultMutableTreeNode domTree_root;
+	public final DefaultTreeModel domTree_model;
 	
 	private JPopupMenu nodeOptionsPopupMenu;
+	private JScrollPane tv_sp, ev_sp;	//tree/element view scroll pane
+	private ExecutorService executor;	//mainly for refreshing the tree
+	
 	
 	public DOMView() {
-		super(new GridBagLayout());
-		
-		domTree_root = new DefaultMutableTreeNode(MainWin.settingsDir, true);
-		
-		domTree = new JTree(this.domTree_root);
-		initMouseListener();
-		
-		initGUI();
+		this(MainWin.settingsDir);
 	}
-	
 	public DOMView(Path root) {
 		super(new GridBagLayout());
 		
-		domTree_root = new DefaultMutableTreeNode(
-				new DOMNodeObject(
-						root.getFileName().toString(),
-						root)
-				, true);
+		domTree_root 	= new DefaultMutableTreeNode(null, true);
+		domTree 		= new JTree(this.domTree_root);
+		domTree_model 	= (DefaultTreeModel)domTree.getModel();
 		
-		domTree = new JTree(this.domTree_root);
 		initMouseListener();
-		
 		initGUI();
+		
+		setRoot(root);
 	}
 	
-	public void parse() {
+	public void setRoot(Path root) {
+		domTree_root.setUserObject(
+				new DOMNodeObject(
+					root.getFileName().toString() + " | " +root.toAbsolutePath().toString(),
+					root)
+			);
 		
+		domTree.setSelectionPath(new TreePath(domTree_root.getPath()));
+		nodeOptions_refresh();
 	}
 	
-	public void setRoot(Object newObj) {
-		domTree_root.setUserObject(newObj);
-		
-		System.out.println("validating");
-		
-		var v = (DefaultTreeModel)domTree.getModel();
-		v.nodeChanged(domTree_root);
+	public void close() {
+		executor.shutdownNow();
 	}
 	
-	
+	protected void finalize() throws Throwable{
+		executor.shutdownNow();
+	}
+
 	
 ///////////////////
 //gui
 ///////////////////	
-	protected void nodeOptionsPopupMenu_actionEvent(treeNodeOption option) {
+	protected void nodeOptionsPopupMenu_actionEvent(treeNodeOption option, ActionEvent e) {
+		System.out.println("node option selected: " + option.toString());
 		switch(option) {
+			case CLEAR :
+				nodeOptions_clearSelected();
+				break;
 			case DELETE :
 				nodeOptions_deleteSelected();
 				break;
+			case PARSE_d :
 			case PARSE_SELF : 
 				nodeOptions_parseSelf();
 				break;
 			case PARSE_CHILDREN : 
 				nodeOptions_parseChildren();
 				break;
+			
 			case REFRESH :
 				nodeOptions_refresh();
+				break;
+				
+			case SAVE_d :
+			case SAVE_OVERWRITE :
+				System.out.println("not implimented : SAVE_OVERWRITE");
+				break;
+			case SAVE_AS :
+				System.out.println("not implimented : SAVE_AS");
 				break;
 				
 			default :
@@ -115,7 +120,11 @@ public class DOMView extends JPanel {
 				break;
 		}
 	}
+	
 	private void nodeOptions_deleteSelected() {
+		//TODO
+	}
+	private void nodeOptions_clearSelected() {
 		domTree.removeSelectionPaths(domTree.getSelectionPaths());
 	}
 	private void nodeOptions_refresh() {
@@ -139,16 +148,15 @@ public class DOMView extends JPanel {
 			if(current.isDescendant(latestParent) ||		//if is a decendent of another node
 				!((DefaultMutableTreeNode)current.getLastPathComponent()).getAllowsChildren()	//if is not a branch
 				){
-				System.out.println("removing: \t" + current);
+//				System.out.println("removing: \t" + current);
 				itt.remove();
 				continue;
 			}
 			
-			System.out.println("keeping: \t" + current);
+//			System.out.println("keeping: \t" + current);
 			latestParent = current;
 		}
-		System.out.println("final:");
-		nodes.forEach(System.out::println);
+//		System.out.println("final root set, size("+nodes.size()+"):");
 		
 		
 		//re-traverse nodes. using executor to handle work loading.
@@ -157,23 +165,35 @@ public class DOMView extends JPanel {
 //				nodes.size() + 5, 							//initial size 
 //				(o1, o2) -> Boolean.compare(o1.getAllowsChildren(), o2.getAllowsChildren())	//files get higher priority than folders
 //			);
+		executor = Executors.newCachedThreadPool();//(we want jobs)
 		
-		ExecutorService executor = Executors.newCachedThreadPool();//(we want jobs)
-		
+//		System.out.println("init: executor, (root node of tree: " + domTree_root + ")");
 		nodes.stream()	//init jobs. a small initial investment(1 bajillion baboons)
 			.map(e -> ((DefaultMutableTreeNode)e.getLastPathComponent()))
-			.forEach(e -> parse_recursive1(e, executor));
-		nodes.clear();
+			.forEach(e -> {
+//					System.out.println("init: loading ... " + e);
+					e.removeAllChildren();
+					executor.execute(parse_recursive1(e, executor));	//42
+				});
+//		System.out.println("init: executor, finished");
 		
+		domTree_model.reload(domTree_root);
 	}
 	private void nodeOptions_parseSelf() {}
 	private void nodeOptions_parseChildren() {}
 	
-	//parse and add to GUI
-	protected void ParseFile(File file, DefaultMutableTreeNode relRoot) {
+	private void updateTreeViewForNode(DefaultMutableTreeNode treenode) {
+		// see answer by Araon Digulla ->  https://stackoverflow.com/questions/2822695/java-jtree-how-to-check-if-node-is-displayed#:~:text=getViewport().,true%20%2C%20the%20node%20is%20visible.
 		
+		var path = new TreePath(treenode.getPath());
+		if(		domTree.isVisible(path) &&		//is the tree allowing it to show? 
+				tv_sp.getViewport().getViewRect().intersects(domTree.getPathBounds(path))) //is it inside the view port of the scrollable window? 
+			{
+			
+			domTree_model.reload(treenode);
+		}
 	}
-	
+
 	/*
 	 * - self populates new jobs
 	 * - prioritizes folders over files
@@ -181,19 +201,25 @@ public class DOMView extends JPanel {
 	 */
 	protected Runnable parse_recursive1(DefaultMutableTreeNode treenode, ExecutorService executor) {
 		return () -> {
+//			System.out.println("parse_recursive1 | \t" + treenode.toString() +  "\t | "+ Thread.currentThread().getName());
+			
+			assert treenode.getUserObject() instanceof DOMNodeObject	//constructor & this.setRoot(Path) should guarantee this
+				: "\tnode object is not instanceof DOMNodeObject, userobject -> "+(treenode.getUserObject() == null ? "IS NULL" : (treenode.getUserObject().getClass()));
+			
 			var node	= (DOMNodeObject)treenode.getUserObject();
 			File src	= ((Path)node.value()).toFile();
 			
 			if(src.exists()) {
-				if(src.isDirectory()) {	
+				if(src.isDirectory()) {						
 					List.of(src.listFiles()).stream()
-						.sorted((o1, o2) -> Boolean.compare(o1.isDirectory(), o2.isDirectory()))	//priority = directories
+						.sorted((o1, o2) -> Boolean.compare(o1.isFile(), o2.isFile()))	//priority = directories
 						.forEach(subFile -> {	//parse folder contents back onto the queue
-							var subPath 	= src.toPath();
+							var subPath 	= subFile.toPath();
 							var subObject 	= new DOMNodeObject(subPath.getFileName().toString(), subPath);
 							
-							var subNode 	= new DefaultMutableTreeNode(subObject, true);	//hard coded [true] because its a folder => will always be able to have children
+							var subNode 	= new DefaultMutableTreeNode(subObject, true);	//hard coded [true] because its a item => will always be able to have children
 							
+//							System.out.println("\t" + treenode + " > " + subNode + " = " + subFile);
 							treenode.add(subNode);
 							
 							//create new job
@@ -201,8 +227,10 @@ public class DOMView extends JPanel {
 						});
 				}else {	
 					//parse the file
-					ParseFile(src, treenode);
+					DOMParser.Parse(src, treenode);
 				}
+				
+				updateTreeViewForNode(treenode);
 			}
 		};
 	}
@@ -219,32 +247,41 @@ public class DOMView extends JPanel {
 						e -> e, 
 						e -> new JMenu(e.toString())));
 		
-		//link JMenus & JMenuItems to corresponding JMenus
+		//link JMenus & JMenuItems to corresponding JMenus. also puts to the GUI
 		List.of(treeNodeOption.values()).stream()
-			.forEach(e ->{
+			.forEach(tno ->{
 				JMenuItem item = null;
 				
-				if(jmenus.containsKey(e))
-					item = jmenus.get(e);
+				if(jmenus.containsKey(tno))
+					item = jmenus.get(tno);
 				else
-					item = new JMenuItem(e.toString());
+					item = new JMenuItem(tno.toString());
 				
-				if(e.getChildOf() == null)
+				item.addActionListener(new ActionListener(){
+						public void actionPerformed(ActionEvent e) {
+							nodeOptionsPopupMenu_actionEvent(tno, e);
+						}
+					});
+				
+				if(!tno.getTooltipText().isBlank())
+					item.setToolTipText(tno.getTooltipText());
+				
+				if(tno.getChildOf() == null)
 					this.nodeOptionsPopupMenu.add(item);
 				else
-					jmenus.get(e.getChildOf()).add(item);
+					jmenus.get(tno.getChildOf()).add(item);
 			});
 	}
 	
 	protected void initGUI() {
 		this.eleView 	= new JPanel();
 		
-		JScrollPane tv_sp = new JScrollPane(domTree,
+		tv_sp = new JScrollPane(domTree,
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		tv_sp.setPreferredSize(new Dimension(MainWin.stdDimension.width/5, 30));
 		
-		JScrollPane ev_sp = new JScrollPane(eleView,
+		ev_sp = new JScrollPane(eleView,
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		
