@@ -21,16 +21,14 @@ import audinc.gui.MainWin;
 import presentables.Presentable;
 
 public class DOMViewer extends Presentable{
-	public DOMView domView = new DOMView();
-	public Path source;
-
-	private Path preferredPath = null;//pretty much used the same as [this.source:Path] but may do something more with this later 
+	public DOMView domView 	= new DOMView();
+	public Path source 		= MainWin.settingsDir; 
 	
 	@Override protected void start()	{
 		
 	}
 	
-	@Override protected void init(MainWin mw) 	{
+	@Override protected void init(MainWin mw) 	{	
 		initGUI(mw);
 	}	
 	
@@ -41,17 +39,6 @@ public class DOMViewer extends Presentable{
 	public void openPath(Path path) {
 		this.source = path;
 		this.domView.setRoot(path);
-	}
-	
-///////////////////
-//getters and setters 
-///////////////////
-	public Path getSource() {
-		return source;
-	}
-
-	public void setSource(Path source) {
-		this.source = source;
 	}
 	
 ///////////////////
@@ -78,7 +65,7 @@ public class DOMViewer extends Presentable{
 	}
 	
 	private void onSelectFileClick() {
-		JFileChooser fc = new JFileChooser();//this.preferredPath.toString());
+		JFileChooser fc = new JFileChooser(source.getParent().toAbsolutePath().toString());//this.preferredPath.toString());
 		
 		for(var v : DOModel.values()) {
 			FileNameExtensionFilter allowedFiles = new FileNameExtensionFilter(v.name(), v.extensions());
@@ -89,7 +76,6 @@ public class DOMViewer extends Presentable{
 		switch(fc.showOpenDialog(null)) {
 			case JFileChooser.APPROVE_OPTION : 
 				this.source = fc.getSelectedFile().toPath();
-				this.preferredPath = this.source.getParent();
 				System.out.println(source);
 				openPath(source);
 				break;
@@ -135,7 +121,7 @@ public class DOMViewer extends Presentable{
 			
 		toolbar.add(tb_selectfile);
 		toolbar.add(Box.createVerticalStrut(MainWin.stdStructSpace / 2));
-		toolbar.add(tb_startParse);
+		//toolbar.add(tb_startParse);
 		toolbar.add(Box.createVerticalGlue());
 		toolbar.add(tb_viewInfo);
 //		toolbar.add(Box.createVerticalStrut(MainWin.stdStructSpace / 3));

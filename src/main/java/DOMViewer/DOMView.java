@@ -11,11 +11,11 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.swing.JMenu;
@@ -61,6 +61,8 @@ public class DOMView extends JPanel {
 		initGUI();
 		
 		setRoot(root);
+		
+		domTree_model.reload(domTree_root);
 	}
 	
 	public void setRoot(Path root) {
@@ -77,12 +79,7 @@ public class DOMView extends JPanel {
 	public void close() {
 		executor.shutdownNow();
 	}
-	
-	protected void finalize() throws Throwable{
-		executor.shutdownNow();
-	}
-
-	
+		
 ///////////////////
 //gui
 ///////////////////	
@@ -128,7 +125,7 @@ public class DOMView extends JPanel {
 		domTree.removeSelectionPaths(domTree.getSelectionPaths());
 	}
 	private void nodeOptions_refresh() {
-		var nodes = List.of(domTree.getSelectionPaths());
+		var nodes = List.of(domTree.getSelectionPaths()).stream().collect(Collectors.toCollection(ArrayList::new));//make mutable list
 		 
 		/*
 		 * filter for relevant nodes
@@ -160,11 +157,7 @@ public class DOMView extends JPanel {
 		
 		
 		//re-traverse nodes. using executor to handle work loading.
-		
-//		 steveJobs = new PriorityBlockingQueue<DefaultMutableTreeNode>(	//(he holds all the jobs)
-//				nodes.size() + 5, 							//initial size 
-//				(o1, o2) -> Boolean.compare(o1.getAllowsChildren(), o2.getAllowsChildren())	//files get higher priority than folders
-//			);
+
 		executor = Executors.newCachedThreadPool();//(we want jobs)
 		
 //		System.out.println("init: executor, (root node of tree: " + domTree_root + ")");
@@ -177,7 +170,6 @@ public class DOMView extends JPanel {
 				});
 //		System.out.println("init: executor, finished");
 		
-		domTree_model.reload(domTree_root);
 	}
 	private void nodeOptions_parseSelf() {}
 	private void nodeOptions_parseChildren() {}
@@ -229,7 +221,7 @@ public class DOMView extends JPanel {
 					//parse the file
 					DOMParser.Parse(src, treenode);
 				}
-				
+				System.out.println(treenode + " \t:isLeaf=" + ((DOMNodeObject)treenode.getUserObject()).isLeaf());
 				updateTreeViewForNode(treenode);
 			}
 		};
@@ -265,6 +257,7 @@ public class DOMView extends JPanel {
 				
 				if(!tno.getTooltipText().isBlank())
 					item.setToolTipText(tno.getTooltipText());
+				
 				
 				if(tno.getChildOf() == null)
 					this.nodeOptionsPopupMenu.add(item);
@@ -302,17 +295,44 @@ public class DOMView extends JPanel {
 		 MouseListener ml = new MouseAdapter() {
 		     public void mouseClicked(MouseEvent e) {
 		    	if (SwingUtilities.isRightMouseButton(e)) {
-		    		int row = domTree.getClosestRowForLocation(e.getX(), e.getY());
-		 	        domTree.setSelectionRow(row);
-		 	        var r = domTree.getPathForRow(row);
-		    		if(row != -1) {
-			             if(e.getClickCount() == 1) {
-			            	 nodeOptionsPopupMenu.show(e.getComponent(), e.getX(), e.getY());
-			             }
-			         }
+		    		
+		    		//selection helper
+		    		if(domTree.getSelectionCount() == 0) {
+		    			int row = domTree.getClosestRowForLocation(e.getX(), e.getY());
+			 	        domTree.setSelectionRow(row);
+		    		}else {
+		    			int row = domTree.getRowForLocation(e.getX(), e.getY());
+		    			if(row >= 0) {
+		    				boolean isPartOfSelection = false;
+		    				for(int r : domTree.getSelectionRows())
+		    					if(r == row) {
+		    						isPartOfSelection = true;
+		    						break;
+		    					}
+		    				
+		    				if(!isPartOfSelection) {
+		    					domTree.setSelectionRow(row);
+		    				}
+		    			}
+		    		}
+		    		
+		    		//pop-up menus
+		    		if(e.getClickCount() == 1) {
+		    			
+		    			
+		    			
+		    			nodeOptionsPopupMenu.show(e.getComponent(), e.getX(), e.getY());
+		    		}
 		 	    }
 		     }
 		 };
 		 domTree.addMouseListener(ml);
+	}
+
+///////////////////
+//private \ protected
+///////////////////
+	protected void finalize() throws Throwable{
+		close();
 	}
 }

@@ -8,21 +8,15 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.swing.JPopupMenu;
 import javax.swing.tree.DefaultMutableTreeNode;
 
-import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.FilenameUtils;	//see Maven pom.xml dependency, groupID & artifactDI:"commons-io"
 
 public abstract class DOMParser {
 //	public abstract NodeList parse(File source); //eh
 	
 	public DefaultMutableTreeNode root;
-	
-	protected static Map<DOModel, Class<? extends DOMParser>> parsers = Map.of(
-				DOModel.TEXT, 	DOMVParsers.TextParser.class,	//full class path for tractability reasons
-				DOModel.XML,	DOMVParsers.XMLParser.class
-			);
-	
-	private static HashMap<String, DOModel[]> modelMap = new HashMap<>(); //memoized
 	
 	public static DOMParser Parse(File file, DefaultMutableTreeNode treenode) {
 		var models = getModels(file);
@@ -56,7 +50,9 @@ public abstract class DOMParser {
 	}
 	
 	public static DOModel[] getModels(File file) {
-		var ext = FilenameUtils.getExtension(file.getPath()); 
+		return getModels(FilenameUtils.getExtension(file.getPath())); 
+	}
+	public static DOModel[] getModels(String ext) { 
 		if(modelMap.containsKey(ext))
 			return modelMap.get(ext);
 			
@@ -67,12 +63,37 @@ public abstract class DOMParser {
 		
 		var arr = models.toArray(new DOModel[] {});
 		
-		return arr;
-		
+		return arr;	
 	}
 	
-	//file is assumed to be a valid file of the relevant type
+	//file is assumed to be a valid file for the relevant type
 	public abstract void ParseFile(File file, DefaultMutableTreeNode root);
-	
 	public abstract void ParseFile(InputStream is, DefaultMutableTreeNode root);
+
+	public abstract JPopupMenu getPopupMenu();
+	
+	public boolean canParse(String ext) {
+		//basically reverse map, ends up as model -> extension
+		return Arrays.stream(getModels(ext))
+				.anyMatch(e -> {
+					for(var v : e.extensions())
+						if(v.equals(ext))
+							return true;
+					return false;
+				});
+	}
+	public boolean canParse(File file) {
+		return canParse(FilenameUtils.getExtension(file.getPath()));
+	}
+
+	
+////////////////////////
+// private / protected
+////////////////////////	
+	protected static Map<DOModel, Class<? extends DOMParser>> parsers = Map.of(
+			DOModel.TEXT, 	DOMVParsers.TextParser.class,	//full class path for tractability reasons
+			DOModel.XML,	DOMVParsers.XMLParser.class
+		);
+
+	private static HashMap<String, DOModel[]> modelMap = new HashMap<>(); //memoized
 }

@@ -1,6 +1,8 @@
 package DOMViewer;
 
 /*
+ * The type of parsing available
+ * 
  * see DOMParser.class for where parsers are assigned.
  * - default models are the first of their variation
  */

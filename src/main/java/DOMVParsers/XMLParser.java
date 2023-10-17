@@ -3,6 +3,7 @@ package DOMVParsers;
 import java.io.File;
 import java.io.InputStream;
 
+import javax.swing.JPopupMenu;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 import DOMViewer.DOMParser;
@@ -19,6 +20,12 @@ public class XMLParser extends DOMParser {
 	public void ParseFile(InputStream is, DefaultMutableTreeNode root) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public JPopupMenu getPopupMenu() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }

@@ -5,7 +5,7 @@ package DOMViewer;
  */
 public enum treeNodeOption{	//keep ordering as least-to-most dependent. a higher element should never have a parent lower than it. java shouldn't let you do otherwise but...  (evaluation is based on this assumption)
 	CLEAR			("CLEAR",
-						"remove view of this node, does not alter/remove the source file"),
+						"remove view of this node, does effect the file system"),
 	DELETE			("DELETE",
 						"removes from file system (cannotbe undone)"),
 	REFRESH			("refresh",
