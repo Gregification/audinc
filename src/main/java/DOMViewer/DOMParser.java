@@ -17,17 +17,19 @@ public abstract class DOMParser {
 //	public abstract NodeList parse(File source); //eh
 	
 	public DefaultMutableTreeNode root;
+	public DOModel model;
+	
+	public static Class<? extends DOMParser> findParser(File file) {
+		return parsers.get(getModel(file));
+	}
 	
 	public static DOMParser Parse(File file, DefaultMutableTreeNode treenode) {
-		var models = getModels(file);
-		DOModel model = models.length != 0 ? models[0] : DOModel.TEXT;
-		
-		return Parse(file, model, treenode);
+		return Parse(file, getModel(file), treenode);
 	}
 	public static DOMParser Parse(File file, DOModel model, DefaultMutableTreeNode treenode) {
 		try {
-			var v = parsers.get(model).getDeclaredConstructor().newInstance();
-			v.ParseFile(file, treenode);
+			var v = parsers.get(model).getDeclaredConstructor(DOModel.class, DefaultMutableTreeNode.class).newInstance(model, treenode);
+			v.ParseFile(file);
 			return v;
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
@@ -36,10 +38,10 @@ public abstract class DOMParser {
 			return null;
 		}
 	}
-	public static DOMParser Parse(InputStream is, DOModel model, DefaultMutableTreeNode treenode) {
+	public static DOMParser Parse(InputStream is, DOModel model) {
 		try {
 			var v = parsers.get(model).getDeclaredConstructor().newInstance();
-			v.ParseFile(is, treenode);
+			v.ParseFile(is);
 			return v;
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
@@ -49,6 +51,10 @@ public abstract class DOMParser {
 		}
 	}
 	
+	public static DOModel getModel(File file) {
+		DOModel[] models = getModels(FilenameUtils.getExtension(file.getPath()));
+		return models.length != 0 ? models[0] : DOModel.TEXT;
+	}
 	public static DOModel[] getModels(File file) {
 		return getModels(FilenameUtils.getExtension(file.getPath())); 
 	}
@@ -66,21 +72,27 @@ public abstract class DOMParser {
 		return arr;	
 	}
 	
+	public DOMParser(DefaultMutableTreeNode root) {
+		this.model 	= DOModel.TEXT;
+		this.root 	= root;
+	};
+	public DOMParser(DOModel model, DefaultMutableTreeNode root) {
+		this.model 	= model;
+		this.root 	= root;
+	};
+	
 	//file is assumed to be a valid file for the relevant type
-	public abstract void ParseFile(File file, DefaultMutableTreeNode root);
-	public abstract void ParseFile(InputStream is, DefaultMutableTreeNode root);
+	public abstract void ParseFile(File file);
+	public abstract void ParseFile(InputStream is);
 
 	public abstract JPopupMenu getPopupMenu();
 	
 	public boolean canParse(String ext) {
-		//basically reverse map, ends up as model -> extension
-		return Arrays.stream(getModels(ext))
-				.anyMatch(e -> {
-					for(var v : e.extensions())
-						if(v.equals(ext))
-							return true;
-					return false;
-				});
+		for(var v : model.extensions())
+			if(v.equals(ext))
+				return true;
+		
+		return false;
 	}
 	public boolean canParse(File file) {
 		return canParse(FilenameUtils.getExtension(file.getPath()));
@@ -91,8 +103,8 @@ public abstract class DOMParser {
 // private / protected
 ////////////////////////	
 	protected static Map<DOModel, Class<? extends DOMParser>> parsers = Map.of(
-			DOModel.TEXT, 	DOMVParsers.TextParser.class,	//full class path for tractability reasons
-			DOModel.XML,	DOMVParsers.XMLParser.class
+			DOModel.TEXT, 	DOMViewer.parsers.TextParser.class,	//full class path for tractability reasons
+			DOModel.XML,	DOMViewer.parsers.XMLParser.class
 		);
 
 	private static HashMap<String, DOModel[]> modelMap = new HashMap<>(); //memoized

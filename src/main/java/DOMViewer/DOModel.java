@@ -17,7 +17,7 @@ public enum DOModel {
 	XML_m1	("XML : method 1", XML,
 				"homemade parser, maybe faster, maybe slower, and - if your lucky - maybe it works"),
 	
-	JSON	("JSON"	, "",		//default
+	JSON	("JSON"	, "",						//default
 				"json")
 	;
 	
