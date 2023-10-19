@@ -212,7 +212,7 @@ public class DOMViewFolder extends DOMView {
 	
 	protected JPopupMenu getPopupMenu(EnumSet<popupLimit> sharedLimits) {
 		assert this.popupMenuMap != null : "did not initialize popup menu map";
-		System.out.println("shared limits of slection: " + sharedLimits);
+//		System.out.println("shared limits of slection: " + sharedLimits);
 		
 		JPopupMenu menu = new JPopupMenu();
 		
@@ -241,15 +241,15 @@ public class DOMViewFolder extends DOMView {
 					}
 				}
 				
-				System.out.println("popup menu element:" + src.getText() + " \t host:" + (host == null ? "null" : host.getText()) + " \t node flags:" + currentFlags + "\t allowed");
+//				System.out.println("popup menu element:" + src.getText() + " \t host:" + (host == null ? "null" : host.getText()) + " \t node flags:" + currentFlags + "\t allowed");
 				return;
 			}
 		}
 		
-		System.out.println("popup menu element:" + src.getText() + " \t host:" + (host == null ? "null" : host.getText()) + " \t node flags:" + currentFlags + "\t not allowed");
+//		System.out.println("popup menu element:" + src.getText() + " \t host:" + (host == null ? "null" : host.getText()) + " \t node flags:" + currentFlags + "\t not allowed");
 		
 		if(host != null)
-			menu.remove(src);
+			host.remove(src);
 	}
 	
 
@@ -308,7 +308,7 @@ public class DOMViewFolder extends DOMView {
 			
 			if(flagSet.length == 0) displayFlags.add(defaultFlag());
 			
-			System.out.println("flag set of " + title + " \t " + displayFlags);
+//			System.out.println("flag set of " + title + " \t " + displayFlags);
 		}
 		
 		public String getTitle() {
