@@ -1,19 +1,13 @@
 package presentables;
 
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.event.ItemEvent;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 //import java.io.FileNotFoundException;
 //import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 //import java.nio.file.Path;
@@ -26,7 +20,6 @@ import java.lang.reflect.Method;
 //import java.util.zip.ZipOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -35,19 +28,13 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SpringLayout;
 import javax.swing.border.BevelBorder;
-import javax.swing.border.EtchedBorder;
-import javax.swing.border.TitledBorder;
-
-import com.fazecast.jSerialComm.SerialPort;
 
 import audinc.gui.MainWin;
-import audinc.gui.WrapLayout;
 import presentables.presents.SerialPoke;
 
 /**

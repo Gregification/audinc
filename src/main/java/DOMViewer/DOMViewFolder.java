@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.MenuElement;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 
@@ -26,6 +28,7 @@ import DOMViewer.nodeObjects.DFolderNodeObj;
 /** 
  */
 public class DOMViewFolder extends DOMView {
+	
 	@Override protected void nodeOptions_refresh() {
 		var nodes = List.of(domTree.getSelectionPaths()).stream().collect(Collectors.toCollection(ArrayList::new));//make mutable list
 		
@@ -74,9 +77,7 @@ public class DOMViewFolder extends DOMView {
 	 * - no file filter
 	 */
 	protected Runnable parse_recursive1(DefaultMutableTreeNode treenode, ExecutorService executor) {
-		return () -> {
-//			System.out.println("parse_recursive1 | \t" + treenode.toString() +  "\t | "+ Thread.currentThread().getName());
-			
+		return () -> {			
 			assert treenode.getUserObject() instanceof DFolderNodeObj	//constructor & this.setRoot(Path) should guarantee this
 				: "\tnode object is not instanceof DOMNodeObject, userobject -> "+(treenode.getUserObject() == null ? "IS NULL" : (treenode.getUserObject().getClass()));
 			
@@ -87,13 +88,12 @@ public class DOMViewFolder extends DOMView {
 				if(src.isDirectory()) {						
 					List.of(src.listFiles()).stream()
 						.sorted((o1, o2) -> Boolean.compare(o1.isFile(), o2.isFile()))	//priority = directories
+						.parallel()
 						.forEach(subFile -> {	//parse folder contents back onto the queue
 							var subPath 	= subFile.toPath();
 							var subObject 	= new DFolderNodeObj(subPath.getFileName().toString(), subPath);
 							
-							var subNode 	= new DefaultMutableTreeNode(subObject, true);	//hard coded [true] because its a item => will always be able to have children
-							
-//							System.out.println("\t" + treenode + " > " + subNode + " = " + subFile);
+							var subNode 	= new DefaultMutableTreeNode(subObject, subFile.isDirectory());
 							treenode.add(subNode);
 							
 							//create new job
@@ -116,12 +116,8 @@ public class DOMViewFolder extends DOMView {
 		// TODO Auto-generated method stub
 		System.out.println("displaying node: " + dmtn.toString());
 	}
-
-	@Override protected JPopupMenu getPopupMenu(TreePath[] treenode) {
-		return this.nodeOptionsPopupMenu;
-	}
 	
-	@Override protected void nodeOptionsPopupMenu_actionEvent(nodeOptionEnum option, ActionEvent e) {
+	@Override protected void nodeOptionsPopupMenu_actionEvent(PopupOptionable option, ActionEvent e) {
 		assert option instanceof popupOptions : "whar??";
 		
 		var optionEnum = (popupOptions)option;
@@ -132,7 +128,10 @@ public class DOMViewFolder extends DOMView {
 	}
 	
 	@Override protected void initNodeOptionsPopupMenu() {
-		this.nodeOptionsPopupMenu = new JPopupMenu("popup menu");
+		this.popupMenuMap 			= new HashMap<>();
+		this.popupChildren			= new HashMap<>();
+		
+		var tmp_popupMenuTopElements	= new ArrayList<JMenuItem>();
 		
 		//create JMenu object for everything that should have one
 		Map<popupOptions, JMenu> jmenus = List.of(popupOptions.values()).stream()
@@ -159,25 +158,109 @@ public class DOMViewFolder extends DOMView {
 						}
 					});
 				
+				item.setText(tno.getTitle());
+				
 				if(!tno.getTooltipText().isBlank())
 					item.setToolTipText(tno.getTooltipText());
 				
-				
+				//add to approate parent
 				if(tno.getChildOf() == null)
-					this.nodeOptionsPopupMenu.add(item);
-				else
-					jmenus.get(tno.getChildOf()).add(item);
+					tmp_popupMenuTopElements.add(item);
+				else {
+					JMenuItem parent = jmenus.get(tno.getChildOf());
+					parent.add(item);
+					if(!this.popupChildren.containsKey(parent)) {
+						popupChildren.put(parent, new ArrayList<JMenuItem>());
+					}
+					
+					popupChildren.get(parent).add(item);
+				}
+				
+				popupMenuMap.put(item, tno);
 			});
+		
+		for(var v : this.popupChildren.values())
+			v.trimToSize();
+		
+		popupMenuTopElements = tmp_popupMenuTopElements.toArray(new JMenuItem[] {});
 	}
+	
+	@Override protected JPopupMenu getPopupMenu(TreePath[] treenodes){
+		EnumSet<popupLimit> sharedLimits = EnumSet.allOf(popupLimit.class);
+		
+		for(var tn : treenodes) {
+			var dmtn = (DefaultMutableTreeNode)tn.getLastPathComponent();
+			
+			filterPopupLimits(dmtn, sharedLimits);
+			
+			if(sharedLimits.size() == 1) break; //stop if the only limit left is [All]
+		}
+		
+		popupLimit lim_all = popupLimit.values()[0].getFlagForAll();
+		
+		sharedLimits.add(lim_all);//no static method for interfaces for enums :( i give up
+		//at this point everything we want to show up is in sharedLimits
+		
+		//apply it to the popupMenu
+		return getPopupMenu(sharedLimits);
+	}
+	
+	protected void filterPopupLimits(DefaultMutableTreeNode node, EnumSet<popupLimit> sharedLimits) {
+		sharedLimits.remove(node.getAllowsChildren() ? 		//if it allows children => its a folder, therefore it cannot be a file. visa versa
+				popupLimit.ON_FILE : popupLimit.ON_FOLDER);
+	}
+	
+	protected JPopupMenu getPopupMenu(EnumSet<popupLimit> sharedLimits) {
+		assert this.popupMenuMap != null : "did not initialize popup menu map";
+		System.out.println("shared limits of slection: " + sharedLimits);
+		
+		JPopupMenu menu = new JPopupMenu();
+		
+		for(var top : this.popupMenuTopElements) {
+			popupMenu_addApplicableElements(top, null, sharedLimits, menu);
+		}
+	
+		return menu;
+	}
+	
+	protected void popupMenu_addApplicableElements(JMenuItem src, JMenu host,  EnumSet<? extends PopupFilterable> allowedFlags, JPopupMenu menu) {
+		PopupOptionable currentOption = popupMenuMap.get(src);
+		EnumSet<? extends PopupFilterable> currentFlags = currentOption.getDisplayFlags();
+		
+		for(var af : allowedFlags) {
+			if(currentFlags.contains(af)) {
+				if(host == null)				
+					menu.add(src);
+				else
+					host.add(src);
+				
+				if(src instanceof JMenu) {
+					var children = this.popupChildren.get(src);
+					for(var c : children) {
+						popupMenu_addApplicableElements(c, (JMenu)src, allowedFlags, menu);
+					}
+				}
+				
+				System.out.println("popup menu element:" + src.getText() + " \t host:" + (host == null ? "null" : host.getText()) + " \t node flags:" + currentFlags + "\t allowed");
+				return;
+			}
+		}
+		
+		System.out.println("popup menu element:" + src.getText() + " \t host:" + (host == null ? "null" : host.getText()) + " \t node flags:" + currentFlags + "\t not allowed");
+		
+		if(host != null)
+			menu.remove(src);
+	}
+	
 
 	private static final long serialVersionUID = -6509558498762564268L;
 
 
-	enum popupOptions implements nodeOptionEnum {
-		CLEAR			("CLEAR",
-					"remove view of this node, does effect the file system"),
-		DELETE			("DELETE",
-					"removes from file system (cannotbe undone)"),
+	enum popupOptions implements PopupOptionable {
+		CLEAR			("clear",
+						"remove view of this node, does effect the file system"),
+		DELETE			("delete",
+					"removes from file system (cannot be undone)"),
 		REFRESH			("refresh",
 					"ignore local changes, rebase from the file system"),
 		PARSE_d			("parse"),
@@ -186,10 +269,12 @@ public class DOMViewFolder extends DOMView {
 						PARSE_d),
 		PARSE_CHILDREN	("children",
 						"parse children only",
-						PARSE_d),
+						PARSE_d,
+						popupLimit.ON_FOLDER),
 		PARSE_CUSTOM	("custom",
 						"view parsing options",
-						PARSE_d),
+						PARSE_d,
+						popupLimit.ON_FILE),
 		SAVE_d			("save"),
 		SAVE_OVERWRITE	("overwrite",	
 						"overwrite the selected file/folder(s)",
@@ -207,8 +292,11 @@ public class DOMViewFolder extends DOMView {
 			this(title, "");
 		}	
 		private popupOptions(String title, String tooltiptext) {
-			this(title, tooltiptext, null);
-		}	
+			this(title, tooltiptext, popupLimit.ON_ALL);
+		}
+		private popupOptions(String title, String tooltiptext, popupLimit... flagSet) {
+			this(title, tooltiptext, null, flagSet);
+		}
 		private popupOptions(String title, popupOptions parent) {
 			this(title, "", parent);
 		}	
@@ -217,9 +305,13 @@ public class DOMViewFolder extends DOMView {
 			this.tooltiptext = tooltiptext;
 			this.childOf = parent;
 			this.displayFlags.addAll(Arrays.asList(flagSet));
+			
+			if(flagSet.length == 0) displayFlags.add(defaultFlag());
+			
+			System.out.println("flag set of " + title + " \t " + displayFlags);
 		}
 		
-		@Override public String toString() {
+		public String getTitle() {
 			return this.title;
 		}
 		
@@ -230,13 +322,30 @@ public class DOMViewFolder extends DOMView {
 		@Override public String getTooltipText() {
 			return this.tooltiptext;
 		}
+		
+		public EnumSet<popupLimit> getDisplayFlags(){
+			return this.displayFlags;
+		}
+		
+		private popupLimit defaultFlag() {
+			return popupLimit.ON_ALL;
+		}
 	}
 	
-	enum popupLimit{
+	enum popupLimit implements PopupFilterable {
 		ON_FOLDER,
 		ON_FILE,
-		ON_ROOT
+		ON_ALL
 		;
+		
+		@Override public popupLimit getFlagForAll() {
+			return popupLimit.ON_ALL;
+		}
+
+		@Override
+		public int getSizeWithoutAll() {
+			return 0;
+		}
 	}
 
 }

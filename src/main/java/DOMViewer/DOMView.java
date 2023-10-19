@@ -9,13 +9,19 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTree;
+import javax.swing.MenuElement;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -36,9 +42,12 @@ public abstract class DOMView extends JPanel {
 	public final DefaultMutableTreeNode domTree_root;
 	public final DefaultTreeModel domTree_model;
 	
-	protected JPopupMenu nodeOptionsPopupMenu;
 	protected JScrollPane tv_sp, ev_sp;	//tree/element view scroll pane
 	protected ExecutorService executor;	//mainly for refreshing the tree
+	
+	protected JMenuItem[] popupMenuTopElements;
+	protected Map<JMenuItem, PopupOptionable> 		popupMenuMap; //given a limit, tells you what objects are allowed. value must be mutable list
+	protected Map<JMenuItem, ArrayList<JMenuItem>>	popupChildren;
 	
 	private DefaultMutableTreeNode currentShownNode;
 	
@@ -78,13 +87,11 @@ public abstract class DOMView extends JPanel {
 ///////////////////
 //gui
 ///////////////////	
-	protected abstract  void nodeOptionsPopupMenu_actionEvent(nodeOptionEnum option, ActionEvent e);
+	protected abstract  void nodeOptionsPopupMenu_actionEvent(PopupOptionable option, ActionEvent e);
 	protected abstract void nodeOptions_refresh(); //hell :fire: :fire: :brim-stone:
 	
 	protected abstract void initNodeOptionsPopupMenu();
-	protected JPopupMenu getPopupMenu(TreePath[] treenode) {
-		return this.nodeOptionsPopupMenu;
-	}
+	protected abstract JPopupMenu getPopupMenu(TreePath[] treenode);
 	
 	protected void updateTreeViewForNode(DefaultMutableTreeNode treenode) {
 		// see answer by Araon Digulla ->  https://stackoverflow.com/questions/2822695/java-jtree-how-to-check-if-node-is-displayed#:~:text=getViewport().,true%20%2C%20the%20node%20is%20visible.
@@ -169,10 +176,11 @@ public abstract class DOMView extends JPanel {
 	}
 	
 	protected abstract void displayNode(DefaultMutableTreeNode dmtn);
-
+	
 ///////////////////
 //ignore
 ///////////////////
+	
 	protected void finalize() throws Throwable{
 		close();
 	}
