@@ -5,23 +5,27 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTree;
-import javax.swing.MenuElement;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -36,7 +40,11 @@ import audinc.gui.MainWin;
 /*
  * - root node user-object is a Path.class instance
  */
-public abstract class DOMView extends JPanel {	
+public abstract class DOMView<
+			popupOption extends Enum<popupOption> & PopupOptionable,	//big brain solution. crack house implementation
+			popupFilter extends Enum<popupFilter> & PopupFilterable 
+		>extends JPanel {
+	
 	public JPanel eleView;
 	public final JTree domTree;
 	public final DefaultMutableTreeNode domTree_root;
@@ -46,7 +54,7 @@ public abstract class DOMView extends JPanel {
 	protected ExecutorService executor;	//mainly for refreshing the tree
 	
 	protected JMenuItem[] popupMenuTopElements;
-	protected Map<JMenuItem, PopupOptionable> 		popupMenuMap; //given a limit, tells you what objects are allowed. value must be mutable list
+	protected Map<JMenuItem, popupOption> 		popupMenuMap; //given a limit, tells you what objects are allowed. value must be mutable list
 	protected Map<JMenuItem, ArrayList<JMenuItem>>	popupChildren;
 	
 	private DefaultMutableTreeNode currentShownNode;
@@ -54,7 +62,7 @@ public abstract class DOMView extends JPanel {
 	public DOMView() {
 		this(MainWin.settingsDir);
 	}
-	public DOMView(Path root) {
+	public DOMView(Path root){
 		super(new GridBagLayout());
 		
 		domTree_root 	= new DefaultMutableTreeNode(null, true);
@@ -90,8 +98,10 @@ public abstract class DOMView extends JPanel {
 	protected abstract  void nodeOptionsPopupMenu_actionEvent(PopupOptionable option, ActionEvent e);
 	protected abstract void nodeOptions_refresh(); //hell :fire: :fire: :brim-stone:
 	
-	protected abstract void initNodeOptionsPopupMenu();
-	protected abstract JPopupMenu getPopupMenu(TreePath[] treenode);
+	protected abstract Class<popupOption> getOptionEnum();
+	protected abstract Class<popupFilter> getFilterEnum();
+	protected abstract popupOption[] getOptionEnumOptions();
+	protected abstract popupFilter getAllFilter();
 	
 	protected void updateTreeViewForNode(DefaultMutableTreeNode treenode) {
 		// see answer by Araon Digulla ->  https://stackoverflow.com/questions/2822695/java-jtree-how-to-check-if-node-is-displayed#:~:text=getViewport().,true%20%2C%20the%20node%20is%20visible.
@@ -118,7 +128,7 @@ public abstract class DOMView extends JPanel {
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		
 		var c = new GridBagConstraints();
-		c.weightx = c.weighty = 1.0;
+		c.weightx = c.weighty = 1.0;	
 		c.fill = GridBagConstraints.BOTH;
 		
 		this.setBackground(Color.red);
@@ -126,6 +136,125 @@ public abstract class DOMView extends JPanel {
 		
 		initNodeOptionsPopupMenu();
 	}
+	
+	protected JPopupMenu getPopupMenu(TreePath[] treenodes){
+		EnumSet<popupFilter> sharedLimits = EnumSet.allOf(getFilterEnum());
+		
+		for(var tn : treenodes) {
+			var dmtn = (DefaultMutableTreeNode)tn.getLastPathComponent();
+			
+			filterPopupLimits(dmtn, sharedLimits);
+			
+			if(sharedLimits.size() == 1) break; //stop if the only limit left is [All]
+		}
+		
+		sharedLimits.add(getAllFilter());//no static method for interfaces for enums :( i give up
+		//at this point everything we want to show up is in sharedLimits
+		
+		//apply it to the popupMenu
+		return getPopupMenu(sharedLimits);
+	}
+	
+	protected JPopupMenu getPopupMenu(EnumSet<popupFilter> sharedLimits) {
+		assert this.popupMenuMap != null : "did not initialize popup menu map";
+//		System.out.println("shared limits of slection: " + sharedLimits);
+		
+		JPopupMenu menu = new JPopupMenu();
+		
+		for(var top : this.popupMenuTopElements) {
+			popupMenu_addApplicableElements(top, null, sharedLimits, menu);
+		}
+	
+		return menu;
+	}
+	
+	protected void initNodeOptionsPopupMenu() {
+		this.popupMenuMap 			= new HashMap<>();
+		this.popupChildren			= new HashMap<>();
+		
+		var tmp_popupMenuTopElements	= new ArrayList<JMenuItem>();
+		
+		//create JMenu object for everything that should have one
+		Map<popupOption, JMenu> jmenus = List.of(getOptionEnumOptions()).stream()
+				.map(popupOption::getChildOf)
+				.filter(e -> e != null)
+				.distinct()
+				.collect(Collectors.toMap(
+						e -> (popupOption)e, 
+						e -> new JMenu(e.toString())));
+		
+		//link JMenus & JMenuItems to corresponding JMenus. also puts to the GUI
+		List.of(getOptionEnumOptions()).stream()
+			.forEach(tno ->{
+				JMenuItem item = null;
+				
+				if(jmenus.containsKey(tno))
+					item = jmenus.get(tno);
+				else
+					item = new JMenuItem(tno.toString());
+				
+				item.addActionListener(new ActionListener(){
+						public void actionPerformed(ActionEvent e) {
+							nodeOptionsPopupMenu_actionEvent(tno, e);
+						}
+					});
+				
+				item.setText(tno.getTitle());
+				
+				if(!tno.getTooltipText().isBlank())
+					item.setToolTipText(tno.getTooltipText());
+				
+				//add to approate parent
+				if(tno.getChildOf() == null)
+					tmp_popupMenuTopElements.add(item);
+				else {
+					JMenuItem parent = jmenus.get(tno.getChildOf());
+					parent.add(item);
+					if(!this.popupChildren.containsKey(parent)) {
+						popupChildren.put(parent, new ArrayList<JMenuItem>());
+					}
+					
+					popupChildren.get(parent).add(item);
+				}
+				
+				popupMenuMap.put(item, tno);
+			});
+		
+		for(var v : this.popupChildren.values())
+			v.trimToSize();
+		
+		popupMenuTopElements = tmp_popupMenuTopElements.toArray(new JMenuItem[] {});
+	}
+	
+	protected void popupMenu_addApplicableElements(JMenuItem src, JMenu host,  EnumSet<? extends PopupFilterable> allowedFlags, JPopupMenu menu) { //most likely is doing a lot of pointless work
+		PopupOptionable currentOption = popupMenuMap.get(src);
+		EnumSet<? extends PopupFilterable> currentFlags = currentOption.getDisplayFlags();
+		
+		for(var af : allowedFlags) {
+			if(currentFlags.contains(af)) {
+				if(host == null)				
+					menu.add(src);
+				else
+					host.add(src);
+				
+				if(src instanceof JMenu) {
+					var children = this.popupChildren.get(src);
+					for(var c : children) {
+						popupMenu_addApplicableElements(c, (JMenu)src, allowedFlags, menu);
+					}
+				}
+				
+//				System.out.println("popup menu element:" + src.getText() + " \t host:" + (host == null ? "null" : host.getText()) + " \t node flags:" + currentFlags + "\t allowed");
+				return;
+			}
+		}
+		
+//		System.out.println("popup menu element:" + src.getText() + " \t host:" + (host == null ? "null" : host.getText()) + " \t node flags:" + currentFlags + "\t not allowed");
+		
+		if(host != null)
+			host.remove(src);
+	}
+	
 
 ///////////////////
 //MouseListener
@@ -180,10 +309,11 @@ public abstract class DOMView extends JPanel {
 ///////////////////
 //ignore
 ///////////////////
-	
 	protected void finalize() throws Throwable{
 		close();
 	}
 	
 	private static final long serialVersionUID = -418815011312738133L; //eclipse requirement
+
+	protected abstract void filterPopupLimits(DefaultMutableTreeNode node, EnumSet<popupFilter> sharedLimits);
 }
