@@ -19,7 +19,6 @@ public class DOMViewSerialPokeSettings extends DOMView<DOMViewer.Views.DOMViewSe
 
 	@Override protected void nodeOptionsPopupMenu_actionEvent(popupOptions option, ActionEvent e) {
 		switch(option) {
-			case RESTORE_DEFAULT:
 			case RELOAD:
 				this.displayNode((DefaultMutableTreeNode)domTree.getLastSelectedPathComponent());
 				break;
@@ -31,7 +30,6 @@ public class DOMViewSerialPokeSettings extends DOMView<DOMViewer.Views.DOMViewSe
 
 	@Override
 	protected void nodeOptions_refresh() {
-		// TODO Auto-generated method stub
 		
 	}
 
@@ -43,7 +41,7 @@ public class DOMViewSerialPokeSettings extends DOMView<DOMViewer.Views.DOMViewSe
 
 	@Override
 	protected void filterPopupLimits(DefaultMutableTreeNode node, EnumSet<popupLimit> sharedLimits) {
-		return; //do nothing
+		
 	}
 	
 	
@@ -52,12 +50,11 @@ public class DOMViewSerialPokeSettings extends DOMView<DOMViewer.Views.DOMViewSe
 //////////////////////
 	
 	enum popupOptions implements PopupOptionable {
-		RESTORE_DEFAULT	("defualt",
-						"restored default values"),
 		RELOAD			("reload",
 						"resets changes"),
 		APPLY_CHANGES	("apply changes",
-						"update settings to what ever is shown"),
+						"update settings to what ever is shown",
+						popupLimit.ON_SETTING),
 		;
 		
 		private String 
@@ -117,7 +114,8 @@ public class DOMViewSerialPokeSettings extends DOMView<DOMViewer.Views.DOMViewSe
 	}
 	
 	enum popupLimit implements PopupFilterable {
-		ON_ALL
+		ON_ALL,
+		ON_SETTING
 		;
 	}
 

@@ -4,6 +4,7 @@ import java.util.EnumSet;
 
 public enum SPCSetting {
 		//(String:title, Class:object type, Boolean:allowCustomValue, Boolean:isHowSwappable, String:description, Object[]:choosableValues)
+		PROTOCALL					(String.class, false, false, (Object[])(protocallOptions.values())),
 		SYSTEM_PORT_NAME			("port name", 
 									String.class, false, 	"port name as defined by the system"),
 		SYSTEM_PORT_PATH 			("port path",
@@ -19,7 +20,7 @@ public enum SPCSetting {
 		VENDOR_ID					(Integer.class, false,		""),
 		DATA_BITS_PER_WORD			(Integer.class, false,		""),
 		NUM_STOP_BITS				(String.class ,	false,		"", (Object[])(stopbitOptions.values())),
-		PARITY						(Integer.class, false,		"", (Object[])(parityOptions.values())),
+		PARITY						(String.class, false,		"", (Object[])(parityOptions.values())),
 		TIMEOUT_READ				(Integer.class, true ,		"time out in miliseconds before a packet is considered lost"),
 		TIMEOUT_WRITE				(Integer.class, true ,		"time out in miliseconds before a write attempt is givenup"),
 		FLOWCONTROL_DATA_SET_READY_ENABLED		("DSR enabled",
@@ -50,6 +51,16 @@ public enum SPCSetting {
 	
 	public Class<? extends Object> clas;
 	
+	enum protocallOptions{
+			RS232	("RS232"),
+			RS485	("RS485")
+		;
+		
+		public String title;
+		
+		private protocallOptions(String title) 	{ this.title = title; }		
+		@Override public String toString() 		{ return title; }
+	}
 	
 	enum stopbitOptions{
 		ONE_POINT_FIVE_STOP_BITS	("1.5 stop bits"),
@@ -117,6 +128,11 @@ public enum SPCSetting {
 		this("", clas, chooseableValues, description, choosableValues);
 		this.title = this.name().toLowerCase().replaceAll("_", " ");
 	}
+	private SPCSetting(Class<? extends Object> clas, Boolean chooseableValues, Boolean isHotSwappable, Object[] choosableValues) {
+		this("", clas, chooseableValues, "", choosableValues);
+		this.isHotSwappable = isHotSwappable;
+		this.title = this.name().toLowerCase().replaceAll("_", " ");
+	}
 	private SPCSetting(Class<? extends Object> clas, Boolean chooseableValues, String description) {
 		this("", clas, chooseableValues, description, (Object[])null);
 		this.title = this.name().toLowerCase().replaceAll("_", " ");
@@ -130,6 +146,14 @@ public enum SPCSetting {
 			if(!v.isHotSwappable) 
 				set.remove(v);		
 		return set;
+	}
+	
+	public static boolean isEditable(SPCSetting setting) {
+		return (setting.allowCustomValues || (setting.choosableValues != null && setting.choosableValues.length > 1));
+	}
+	
+	public boolean isEditable() {
+		return SPCSetting.isEditable(this);
 	}
 }
 

@@ -1,33 +1,29 @@
 package presentables.presents.serialPoke;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.util.EnumSet;
-import java.util.Map;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.fazecast.jSerialComm.SerialPort;
 
+/*
+ * acts as abstraction API for what ever might be considered a value of the class [com.fazecast.jSerialComm.SerialPort] 
+ */
+
 //var set = Set.of(setting.StopBitOptions.getEnumConstants());
 public class SPCSettings {
-	public final static EnumSet<SPCSetting> howSwappableSettings = SPCSetting.keepHotSwappables(EnumSet.allOf(SPCSetting.class)); 
-	public final SerialPort serialPort;
-	public Map<SPCSetting, Object> settings;
+	public final static EnumSet<SPCSetting> HotSwappableSettings 	= SPCSetting.keepHotSwappables(EnumSet.allOf(SPCSetting.class)); 
+	public final static List<SPCSetting> 	AvaliableSettings 		= List.of(SPCSetting.values());
+	
+	public SerialPort serialPort;
+	public ConcurrentHashMap<SPCSetting, Object> settings			= new ConcurrentHashMap<>(SPCSetting.values().length);
+	protected EnumSet<SPCSetting>			modifiedSettings		= EnumSet.noneOf(SPCSetting.class);
 	
 	public static SPCSettings getSettings(SerialPort sp) 	{ return new SPCSettings(sp); }
 	
-	public SPCSettings(SerialPort sp) {
-		this.serialPort = sp;
-	}
-	
-	public Object getSetting(SPCSetting setting) {
-		return SPCSettings.fetchSetting(setting, serialPort);
-	}
-	
-	public void setSetting(SPCSetting setting, SerialPort sp, Object value) {
-		assert value.getClass().isInstance(setting.clas) : "trying to assign mismatched objects";
-	}
-	
-	public static Object fetchSetting(SPCSetting setting, SerialPort sp) {		
-		var v = Enum.class;
-		
+	public static Object fetchSetting(SPCSetting setting, SerialPort sp) {			
 		switch(setting) {
 			case SYSTEM_PORT_NAME : 						return sp.getSystemPortName();
 			case SYSTEM_PORT_PATH : 						return sp.getSystemPortPath();
@@ -55,6 +51,126 @@ public class SPCSettings {
 				System.out.println("SPCSetting>fetchSetting : failed to find setting" + setting.toString());
 				return null;
 		}
+	}
+	
+	public static boolean ApplySetting(SPCSetting setting, SerialPort sp, Object rawValue) {
+		System.out.println("applying setting changes");
+		assert rawValue.getClass().isInstance(setting.clas) : "trying to assign mismatched objects";
+		
+		if(!setting.isEditable() || (sp.isOpen() && !SPCSettings.HotSwappableSettings.contains(setting)))
+			return false; 
+		
+		var value = setting.clas.cast(rawValue);
+		
+		switch(setting) {
+			case SYSTEM_PORT_PATH : 
+				break;
+			case SYSTEM_PORT_LOCATION : 
+				break;
+			case DESCRIPTIVE_PORT_NAME :
+				break;
+			case PORT_DESCRIPTION :
+				break;
+			case PORT_LOCATION : 
+				break;
+			case BAUD_RATE : 
+				break;
+			case DEVICE_WRITE_BUFFER_SIZE : 
+				break;
+			case DEVICE_READ_BUFFER_SIZE : 
+				break;
+			case VENDOR_ID : 
+				break;
+			case DATA_BITS_PER_WORD : 
+				break;
+			case NUM_STOP_BITS : 
+				break;
+			case PARITY : 
+				break;
+			case TIMEOUT_READ : 
+				break;
+			case TIMEOUT_WRITE : 
+				break;
+			case FLOWCONTROL_DATA_SET_READY_ENABLED : 
+				break;
+			case FLOWCONTROL_DATA_TERMINAL_READY_ENABLED : 
+				break;
+			case FLOWCONTROL_XIN_ONOFF_ENABLED : 
+				break;
+			case FLOWCONTROL_XOUT_ONOFF_ENABLED : 
+				break;
+			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED : 
+				break;
+			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 
+				break;
+	
+			default:
+				System.out.println("SPCSetting>function : failed to match setting" + setting.toString());
+				break;
+		}
+		
+		return true;
+	}
+	
+	public SPCSettings(SerialPort sp) {
+		this.serialPort 		= sp;
+		
+		rebase();
+	}
+	
+	public SPCSettings(BufferedReader is) {
+		rebaseFrom(is);
+	}
+	
+	
+	
+	public void rebase() {
+		AvaliableSettings.parallelStream()
+			.forEach(setting -> {
+				settings.put(setting, getSetting(setting));
+			});
+		modifiedSettings.clear();
+	}
+	
+	public void apply() {
+		AvaliableSettings.parallelStream()
+			.forEach(setting -> {
+				SPCSettings.ApplySetting(setting, serialPort, this.settings.get(setting));
+			});
+		modifiedSettings.clear();
+	}
+	
+	public boolean setSetting(SPCSetting setting, Object value) {
+		System.out.println("making a setting change");
+		
+		assert value.getClass().isInstance(setting.clas) : "bruh";//given [value] foes not match the accepted data type
+		
+		if(value == null || !SPCSetting.isEditable(setting)) return false;
+		
+		settings.put(setting, value);
+		modifiedSettings.add(setting);
+		
+		return true;
+	}
+	
+	public Object getSetting(SPCSetting setting) {
+		return SPCSettings.fetchSetting(setting, serialPort);
+	}
+	
+///////////////////
+//save & load
+///////////////////
+	public void writeTo(BufferedWriter bw) {
+		AvaliableSettings.stream()
+			.forEach(setting -> {
+				Object value = getSetting(setting);
+				
+				
+			});
+	}
+	
+	public void rebaseFrom(BufferedReader br) {
+		
 	}
 }
 
