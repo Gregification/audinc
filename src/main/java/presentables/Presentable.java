@@ -59,7 +59,10 @@ public abstract class Presentable {
 	public static String getDisplayTitle() 	{ return "default display title";		}
 	public static Path getRoot(Class<? extends Presentable> clas)		{ return MainWin.settingsDir.resolve(clas.getName()); };
 	public static Path makeRoot(Class<? extends Presentable> clas) {
-		Path path = Presentable.getRoot(clas);
+		return Presentable.makeRoot(clas, Path.of(""));
+	}
+	public static Path makeRoot(Class<? extends Presentable> clas, Path extension) {
+		Path path = Presentable.getRoot(clas).resolve(extension);
 			
 		var file = path.toFile();
 		if(!file.exists()) {
@@ -73,6 +76,7 @@ public abstract class Presentable {
 		
 		return path;
 	}
+	
 	public static ImageIcon getImgIcon() {
 //		System.out.println("presentable>getImgIcon(),default path");
 		try { return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png"))); } 

@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.swing.JMenu;
@@ -95,7 +94,7 @@ public abstract class DOMView<
 ///////////////////
 //gui
 ///////////////////	
-	protected abstract  void nodeOptionsPopupMenu_actionEvent(PopupOptionable option, ActionEvent e);
+	protected abstract  void nodeOptionsPopupMenu_actionEvent(popupOption option, ActionEvent e);
 	protected abstract void nodeOptions_refresh(); //hell :fire: :fire: :brim-stone:
 	
 	protected abstract Class<popupOption> getOptionEnum();

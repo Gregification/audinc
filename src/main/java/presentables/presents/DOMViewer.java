@@ -16,8 +16,8 @@ import javax.swing.JToolBar;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import DOMViewer.DOMView;
-import DOMViewer.DOMViewFolder;
 import DOMViewer.DOModel;
+import DOMViewer.Views.DOMViewFolder;
 import audinc.gui.MainWin;
 import presentables.Presentable;
 

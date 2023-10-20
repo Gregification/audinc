@@ -1,4 +1,4 @@
-package DOMViewer;
+package DOMViewer.Views;
 
 import java.awt.event.ActionEvent;
 import java.io.File;
@@ -14,6 +14,9 @@ import java.util.stream.Collectors;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 
+import DOMViewer.DOMView;
+import DOMViewer.PopupFilterable;
+import DOMViewer.PopupOptionable;
 import DOMViewer.nodeObjects.DFolderNodeObj;
 
 /*
@@ -21,7 +24,7 @@ import DOMViewer.nodeObjects.DFolderNodeObj;
  */
 /** 
  */
-public class DOMViewFolder extends DOMView<DOMViewer.DOMViewFolder.popupOptions, DOMViewer.DOMViewFolder.popupLimit> {
+public class DOMViewFolder extends DOMView<DOMViewer.Views.DOMViewFolder.popupOptions, DOMViewer.Views.DOMViewFolder.popupLimit> {
 
 	@Override protected void nodeOptions_refresh() {
 		var nodes = List.of(domTree.getSelectionPaths()).stream().collect(Collectors.toCollection(ArrayList::new));//make mutable list
@@ -111,11 +114,14 @@ public class DOMViewFolder extends DOMView<DOMViewer.DOMViewFolder.popupOptions,
 		System.out.println("displaying node: " + dmtn.toString());
 	}
 	
-	@Override protected void nodeOptionsPopupMenu_actionEvent(PopupOptionable option, ActionEvent e) {
+	@Override protected void nodeOptionsPopupMenu_actionEvent(popupOptions option, ActionEvent e) {
 		assert option instanceof popupOptions : "whar??";
 		
 		var optionEnum = (popupOptions)option;
 		switch(optionEnum) {
+			case REFRESH:
+				nodeOptions_refresh();
+				break;
 			default:
 				System.out.println("i=umimplimented popup menu event : " + optionEnum);
 		}
@@ -205,6 +211,7 @@ public class DOMViewFolder extends DOMView<DOMViewer.DOMViewFolder.popupOptions,
 		
 		@Override public Enum<? extends PopupOptionable>[] getValues() {
 			return popupOptions.values();
+			
 		}
 		
 	}
