@@ -2,9 +2,12 @@ package presentables.presents.serialPoke;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import com.fazecast.jSerialComm.SerialPort;
 
@@ -17,7 +20,6 @@ public class SPCSettings {
 	public final static EnumSet<SPCSetting> HotSwappableSettings 	= SPCSetting.keepHotSwappables(EnumSet.allOf(SPCSetting.class)); 
 	public final static List<SPCSetting> 	AvaliableSettings 		= List.of(SPCSetting.values());
 	
-	public SerialPort serialPort;
 	public ConcurrentHashMap<SPCSetting, Object> settings			= new ConcurrentHashMap<>(SPCSetting.values().length);
 	protected EnumSet<SPCSetting>			modifiedSettings		= EnumSet.noneOf(SPCSetting.class);
 	
@@ -113,31 +115,35 @@ public class SPCSettings {
 	}
 	
 	public SPCSettings(SerialPort sp) {
-		this.serialPort 		= sp;
-		
-		rebase();
+		rebase(sp);
 	}
 	
-	public SPCSettings(BufferedReader is) {
-		rebaseFrom(is);
+	public SPCSettings(BufferedReader br) throws IOException {
+		rebaseFrom(br);
 	}
 	
 	
 	
-	public void rebase() {
+	public void rebase(SerialPort sp) {
 		AvaliableSettings.parallelStream()
 			.forEach(setting -> {
-				settings.put(setting, getSetting(setting));
+				settings.put(setting, getSetting(setting, sp));
 			});
 		modifiedSettings.clear();
 	}
 	
-	public void apply() {
-		AvaliableSettings.parallelStream()
+	public void applyModified(SerialPort sp) {
+		modifiedSettings.parallelStream()
 			.forEach(setting -> {
-				SPCSettings.ApplySetting(setting, serialPort, this.settings.get(setting));
+				if(SPCSetting.isEditable(setting) && settings.get(setting) != null)
+					SPCSettings.ApplySetting(setting, sp, this.settings.get(setting));
 			});
 		modifiedSettings.clear();
+	}
+	
+	public void applyAll(SerialPort sp) {
+		modifiedSettings = EnumSet.allOf(SPCSetting.class);
+		applyModified(sp);
 	}
 	
 	public boolean setSetting(SPCSetting setting, Object value) {
@@ -153,8 +159,8 @@ public class SPCSettings {
 		return true;
 	}
 	
-	public Object getSetting(SPCSetting setting) {
-		return SPCSettings.fetchSetting(setting, serialPort);
+	public Object getSetting(SPCSetting setting, SerialPort sp) {
+		return SPCSettings.fetchSetting(setting, sp);
 	}
 	
 ///////////////////
@@ -163,15 +169,62 @@ public class SPCSettings {
 	public void writeTo(BufferedWriter bw) {
 		AvaliableSettings.stream()
 			.forEach(setting -> {
-				Object value = getSetting(setting);
+				Object value = settings.get(setting);
+				var clas = setting.clas;
 				
-				
+				try {
+					bw.write(setting.name());
+					bw.newLine();
+					
+					//using if-else's because I can't figure out how to make a switch of type [Class]
+					//not using instance-of because thats not as specific
+					if(
+							clas == Boolean	.class	||
+							clas == String	.class	||
+							clas == Integer	.class) {
+						bw.write(value.toString());
+					}
+					
+					bw.newLine();
+				} catch (IOException e) {
+					System.out.println(clas.toGenericString());
+					e.printStackTrace(); 
+				}
 			});
 	}
 	
-	public void rebaseFrom(BufferedReader br) {
-		
+	public void rebaseFrom(BufferedReader br) throws IOException {
+		int count = this.AvaliableSettings.size();
+		String line;
+		SPCSetting loadedSetting = null;
+		while((line = br.readLine()) != null && count > 0) {
+			count--;
+			if(loadedSetting == null) {
+				loadedSetting = SPCSetting.valueOf(line);
+			}else {
+				Object value = null;
+				var clas = loadedSetting.clas;
+				
+				if(clas == Boolean.class) {
+					value = Boolean.parseBoolean(line);
+				}else if(clas == Integer.class) {
+					value = Integer.parseInt(line);
+				}else if(clas == String.class) {
+					value = line;
+				}
+				
+				settings.put(loadedSetting, value);
+			}
+		}
 	}
+	
+	public final static Map<Class<? extends Object>, Function<String, Object>> parseValue_stringers = Map.of(
+			Boolean.class, Boolean::parseBoolean
+		);
+	
+	public final static Map<Class<? extends Object>, Function<BufferedReader, Object>> parseValue_buffered = Map.of(
+				
+		);
 }
 
 /*

@@ -2,6 +2,9 @@ package presentables.presents.serialPoke;
 
 import java.util.EnumSet;
 
+/*
+ * if adding a class object type that is formerly unlisted make sure to include it in the file related constructors of [SPCSettings.java]
+ */
 public enum SPCSetting {
 		//(String:title, Class:object type, Boolean:allowCustomValue, Boolean:isHowSwappable, String:description, Object[]:choosableValues)
 		PROTOCALL					(String.class, false, false, (Object[])(protocallOptions.values())),
@@ -34,7 +37,7 @@ public enum SPCSetting {
 		FLOWCONTROL_REQUEST_TO_SEND_ENABLED		("RTS enabled",
 									Boolean.class, true , false,"Request To Send"),
 		FLOWCONTROL_CLEAR_TO_SEND_ENABLED		("CTS enabled",
-									Boolean.class, true , false,"Clear To Send")	
+									Boolean.class, true , false,"Clear To Send")
 	;
 	
 	public final Class<? extends Enum> 
