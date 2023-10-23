@@ -4,8 +4,8 @@
 
 ## tools/presents
 <br> nothing is final, many are a work in progress
-- ie3301 : data set generator that samples audio
-- serial poke : a troubleshooting solution to get information about a serial port
+- ie3301 : data set generator & limted audio sampler
+- serial poke : serial port connection torubleshooter
 - auto clicker : a auto clicker
 - tts  : Text To Speach using the FreeTTS libary
 - awake : Tells you the time that you should wake up based on sleep cycles. So that you don't interupt your REM sleep.
