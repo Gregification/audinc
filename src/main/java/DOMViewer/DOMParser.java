@@ -15,7 +15,10 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import org.apache.commons.io.FilenameUtils;	//see Maven pom.xml dependency, groupID & artifactDI:"commons-io"
 
 /*
- * file parser. is not directly involved in UI operations or creation(that is handled by the )
+ * file parser. is not directly involved in UI operations or creation(that is handled by the [DOMView] class)
+ * NOTE: this is not required to get a {DOMView] to work (especially if its single purpose like the [DOMView] 
+ * 		used by [SerialPoke]), but if your trying to make something compatible and can be used by the rest 
+ * 		of the program for other purposes then please use this class.
  */
 public abstract class DOMParser {
 //	public abstract NodeList parse(File source); //eh
