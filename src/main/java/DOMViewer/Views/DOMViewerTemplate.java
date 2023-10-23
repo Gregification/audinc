@@ -13,8 +13,10 @@ import DOMViewer.PopupOptionable;
 /*
  * for displaying a single files contents.
  * acts as a mapper to find the appropriate parser for each file
+ * 
+ * the generics supplied to [DOMView] are local [enum]s.
  */
-public class DOMViewFile extends DOMView<DOMViewer.Views.DOMViewFile.popupOptions, DOMViewer.Views.DOMViewFile.popupLimit> {
+public class DOMViewerTemplate extends DOMView<DOMViewer.Views.DOMViewerTemplate.popupOptions, DOMViewer.Views.DOMViewerTemplate.popupLimit> {
 	
 	/*
 	 * when a node option is selected it gets sent through here

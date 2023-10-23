@@ -37,6 +37,7 @@ import audinc.gui.MainWin;
 /**
  */
 /*
+ *  displays relative parser content. in case of DOMViewFolder:no parser needed -> is built in.
  * - root node user-object is a Path.class instance
  */
 public abstract class DOMView<
@@ -50,7 +51,7 @@ public abstract class DOMView<
 	public final DefaultTreeModel domTree_model;
 	
 	protected JScrollPane tv_sp, ev_sp;	//tree/element view scroll pane
-	protected ExecutorService executor;	//mainly for refreshing the tree
+	protected ExecutorService executor;	//for refreshing the tree
 	
 	protected JMenuItem[] popupMenuTopElements;
 	protected Map<JMenuItem, popupOption> 		popupMenuMap; //given a limit, tells you what objects are allowed. value must be mutable list
@@ -93,8 +94,39 @@ public abstract class DOMView<
 		
 ///////////////////
 //gui
-///////////////////	
-	protected abstract  void nodeOptionsPopupMenu_actionEvent(popupOption option, ActionEvent e);
+///////////////////
+	public static ArrayList<TreePath> filterForUniqueRoots(List<TreePath> rawnodes) {
+		var nodes = rawnodes.stream().collect(Collectors.toCollection(ArrayList::new));//make mutable list
+		
+		/*
+		 * filter for relevant nodes
+		 * details:
+		 * only allow BRANCHES that are NOT DECENDENTS of other selected branches.
+		 * see diagram for details: https://media.discordapp.net/attachments/1162543720613302293/1162558001211768892/image.png?ex=653c5f82&is=6529ea82&hm=616f0aee041238ed943ab11f215dae8909324701d1815e17129f953892f36dbd&= 
+		 * 	- circled 	=> selected paths
+		 *  	- red 		=> ignored & filtered out
+		 *  	- blue 		=> keep
+		 */
+		TreePath current, latestParent = nodes.get(0);
+		var itt = nodes.iterator(); 
+			if(itt.hasNext()) itt.next(); //skip first element since its the first possible parent
+			
+		while(itt.hasNext()) {
+			current = itt.next();
+			if(current.isDescendant(latestParent) ||		//if is a decendent of another node
+				!((DefaultMutableTreeNode)current.getLastPathComponent()).getAllowsChildren()	//if is not a branch
+				){
+				itt.remove();
+				continue;
+			}
+
+			latestParent = current;
+		}
+		
+		return nodes;
+	}
+	
+	protected abstract  void nodeOptionsPopupMenu_actionEvent(popupOption option, ActionEvent e);	//this is here instead of the relevant parser so its abstracted at least 1 level above the parsers since there could be multiple. ----------tldr: makes it so work done by the parsers can be better managed
 	protected abstract void nodeOptions_refresh(); //hell :fire: :fire: :brim-stone:
 	
 	protected abstract Class<popupOption> getOptionEnum();

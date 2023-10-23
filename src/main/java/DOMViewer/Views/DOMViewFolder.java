@@ -2,17 +2,13 @@ package DOMViewer.Views;
 
 import java.awt.event.ActionEvent;
 import java.io.File;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreePath;
 
 import DOMViewer.DOMView;
 import DOMViewer.PopupFilterable;
@@ -27,36 +23,9 @@ import DOMViewer.nodeObjects.DFolderNodeObj;
 public class DOMViewFolder extends DOMView<DOMViewer.Views.DOMViewFolder.popupOptions, DOMViewer.Views.DOMViewFolder.popupLimit> {
 
 	@Override protected void nodeOptions_refresh() {
-		var nodes = List.of(domTree.getSelectionPaths()).stream().collect(Collectors.toCollection(ArrayList::new));//make mutable list
-		
-		/*
-		 * filter for relevant nodes
-		 * details:
-		 * only allow BRANCHES that are NOT DECENDENTS of other selected branches.
-		 * see diagram for details: https://media.discordapp.net/attachments/1162543720613302293/1162558001211768892/image.png?ex=653c5f82&is=6529ea82&hm=616f0aee041238ed943ab11f215dae8909324701d1815e17129f953892f36dbd&= 
-		 * 	- circled 	=> selected paths
-		 *  	- red 		=> ignored & filtered out
-		 *  	- blue 		=> keep
-		 */
-		TreePath current, latestParent = nodes.get(0);
-		var itt = nodes.iterator(); 
-			if(itt.hasNext()) itt.next(); //skip first element since its the first possible parent
-			
-		while(itt.hasNext()) {
-			current = itt.next();
-			if(current.isDescendant(latestParent) ||		//if is a decendent of another node
-				!((DefaultMutableTreeNode)current.getLastPathComponent()).getAllowsChildren()	//if is not a branch
-				){
-				itt.remove();
-				continue;
-			}
-
-			latestParent = current;
-		}
-		
+		var nodes = filterForUniqueRoots(List.of(domTree.getSelectionPaths()));//make mutable list
 		
 		//re-traverse nodes. using executor to handle work loading.
-
 		executor = Executors.newCachedThreadPool();//(we want jobs)
 		
 		nodes.stream()	//init jobs. a small initial investment(1 bajillion baboons)
@@ -65,7 +34,6 @@ public class DOMViewFolder extends DOMView<DOMViewer.Views.DOMViewFolder.popupOp
 					e.removeAllChildren();
 					executor.execute(parse_recursive1(e, executor));	//42
 				});
-		
 	}
 
 	/*

@@ -52,7 +52,7 @@ import presentables.presents.SerialPoke;
 import DOMViewer.Views.DOMViewSerialPokeSettings;
 
 public class SerialPokeCommConnection{
-	public static final String FileExtension_Settings = "adst";
+	public static final String FileExtension_Settings = "spccS";
 	
 	public String title;
 	public SerialPort sp;

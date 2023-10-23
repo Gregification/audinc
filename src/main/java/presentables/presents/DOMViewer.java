@@ -1,10 +1,8 @@
 package presentables.presents;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.io.BufferedReader;
-import java.io.File;
 import java.nio.file.Path;
+import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -69,7 +67,7 @@ public class DOMViewer extends Presentable{
 		JFileChooser fc = new JFileChooser(source.getParent().toAbsolutePath().toString());//this.preferredPath.toString());
 		
 		for(var v : DOModel.values()) {
-			FileNameExtensionFilter allowedFiles = new FileNameExtensionFilter(v.name(), v.extensions());
+			FileNameExtensionFilter allowedFiles = new FileNameExtensionFilter(v.name(), v.extensions().toArray(new String[] {}));
 			fc.addChoosableFileFilter(allowedFiles);
 			fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 		}

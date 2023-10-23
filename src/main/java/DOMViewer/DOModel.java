@@ -1,5 +1,16 @@
 package DOMViewer;
 
+import java.io.File;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+import org.apache.commons.io.FilenameUtils;
+
+import presentables.presents.serialPoke.SerialPokeCommConnection;
+
 /*
  * The type of parsing available
  * 
@@ -18,18 +29,21 @@ public enum DOModel {
 				"homemade parser, maybe faster, maybe slower, and - if your lucky - maybe it works"),
 	
 	JSON	("JSON"	, "",						//default
-				"json")
+				"json"),
+	
+	SerialPokeSettings	("SP COMM","Serial Poke COMM Connection Setting",
+			SerialPokeCommConnection.FileExtension_Settings)
 	;
 	
 	private String 
 		name,
 		description;
-	private String[] fileExtensions; //lower case if possible
+	private Set<String> fileExtensions; //lower case if possible
 	
 	private DOModel(String name, String description, String... fileExtensions) {
 		this.name = name;
 		this.description = description;
-		this.fileExtensions = fileExtensions;
+		this.fileExtensions = Set.of(fileExtensions);
 	}
 	
 	private DOModel(String name, DOModel parent, String description) {
@@ -38,7 +52,7 @@ public enum DOModel {
 		this.fileExtensions = parent.extensions();
 	}
 	
-	public String[] extensions() {
+	public Set<String> extensions() {
 		return this.fileExtensions;
 	}
 	
@@ -49,4 +63,29 @@ public enum DOModel {
 	@Override public String toString() {
 		return this.name;
 	}
+	
+	public static boolean isModelApplicableTo(DOModel model, File file) { return isModelApplicableTo(model, FilenameUtils.getExtension(file.toString()));	}	
+	public static boolean isModelApplicableTo(DOModel model, String ext) {
+		return model.extensions().contains(ext);
+	}
+	
+	public static EnumSet<DOModel> getApplicableModels(File file){ return getApplicableModels(FilenameUtils.getExtension(file.toString()));}
+	public static EnumSet<DOModel> getApplicableModels(String ext){
+		if(DOModel.applicableModels.containsKey(ext))
+			return DOModel.applicableModels.get(ext);
+		
+		//find matching set
+		var ret = EnumSet.allOf(DOModel.class).stream()
+				.filter(mod -> isModelApplicableTo(mod, ext))
+				.collect(Collectors.toCollection(() -> EnumSet.noneOf(DOModel.class)));
+		
+		ret.add(DOModel.defaultUniversalModel);
+		//memo
+		DOModel.applicableModels.put(ext, ret);
+		
+		return ret;
+	}
+	
+	public static final DOModel defaultUniversalModel = TEXT;
+	private static Map<String, EnumSet<DOModel>> applicableModels = new ConcurrentHashMap<>();	//memoized
 }
