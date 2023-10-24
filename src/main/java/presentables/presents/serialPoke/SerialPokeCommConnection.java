@@ -40,7 +40,6 @@ import javax.swing.border.TitledBorder;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyledDocument;
-import javax.swing.tree.DefaultMutableTreeNode;
 
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortDataListener;
@@ -50,9 +49,7 @@ import DOMViewer.DOMView;
 import audinc.gui.MainWin;
 import audinc.gui.WrapLayout;
 import presentables.Presentable;
-import presentables.custom_doTheThingIfNotNull;
 import presentables.presents.SerialPoke;
-import DOMViewer.Views.DOMViewSerialPokeSettings;
 
 public class SerialPokeCommConnection{
 	public static final String FileExtension_Settings = "spccS";
@@ -75,7 +72,7 @@ public class SerialPokeCommConnection{
 	private Path logTranscriptPath;
 	private BufferedWriter logger = null;
 	private JLabel noticeDisplay;
-	private DOMViewSerialPokeSettings settingsView;
+	private DOMView settingsView;
 	
 	public SerialPokeCommConnection(SerialPort sp, String title) {
 		this.title = title;
@@ -191,7 +188,6 @@ public class SerialPokeCommConnection{
 		if(!src.toFile().exists())
 			return false;
 		
-		settingsView = new DOMViewSerialPokeSettings(src);
 		
 		settings = SPCSettings.getSettings(sp);
 		

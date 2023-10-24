@@ -26,8 +26,7 @@ public class DOMViewFolder extends DOMView<DOMViewer.Views.DOMViewFolder.popupOp
 		domTree_root.setUserObject(
 				new DFolderNodeObj(
 					root.getFileName().toString() + " | " +root.toAbsolutePath().toString(),
-					root,
-					this)
+					root)
 			);
 		
 		domTree.setSelectionPath(new TreePath(domTree_root.getPath()));

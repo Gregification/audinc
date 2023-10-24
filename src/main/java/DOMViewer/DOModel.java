@@ -10,8 +10,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 
-import DOMViewer.parsers.SPCSettingParser;
-import DOMViewer.parsers.TextParser;
+import DOMViewer.parsers.*;
 import presentables.presents.serialPoke.SerialPokeCommConnection;
 
 /*
@@ -20,9 +19,10 @@ import presentables.presents.serialPoke.SerialPokeCommConnection;
  * see DOMParser.class for where parsers are assigned.
  * - default models are the first of their variation
  */
-public enum DOModel {	
+public enum DOModel {
 	TEXT	("TEXT"	, "",		//default
 				TextParser.class,
+				TextParser.getVariEnum(),
 				"txt"),
 //	CSV		("CSV"	, "",
 //				"csv"),
@@ -36,26 +36,24 @@ public enum DOModel {
 //				"json"),
 	
 	SerialPokeSettings	("SP COMM","Serial Poke COMM Connection Setting",
-			SPCSettingParser.class,
-			SerialPokeCommConnection.FileExtension_Settings)
+				SPCParser.class,
+				SPCParser.getVariEnum(),
+				SerialPokeCommConnection.FileExtension_Settings)
 	;
-	
+
 	private String 
 		name,
 		description;
 	private Class<? extends DOMParser> parser;
+	private EnumSet<? extends Enum> variEnum;
 	private Set<String> fileExtensions; //lower case if possible
 	
-	private DOModel(String name, String description, Class<? extends DOMParser> parser, String... fileExtensions) {
+	private DOModel(String name, String description, Class<? extends DOMParser> parser, EnumSet<? extends Enum> variEnum, String... fileExtensions) {
 		this.name = name;
 		this.description = description;
 		this.fileExtensions = Set.of(fileExtensions);
-	}
-	
-	private DOModel(String name, DOModel parent, String description) {
-		this.name = name;
-		this.description = description;
-		this.fileExtensions = parent.extensions();
+		this.parser = parser;
+		this.variEnum = variEnum;
 	}
 	
 	public Set<String> extensions() {
@@ -66,37 +64,16 @@ public enum DOModel {
 		return this.description;
 	}
 	
-	public Class<? extends DOMParser> getParserClass(){
+	@Override public String toString() {
+		return this.name;
+	}
+	
+	public Class<? extends DOMParser> getParser() {
 		return parser;
 	}
 	
-	public DOMParser getParserInstance(){
-		try {
-			return parser.getConstructor(DOModel.class).newInstance(this);
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-	}
-	
-	@Override public String toString() {
-		return this.name;
+	public EnumSet<? extends Enum> getVariEnum() {
+		return variEnum;
 	}
 	
 	public static boolean isModelApplicableTo(DOModel model, File file) { return isModelApplicableTo(model, FilenameUtils.getExtension(file.toString()));	}	

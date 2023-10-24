@@ -1,20 +1,42 @@
 package DOMViewer.Views;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
+import javax.swing.Box;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SpringLayout;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 import DOMViewer.DOMParser;
 import DOMViewer.DOMView;
+import DOMViewer.DOModel;
+import DOMViewer.FileViewer;
 import DOMViewer.PopupFilterable;
 import DOMViewer.PopupOptionable;
 import DOMViewer.nodeObjects.DFolderNodeObj;
+import DOMViewer.parsers.parserVariation;
+import audinc.gui.MainWin;
+import presentables.Presentable;
 
 /*
  * for displaying the file system
@@ -22,19 +44,18 @@ import DOMViewer.nodeObjects.DFolderNodeObj;
 /** 
  */
 public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer.popupOptions, DOMViewer.Views.DOMViewFSExplorer.popupLimit> {
-
-	@Override protected void nodeOptions_refresh() {
-		var nodes = filterForUniqueRoots(List.of(domTree.getSelectionPaths()));//make mutable list
+	protected FileViewer viewer;
+	
+	public DOMViewFSExplorer() { this(MainWin.settingsDir); }
+	public DOMViewFSExplorer(Path root) {
+		super(root);
+		this.viewer = new FileViewer(null);
 		
-		//re-traverse nodes. using executor to handle work loading.
-		executor = Executors.newCachedThreadPool();//(we want jobs)
-		
-		nodes.stream()	//init jobs. a small initial investment(1 bajillion baboons)
-			.map(e -> ((DefaultMutableTreeNode)e.getLastPathComponent()))
-			.forEach(e -> {
-					e.removeAllChildren();
-					executor.execute(parse_recursive1(e, executor));	//42
-				});
+		this.eleView.setLayout(new GridBagLayout());
+		var c = new GridBagConstraints();
+		c.weightx = c.weighty = 1.0;	
+		c.fill = GridBagConstraints.BOTH;
+		this.eleView.add(viewer, c);
 	}
 
 	/*
@@ -82,15 +103,85 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		};
 	}
 
-	
-	@Override
-	protected void displayNode(DefaultMutableTreeNode dmtn) {
+	@Override protected void displayNode(DefaultMutableTreeNode dmtn) {
 		// TODO Auto-generated method stub
 		System.out.println("displaying node: " + dmtn.toString());
-		var node = (DFolderNodeObj)dmtn.getUserObject();
-		var view = node.getDOMView();
 		
-		eleView = view;
+		var node = (DFolderNodeObj)dmtn.getUserObject();
+		
+		this.viewer.setParser(node.getParser());
+	}
+	
+	@Override protected void nodeOptions_refresh() {
+		var nodes = filterForUniqueRoots(List.of(domTree.getSelectionPaths()));//make mutable list
+		
+		//re-traverse nodes. using executor to handle work loading.
+		executor = Executors.newCachedThreadPool();//(we want jobs)
+		
+		nodes.stream()	//init jobs. a small initial investment(1 bajillion baboons)
+			.map(e -> ((DefaultMutableTreeNode)e.getLastPathComponent()))
+			.forEach(e -> {
+					e.removeAllChildren();
+					executor.execute(parse_recursive1(e, executor));	//42
+				});
+	}
+	
+	protected void nodeOptions_clear() {
+		filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream()
+			.map(e -> (DefaultMutableTreeNode)e.getLastPathComponent())
+			.forEach(e -> domTree_model.removeNodeFromParent(e));
+	}
+	
+	protected void nodeOptions_parseCustom() {
+		//good luck
+		filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream()
+			.map(e -> (DefaultMutableTreeNode)e.getLastPathComponent())
+			.map(e -> (DFolderNodeObj)e.getUserObject())
+			.map(e -> e.getPath().toFile())
+			.forEach(this::openCustomParseDialog);
+	}
+	protected void openCustomParseDialog(File file) {		
+		var layout = new SpringLayout();
+		JPanel content = new JPanel(layout);
+		
+		DOModel.getApplicableModels(file).stream()
+			.forEach(e -> {
+				System.out.println(e.getVariEnum());
+			});
+		
+//		JTextField xField = new JTextField(5);
+//			var models = new JComboBox<DOModel>(DOModel.getApplicableModels(file).toArray(DOModel[]::new));
+//			JComboBox<parserVariation> varis = new JComboBox<>();
+//			varis.setMinimumSize(new Dimension(models.getWidth(),models.getHeight()));
+//			
+//			
+//		JComponent[][] objs = new JComponent[][] {
+//			{new JLabel("model:"), models},
+//			{new JLabel("variation:"), varis}
+//		};
+//		for(var v : objs) {
+//			content.add(v[0]);
+//			content.add(v[1]);
+//			Presentable.SpringLayout_EWJoin(v[0], 3, v[1], layout);
+//		}
+//		
+//		models.addActionListener (new ActionListener () {
+//		    public void actionPerformed(ActionEvent e) { //reeeee
+//		    	System.out.println("selected model: " + ((DOModel)models.getSelectedItem()));
+//		        varis.removeAllItems();
+//		        var parser = ((DOModel)models.getSelectedItem()).getParser();
+//		        
+//		    }
+//		});
+//
+//	    int result = JOptionPane.showConfirmDialog(null, content, 
+//	    		"Parser selector", JOptionPane.OK_CANCEL_OPTION);
+//	    if (result == JOptionPane.OK_OPTION) {
+//	    	
+//	    } 
+	}
+	protected void nodeOptions_parseChildren() {
+		
 	}
 	
 	@Override protected void nodeOptionsPopupMenu_actionEvent(popupOptions option, ActionEvent e) {
@@ -98,9 +189,10 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		
 		var optionEnum = (popupOptions)option;
 		switch(optionEnum) {
-			case REFRESH:
-				nodeOptions_refresh();
-				break;
+			case CLEAR : 			nodeOptions_clear(); 		break; 
+			case REFRESH :			nodeOptions_refresh(); 		break;
+			case PARSE_CUSTOM :		nodeOptions_parseCustom();	break;
+			case PARSE_CHILDREN :	nodeOptions_parseChildren();break;
 			default:
 				System.out.println("i=umimplimented popup menu event : " + optionEnum);
 		}
@@ -120,9 +212,6 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		REFRESH			("refresh",
 					"ignore local changes, rebase from the file system"),
 		PARSE_d			("parse"),
-		PARSE_SELF		("this", 
-						"parse this node (includes children)",
-						PARSE_d),
 		PARSE_CHILDREN	("children",
 						"parse children only",
 						PARSE_d,

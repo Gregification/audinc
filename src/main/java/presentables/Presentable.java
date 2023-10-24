@@ -186,6 +186,11 @@ public abstract class Presentable {
 		return logTranscript_panel;
 	}
 	
+	public static void SpringLayout_EWJoin(JComponent leftC, int offset, JComponent rightC, SpringLayout sl) {
+		sl.putConstraint(SpringLayout.EAST, leftC,
+				offset, SpringLayout.WEST, rightC);
+	}
+	
 	public static JPanel genLabelInput(JComponent label, JComponent input) {//orgionaly done with springlayout but that kept breaking
 		JPanel container = new JPanel(new FlowLayout());
 			container.add(label);

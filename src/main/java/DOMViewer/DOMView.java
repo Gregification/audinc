@@ -50,7 +50,7 @@ public abstract class DOMView<
 	public final DefaultMutableTreeNode domTree_root;
 	public final DefaultTreeModel domTree_model;
 	
-	private JScrollPane tv_sp, ev_sp;	//tree/element view scroll pane
+	protected JScrollPane tv_sp, ev_sp;	//tree/element view scroll pane
 	protected ExecutorService executor;	//for refreshing the tree
 	
 	protected JMenuItem[] popupMenuTopElements;
@@ -154,6 +154,7 @@ public abstract class DOMView<
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		tv_sp.setPreferredSize(new Dimension(MainWin.stdDimension.width/5, 30));
 		
+		eleView.setBackground(Color.green);
 		ev_sp = new JScrollPane(eleView,
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);

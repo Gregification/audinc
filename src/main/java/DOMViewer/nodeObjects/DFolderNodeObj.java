@@ -10,17 +10,17 @@ import DOMViewer.Views.DOMViewFolder;
 public record DFolderNodeObj(
 			String title,
 			Path path,
-			DOMView domView
+			DOMParser parser
 		) {
 
-	public DFolderNodeObj(String title, Path path, DOMView domView) {
+	public DFolderNodeObj(String title, Path path, DOMParser parser) {
 		this.title 	= title;
 		this.path 	= path;
-		this.domView = domView;
+		this.parser = parser;
 	}
 	
 	public DFolderNodeObj(String title, Path path) {
-		this(title, path, new DOMViewFolder(path));
+		this(title, path, null);
 	}
 	
 	@Override public String toString() {
@@ -31,7 +31,7 @@ public record DFolderNodeObj(
 		return path;
 	}
 	
-	public DOMView getDOMView() {
-		return domView;
+	public DOMParser getParser() {
+		return parser;
 	}
 }

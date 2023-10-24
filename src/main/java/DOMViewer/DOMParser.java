@@ -1,18 +1,13 @@
 package DOMViewer;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
-import javax.swing.JPopupMenu;
-import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.JComponent;
 
-import org.apache.commons.io.FilenameUtils;	//see Maven pom.xml dependency, groupID & artifactDI:"commons-io"
+//import org.apache.commons.io.FilenameUtils;	//see Maven pom.xml dependency, groupID & artifactDI:"commons-io"
+
+import DOMViewer.parsers.*;
 
 /*
  * file parser. is not directly involved in UI operations or creation(that is handled by the [DOMView] class)
@@ -20,38 +15,32 @@ import org.apache.commons.io.FilenameUtils;	//see Maven pom.xml dependency, grou
  * 		used by [SerialPoke]), but if your trying to make something compatible and can be used by the rest 
  * 		of the program for other purposes then please use this class.
  */
-public abstract class DOMParser {
-//	public abstract NodeList parse(File source); //eh
+public abstract class DOMParser<Variations extends Enum<Variations> & parserVariation> {	
+	protected File srcFile;
+	protected boolean isModified = false;
+	protected Map<String, JComponent> UITabbs;
 	
-	public DOModel model;
-	
-	public DOMParser() {
-		this.model 	= DOModel.defaultUniversalModel;
-	};
-	public DOMParser(DOModel model) {
-		this.model 	= model;
+	public DOMParser(File file) {
+		this.srcFile = file;
+		if(file == null) return;
+		
+		initGUI();
+		ParseFile();
 	};
 	
 	//file is assumed to be a valid file for the relevant type
-	public abstract void ParseFile(File file, DefaultMutableTreeNode node);
-	public abstract void ParseFile(BufferedReader br, DefaultMutableTreeNode node);
-	
-	//DMTN is assumed to be a valid head for the nodes
-	public abstract void SaveToFile(File output, DefaultMutableTreeNode node);
-	
-	public boolean canParse(String ext) {
-		for(var v : model.extensions())
-			if(v.equals(ext))
-				return true;
-		
-		return false;
-	}
-	public boolean canParse(File file) {
-		return canParse(FilenameUtils.getExtension(file.getPath()));
-	}
-
+	public abstract void ParseFile();
+	public abstract void SaveToFile(File file);
+	public abstract void initGUI(); 				//populate [UITabbs] with [JPanel] tabs
+	public abstract void parsers();
 	
 ////////////////////////
-// private / protected
+// getters / setters
 ////////////////////////
+	public boolean isModified() {
+		return isModified;
+	}
+	public Map<String, JComponent> getUITabbs() {		
+		return UITabbs;
+	}
 }
