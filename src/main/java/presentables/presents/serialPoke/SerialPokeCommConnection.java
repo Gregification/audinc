@@ -5,7 +5,10 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
@@ -56,10 +59,13 @@ public class SerialPokeCommConnection{
 	
 	public String title;
 	public SerialPort sp;
-	public int logSettings = Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
+	public int logSettings 			= Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
 	
-	//gui
-	public JPanel content = null;
+	public SPCSettings settings;
+	public Path settingsPath;
+	
+	//GUI
+	public JPanel content 			= null;
 	public JTabbedPane content_tabb = new JTabbedPane();
 	
 	//private
@@ -69,14 +75,16 @@ public class SerialPokeCommConnection{
 	private Path logTranscriptPath;
 	private BufferedWriter logger = null;
 	private JLabel noticeDisplay;
-	private DOMView settingsView;
+	private DOMViewSerialPokeSettings settingsView;
 	
 	public SerialPokeCommConnection(SerialPort sp, String title) {
 		this.title = title;
 		this.sp = sp;
 		
+		setSettingsTo(getDefaultSettingsPath());
+		
 		try {
-		this.logTranscriptPath = Presentable.getRoot(SerialPoke.class).toAbsolutePath().resolve(this.getDefaultSaveName());
+			this.logTranscriptPath = Presentable.getRoot(SerialPoke.class).toAbsolutePath().resolve(this.getDefaultSaveName());
 		} catch (java.nio.file.InvalidPathException e) {
 			JLabel jl = new JLabel("connection path is invalid. " + e);
 			JScrollPane _scroll = new JScrollPane(jl,	
@@ -177,6 +185,32 @@ public class SerialPokeCommConnection{
 			case SerialPort.LISTENING_EVENT_PARITY_ERROR :
 				break;
 		}
+	}
+	
+	public boolean setSettingsTo(Path src) {
+		if(!src.toFile().exists())
+			return false;
+		
+		settingsView = new DOMViewSerialPokeSettings(src);
+		
+		settings = SPCSettings.getSettings(sp);
+		
+		try(var br =  new BufferedReader(new FileReader(src.toFile()))) {
+			settings.rebase(sp);
+			br.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		if(settings.modifiedSettings.size() > 0) {
+			settings.applyModified(sp);
+		}
+		
+		System.out.println("serial poke comm connection > setSettingsTo (of " + settings.modifiedSettings.size() + " changed) -> src:" + src);
+		
+		return true;
 	}
 	
 //////////////////////
@@ -432,9 +466,6 @@ public class SerialPokeCommConnection{
 	}
 	
 	private void genUI_tab_settings(){
-		Path path = Presentable.makeRoot(SerialPoke.class, Path.of(title + "." + FileExtension_Settings));
-		settingsView = new DOMViewSerialPokeSettings(path);
-		
 		content_tabb.addTab(
 				"settings",
 				MainWin.getImageIcon("res/note.png", MainWin.stdtabIconSize),
@@ -542,5 +573,7 @@ public class SerialPokeCommConnection{
 		content_tabb.addTab("editor", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize), tab_cont, "general manager");
 	}
 	
-	
+	private Path getDefaultSettingsPath() {
+		return Presentable.makeRoot(SerialPoke.class, Path.of(title + "." + FileExtension_Settings));
+	}
 }

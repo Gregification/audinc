@@ -15,12 +15,12 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import DOMViewer.DOMView;
 import DOMViewer.DOModel;
-import DOMViewer.Views.DOMViewFolder;
+import DOMViewer.Views.DOMViewFSExplorer;
 import audinc.gui.MainWin;
 import presentables.Presentable;
 
 public class DOMViewer extends Presentable{
-	public DOMView domView 	= new DOMViewFolder();
+	public DOMView domView 	= new DOMViewFSExplorer();
 	public Path source 		= MainWin.settingsDir; 
 	
 	@Override protected void start()	{

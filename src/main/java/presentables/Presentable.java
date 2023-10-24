@@ -62,7 +62,7 @@ public abstract class Presentable {
 		return Presentable.makeRoot(clas, Path.of(""));
 	}
 	public static Path makeRoot(Class<? extends Presentable> clas, Path extension) {
-		Path path = Presentable.getRoot(clas).resolve(extension);
+		Path path = Presentable.getRoot(clas);
 			
 		var file = path.toFile();
 		if(!file.exists()) {
@@ -74,7 +74,17 @@ public abstract class Presentable {
 			}
 		}
 		
-		return path;
+		var extPath = path.resolve(extension);
+		if(!extPath.toFile().exists()) {
+			try {
+				Files.createFile(extPath);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		return extPath;
 	}
 	
 	public static ImageIcon getImgIcon() {

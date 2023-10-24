@@ -36,7 +36,7 @@ public class DOMViewSerialPokeSettings extends DOMView<DOMViewer.Views.DOMViewSe
 	@Override
 	protected void displayNode(DefaultMutableTreeNode dmtn) {
 		// TODO Auto-generated method stub
-		System.out.println("displaying node: " + dmtn.toString());
+		System.out.println("DOMViewSerialPokeSettings>displaying node: " + dmtn.toString());
 	}
 
 	@Override

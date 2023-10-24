@@ -33,10 +33,11 @@ public abstract class DOMParser {
 	};
 	
 	//file is assumed to be a valid file for the relevant type
-	public abstract void ParseFile(File file);
-	public abstract void ParseFile(BufferedReader br);
-
-	public abstract JPopupMenu getPopupMenu();
+	public abstract void ParseFile(File file, DefaultMutableTreeNode node);
+	public abstract void ParseFile(BufferedReader br, DefaultMutableTreeNode node);
+	
+	//DMTN is assumed to be a valid head for the nodes
+	public abstract void SaveToFile(File output, DefaultMutableTreeNode node);
 	
 	public boolean canParse(String ext) {
 		for(var v : model.extensions())

@@ -50,7 +50,7 @@ public abstract class DOMView<
 	public final DefaultMutableTreeNode domTree_root;
 	public final DefaultTreeModel domTree_model;
 	
-	protected JScrollPane tv_sp, ev_sp;	//tree/element view scroll pane
+	private JScrollPane tv_sp, ev_sp;	//tree/element view scroll pane
 	protected ExecutorService executor;	//for refreshing the tree
 	
 	protected JMenuItem[] popupMenuTopElements;

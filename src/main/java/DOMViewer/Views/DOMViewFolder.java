@@ -1,14 +1,12 @@
 package DOMViewer.Views;
 
 import java.awt.event.ActionEvent;
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreePath;
 
 import DOMViewer.DOMView;
 import DOMViewer.PopupFilterable;
@@ -16,116 +14,63 @@ import DOMViewer.PopupOptionable;
 import DOMViewer.nodeObjects.DFolderNodeObj;
 
 /*
- * for displaying the file system
- */
-/** 
+ * for displaying a single folder (ignores internal contents)
  */
 public class DOMViewFolder extends DOMView<DOMViewer.Views.DOMViewFolder.popupOptions, DOMViewer.Views.DOMViewFolder.popupLimit> {
-
-	@Override protected void nodeOptions_refresh() {
-		var nodes = filterForUniqueRoots(List.of(domTree.getSelectionPaths()));//make mutable list
-		
-		//re-traverse nodes. using executor to handle work loading.
-		executor = Executors.newCachedThreadPool();//(we want jobs)
-		
-		nodes.stream()	//init jobs. a small initial investment(1 bajillion baboons)
-			.map(e -> ((DefaultMutableTreeNode)e.getLastPathComponent()))
-			.forEach(e -> {
-					e.removeAllChildren();
-					executor.execute(parse_recursive1(e, executor));	//42
-				});
-	}
-
-	/*
-	 * - self populates new jobs
-	 * - prioritizes folders over files
-	 * - no file filter
-	 */
-	protected Runnable parse_recursive1(DefaultMutableTreeNode treenode, ExecutorService executor) {
-		return () -> {			
-			assert treenode.getUserObject() instanceof DFolderNodeObj	//constructor & this.setRoot(Path) should guarantee this
-				: "\tnode object is not instanceof DOMNodeObject, userobject -> "+(treenode.getUserObject() == null ? "IS NULL" : (treenode.getUserObject().getClass()));
-			
-			var node	= (DFolderNodeObj)treenode.getUserObject();
-			File src	= node.getPath().toFile();
-			
-			if(src.exists()) {
-				if(src.isDirectory()) {						
-					List.of(src.listFiles()).stream()
-						.sorted((o1, o2) -> Boolean.compare(o1.isFile(), o2.isFile()))	//priority = directories
-						.parallel()
-						.forEach(subFile -> {	//parse folder contents back onto the queue
-							var subPath 	= subFile.toPath();
-							var subObject 	= new DFolderNodeObj(subPath.getFileName().toString(), subPath);
-							
-							var subNode 	= new DefaultMutableTreeNode(subObject, subFile.isDirectory());
-							treenode.add(subNode);
-							
-							//create new job
-							executor.execute(parse_recursive1(subNode, executor));
-						});
-				}else {	
-					//update to leaf, parse the file
-					
-				}
-				
-				System.out.println("DOMViewFolder: "  + treenode);
-				updateTreeViewForNode(treenode);
-			}
-		};
-	}
-
 	
-	@Override
-	protected void displayNode(DefaultMutableTreeNode dmtn) {
-		// TODO Auto-generated method stub
-		System.out.println("displaying node: " + dmtn.toString());
+	public DOMViewFolder(Path root) {
+		super(root);
+	}
+	
+	@Override public void setRoot(Path root) {
+		domTree_root.setUserObject(
+				new DFolderNodeObj(
+					root.getFileName().toString() + " | " +root.toAbsolutePath().toString(),
+					root,
+					this)
+			);
+		
+		domTree.setSelectionPath(new TreePath(domTree_root.getPath()));
+		nodeOptions_refresh();
 	}
 	
 	@Override protected void nodeOptionsPopupMenu_actionEvent(popupOptions option, ActionEvent e) {
-		assert option instanceof popupOptions : "whar??";
-		
 		var optionEnum = (popupOptions)option;
 		switch(optionEnum) {
-			case REFRESH:
-				nodeOptions_refresh();
-				break;
 			default:
-				System.out.println("i=umimplimented popup menu event : " + optionEnum);
+				nodeOptions_refresh();
+				System.out.println("domview file > i=umimplimented popup menu event : " + optionEnum);
 		}
+		
 	}
 
+	@Override protected void nodeOptions_refresh() {
+		// TODO Auto-generated method stub
+		System.out.println("DOMView templete> rebuilding the tree");
+	}
+	
+	@Override protected void displayNode(DefaultMutableTreeNode dmtn) {
+		// TODO Auto-generated method stub
+		System.out.println("DOMView templete> displaying node:" + dmtn);
+	}
 	
 	@Override protected void filterPopupLimits(DefaultMutableTreeNode node, EnumSet<popupLimit> sharedLimits) {
-		sharedLimits.remove(node.getAllowsChildren() ? 		//if it allows children => its a folder, therefore it cannot be a file. visa versa
-				popupLimit.ON_FILE : popupLimit.ON_FOLDER);
+		if(!node.equals(domTree_root))
+			sharedLimits.remove(popupLimit.ROOT_ONLY);
 	}
-
+	
+//////////////////
+// popupMenu settings
+//////////////////
+	
 	enum popupOptions implements PopupOptionable {
-		CLEAR			("clear",
-						"remove view of this node, does effect the file system"),
-		DELETE			("delete",
-					"removes from file system (cannot be undone)"),
-		REFRESH			("refresh",
-					"ignore local changes, rebase from the file system"),
-		PARSE_d			("parse"),
-		PARSE_SELF		("this", 
-						"parse this node (includes children)",
-						PARSE_d),
-		PARSE_CHILDREN	("children",
-						"parse children only",
-						PARSE_d,
-						popupLimit.ON_FOLDER),
-		PARSE_CUSTOM	("custom",
-						"view parsing options",
-						PARSE_d,
-						popupLimit.ON_FILE),
-		SAVE_d			("save"),
-		SAVE_OVERWRITE	("overwrite",	
-						"overwrite the selected file/folder(s)",
-						SAVE_d),
-		SAVE_AS			("save as ...",
-						SAVE_d)
+		REFRESH				("refresh"	, "description"),
+		REPARSE				("reparse"	, "description"),
+		SAVE				("save"),
+			SAVE_AS			("as", "pick a location",
+								SAVE, popupLimit.ROOT_ONLY),
+			OVERWRITE		("overwrite", "overwrites orgional folder, internal contents not altered",
+								SAVE, popupLimit.ROOT_ONLY)
 		;
 		
 		private String 
@@ -153,8 +98,6 @@ public class DOMViewFolder extends DOMView<DOMViewer.Views.DOMViewFolder.popupOp
 			this.displayFlags.addAll(Arrays.asList(flagSet));
 			
 			if(flagSet.length == 0) displayFlags.add(defaultFlag());
-			
-//			System.out.println("flag set of " + title + " \t " + displayFlags);
 		}
 		
 		public String getTitle() {
@@ -185,12 +128,11 @@ public class DOMViewFolder extends DOMView<DOMViewer.Views.DOMViewFolder.popupOp
 	}
 	
 	enum popupLimit implements PopupFilterable {
-		ON_FOLDER,
-		ON_FILE,
-		ON_ALL
+		ON_ALL,	//this (a universal flag) is required. everything with this will always be shown. it is also the default flag is nothing is listed
+		ROOT_ONLY
 		;
 	}
-
+	
 	@Override
 	protected Class<popupOptions> getOptionEnum() {
 		return popupOptions.class;

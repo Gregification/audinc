@@ -6,8 +6,11 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+
+import javax.management.RuntimeErrorException;
 
 import com.fazecast.jSerialComm.SerialPort;
 
@@ -23,7 +26,10 @@ public class SPCSettings {
 	public ConcurrentHashMap<SPCSetting, Object> settings			= new ConcurrentHashMap<>(SPCSetting.values().length);
 	protected EnumSet<SPCSetting>			modifiedSettings		= EnumSet.noneOf(SPCSetting.class);
 	
-	public static SPCSettings getSettings(SerialPort sp) 	{ return new SPCSettings(sp); }
+	public static SPCSettings getSettings(SerialPort sp) 	{
+		System.out.println("SPCSettings>constructor>avaliable settings: " + SPCSettings.AvaliableSettings);
+		return new SPCSettings(sp); 
+	}
 	
 	public static Object fetchSetting(SPCSetting setting, SerialPort sp) {			
 		switch(setting) {
@@ -50,8 +56,7 @@ public class SPCSettings {
 			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_CTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 
 			default:
-				System.out.println("SPCSetting>fetchSetting : failed to find setting" + setting.toString());
-				return null;
+				throw new RuntimeException("SPCSetting>fetchSettings> failed to find setting: " + setting.toString());
 		}
 	}
 	
@@ -123,7 +128,6 @@ public class SPCSettings {
 	}
 	
 	
-	
 	public void rebase(SerialPort sp) {
 		AvaliableSettings.parallelStream()
 			.forEach(setting -> {
@@ -147,11 +151,14 @@ public class SPCSettings {
 	}
 	
 	public boolean setSetting(SPCSetting setting, Object value) {
-		System.out.println("making a setting change");
+		System.out.println("SPCSetting>changing value of setting: " + setting + " \t to value: " + value);
 		
 		assert value.getClass().isInstance(setting.clas) : "bruh";//given [value] foes not match the accepted data type
 		
-		if(value == null || !SPCSetting.isEditable(setting)) return false;
+		if(value == null || !SPCSetting.isEditable(setting)) {
+			System.out.println("SPCSetting>failed to change value, is readonly:" + setting);
+			return false;
+		}
 		
 		settings.put(setting, value);
 		modifiedSettings.add(setting);
@@ -201,28 +208,43 @@ public class SPCSettings {
 			count--;
 			if(loadedSetting == null) {
 				loadedSetting = SPCSetting.valueOf(line);
+				
+				Object value = null;
+				var clas = loadedSetting.clas;
+				
+				assert parseValue_read_buffered.containsKey(clas) : "SPCSetting contains a unknown class. unable to parse";
+				
+				value = parseValue_read_buffered.get(clas).apply(br);
+				
+				settings.put(loadedSetting, value);
 			}else {
 				Object value = null;
 				var clas = loadedSetting.clas;
 				
-				if(clas == Boolean.class) {
-					value = Boolean.parseBoolean(line);
-				}else if(clas == Integer.class) {
-					value = Integer.parseInt(line);
-				}else if(clas == String.class) {
-					value = line;
-				}
+				assert parseValue_read_stringers.containsKey(clas) : "SPCSetting contains a unknown class. unable to parse";
 				
+				value = parseValue_read_stringers.get(clas).apply(line);
+					
 				settings.put(loadedSetting, value);
 			}
 		}
 	}
 	
-	public final static Map<Class<? extends Object>, Function<String, Object>> parseValue_stringers = Map.of(
-			Boolean.class, Boolean::parseBoolean
-		);
 	
-	public final static Map<Class<? extends Object>, Function<BufferedReader, Object>> parseValue_buffered = Map.of(
+	public final static Map<Class<? extends Object>, Function<String, Object>> parseValue_read_stringers = Map.of(
+			Boolean.class	, Boolean::parseBoolean,
+			Integer.class	, Integer::parseInt,
+			Double.class	, Double::parseDouble
+		);
+	public final static Map<Class<? extends Object>, Function<BufferedReader, Object>> parseValue_read_buffered = Map.of(
+				
+		);
+	public final static Set<Class<? extends Object>> parseValue_write_stringers = Set.of(
+			Boolean.class	,
+			Integer.class	,
+			Double.class	
+		);
+	public final static Map<Class<? extends Object>, Function<BufferedReader, Object>> parseValue_write_buffered = Map.of(
 				
 		);
 }

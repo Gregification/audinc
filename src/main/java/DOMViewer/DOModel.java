@@ -1,6 +1,7 @@
 package DOMViewer;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -9,6 +10,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 
+import DOMViewer.parsers.SPCSettingParser;
+import DOMViewer.parsers.TextParser;
 import presentables.presents.serialPoke.SerialPokeCommConnection;
 
 /*
@@ -18,29 +21,32 @@ import presentables.presents.serialPoke.SerialPokeCommConnection;
  * - default models are the first of their variation
  */
 public enum DOModel {	
-	TEXT	("TEXT"	, "",		//default 
+	TEXT	("TEXT"	, "",		//default
+				TextParser.class,
 				"txt"),
-	CSV		("CSV"	, "",
-				"csv"),
+//	CSV		("CSV"	, "",
+//				"csv"),
 	
-	XML		("XML"	,  "general usecase",		//default
-				"xml"),
-	XML_m1	("XML : method 1", XML,
-				"homemade parser, maybe faster, maybe slower, and - if your lucky - maybe it works"),
+//	XML		("XML"	,  "general usecase",		//default
+//				"xml"),
+//	XML_m1	("XML : method 1", XML,
+//				"homemade parser, maybe faster, maybe slower, and - if your lucky - maybe it works"),
 	
-	JSON	("JSON"	, "",						//default
-				"json"),
+//	JSON	("JSON"	, "",						//default
+//				"json"),
 	
 	SerialPokeSettings	("SP COMM","Serial Poke COMM Connection Setting",
+			SPCSettingParser.class,
 			SerialPokeCommConnection.FileExtension_Settings)
 	;
 	
 	private String 
 		name,
 		description;
+	private Class<? extends DOMParser> parser;
 	private Set<String> fileExtensions; //lower case if possible
 	
-	private DOModel(String name, String description, String... fileExtensions) {
+	private DOModel(String name, String description, Class<? extends DOMParser> parser, String... fileExtensions) {
 		this.name = name;
 		this.description = description;
 		this.fileExtensions = Set.of(fileExtensions);
@@ -58,6 +64,35 @@ public enum DOModel {
 	
 	public String getDescription() {
 		return this.description;
+	}
+	
+	public Class<? extends DOMParser> getParserClass(){
+		return parser;
+	}
+	
+	public DOMParser getParserInstance(){
+		try {
+			return parser.getConstructor(DOModel.class).newInstance(this);
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
 	@Override public String toString() {

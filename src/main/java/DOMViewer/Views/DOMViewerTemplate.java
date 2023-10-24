@@ -1,6 +1,7 @@
 package DOMViewer.Views;
 
 import java.awt.event.ActionEvent;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.EnumSet;
 
@@ -17,6 +18,10 @@ import DOMViewer.PopupOptionable;
  * the generics supplied to [DOMView] are local [enum]s.
  */
 public class DOMViewerTemplate extends DOMView<DOMViewer.Views.DOMViewerTemplate.popupOptions, DOMViewer.Views.DOMViewerTemplate.popupLimit> {
+	
+	public DOMViewerTemplate(Path root) {
+		super(root);
+	}
 	
 	/*
 	 * when a node option is selected it gets sent through here

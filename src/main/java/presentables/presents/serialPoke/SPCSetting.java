@@ -7,7 +7,7 @@ import java.util.EnumSet;
  */
 public enum SPCSetting {
 		//(String:title, Class:object type, Boolean:allowCustomValue, Boolean:isHowSwappable, String:description, Object[]:choosableValues)
-		PROTOCALL					(String.class, false, false, (Object[])(protocallOptions.values())),
+		//PROTOCALL					(String.class, false, false, (Object[])(protocallOptions.values())), //unable to tell if rs485 is being used ???
 		SYSTEM_PORT_NAME			("port name", 
 									String.class, false, 	"port name as defined by the system"),
 		SYSTEM_PORT_PATH 			("port path",
