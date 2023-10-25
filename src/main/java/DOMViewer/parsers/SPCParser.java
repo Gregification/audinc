@@ -38,7 +38,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 	}
 
 	enum Variations implements parserVariation{
-			V1		("v1")
+			V1		("Serial Port Comm Parser, format 1")
 		;
 		
 		private String 

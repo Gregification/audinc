@@ -1,5 +1,8 @@
 package DOMViewer.parsers;
 
+import java.awt.Color;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -8,6 +11,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Map;
 
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import DOMViewer.DOMParser;
@@ -18,10 +22,13 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 	
 	public TextParser(File file) {
 		super(file);
+		setVariation(Variations.PLAIN_TEXT);
 	}
 
 	@Override public void ParseFile() {
-		var sb = new StringBuilder();
+		System.out.println("text parser > parsefile");
+		
+		var sb = new StringBuilder("meow meow meow test");
 		
 		try(var br = new BufferedReader(new FileReader(srcFile))){
 			
@@ -37,6 +44,7 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		System.out.println("DOMParser>TextParser>ParseFile, parsed :" + textContent.getText());
 	}
 
 	@Override
@@ -47,8 +55,18 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 
 	@Override
 	public void initGUI() {
+		var content = new JPanel(new GridBagLayout());
+		
+		var c = new GridBagConstraints();
+		c.weightx = c.weighty = 1.0;	
+		c.fill = GridBagConstraints.BOTH;
+		
 		textContent = new JTextField();
-		this.UITabbs = Map.of("content" , textContent);
+		textContent.setBackground(Color.ORANGE);
+		
+		content.add(textContent, c);
+		
+		this.UITabbs = Map.of("content" , content);
 	}
 
 	@Override

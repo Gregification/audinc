@@ -7,6 +7,7 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -17,14 +18,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SpringLayout;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 import DOMViewer.DOMParser;
@@ -137,48 +148,85 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream()
 			.map(e -> (DefaultMutableTreeNode)e.getLastPathComponent())
 			.map(e -> (DFolderNodeObj)e.getUserObject())
-			.map(e -> e.getPath().toFile())
+			.filter(e -> e.getParser() == null)
 			.forEach(this::openCustomParseDialog);
 	}
-	protected void openCustomParseDialog(File file) {		
-		var layout = new SpringLayout();
-		JPanel content = new JPanel(layout);
+	protected void openCustomParseDialog(DFolderNodeObj dfnno) { //everything about how a parser is created is a trust exercise
+		File file = dfnno.getPath().toFile();
 		
-		DOModel.getApplicableModels(file).stream()
-			.forEach(e -> {
-				System.out.println(e.getVariEnum());
-			});
+		JPanel content = new JPanel(new GridBagLayout());
+		var c = new GridBagConstraints();
 		
-//		JTextField xField = new JTextField(5);
-//			var models = new JComboBox<DOModel>(DOModel.getApplicableModels(file).toArray(DOModel[]::new));
-//			JComboBox<parserVariation> varis = new JComboBox<>();
-//			varis.setMinimumSize(new Dimension(models.getWidth(),models.getHeight()));
-//			
-//			
-//		JComponent[][] objs = new JComponent[][] {
-//			{new JLabel("model:"), models},
-//			{new JLabel("variation:"), varis}
-//		};
-//		for(var v : objs) {
-//			content.add(v[0]);
-//			content.add(v[1]);
-//			Presentable.SpringLayout_EWJoin(v[0], 3, v[1], layout);
-//		}
-//		
-//		models.addActionListener (new ActionListener () {
-//		    public void actionPerformed(ActionEvent e) { //reeeee
-//		    	System.out.println("selected model: " + ((DOModel)models.getSelectedItem()));
-//		        varis.removeAllItems();
-//		        var parser = ((DOModel)models.getSelectedItem()).getParser();
-//		        
-//		    }
-//		});
-//
-//	    int result = JOptionPane.showConfirmDialog(null, content, 
-//	    		"Parser selector", JOptionPane.OK_CANCEL_OPTION);
-//	    if (result == JOptionPane.OK_OPTION) {
-//	    	
-//	    } 
+		List<DOModel> models = List.of(DOModel.getApplicableModels(file).toArray(DOModel[]::new));
+		String[][] modelRows = models.stream()
+				.map(e -> new String[] {e.toString()})
+				.toArray(String[][]::new);
+		JTable modelTable = new JTable(modelRows, new String[] {"Avaliable Models (" + models.size() +")"}) {
+				private static final long serialVersionUID = 1L;
+
+				public boolean isCellEditable(int row, int column) {                
+	                return false;               
+				};
+			};
+			modelTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			modelTable.setCellEditor(null);
+			
+//		var variationType = DOMParser.class.getGenericInterfaces()[0].getClass();
+		
+		JTable variTable = new JTable() {
+				private static final long serialVersionUID = 1L;
+
+				public boolean isCellEditable(int row, int column) {                
+	                return false;               
+				};
+			};
+			var variModel = (DefaultTableModel)(variTable.getModel());
+			variModel.addColumn("Model Variations");
+			variTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			variTable.setCellEditor(null);
+			
+		modelTable.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
+	        public void valueChanged(ListSelectionEvent event) {
+	        	DOModel selectedModel = models.get(modelTable.getSelectedRow());
+	        	
+	        	var variModel = (DefaultTableModel) variTable.getModel();
+	        	variModel.setRowCount(0);					//clear table
+	        	
+	        	for(var v : selectedModel.getVariEnum()) {	//re-populate table
+	        		variModel.addRow(new Object[] {v});
+	        	}
+	        	variTable.setRowSelectionInterval(0, 0);
+	        }
+	    });
+		
+		modelTable.setRowSelectionInterval(0, 0);
+		
+		content.add(new JScrollPane(modelTable));
+		content.add(new JScrollPane(variTable));
+		
+		int result = JOptionPane.showConfirmDialog(null, content, 
+	    		"Parser selector", JOptionPane.OK_CANCEL_OPTION);
+		if (result == JOptionPane.OK_OPTION) {
+//	    	this.viewer.setParser();
+			DOModel model 	= models.get(modelTable.getSelectedRow());
+			Object vari 	= variTable.getValueAt(variTable.getSelectedRow(), 0);
+			
+			System.out.println("mode:\t" + model + "\nvari:\t" + vari);
+			
+			try {
+				var parser = model.getParser().getConstructor(File.class).newInstance(file);
+				parser.setVariation(vari);
+				
+				dfnno = new DFolderNodeObj(dfnno.toString(), dfnno.getPath(), parser);
+				
+				this.viewer.setParser(parser);
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException | NoSuchMethodException | SecurityException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+	    } 
+		
 	}
 	protected void nodeOptions_parseChildren() {
 		

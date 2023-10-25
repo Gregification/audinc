@@ -16,6 +16,8 @@ import DOMViewer.parsers.*;
  * 		of the program for other purposes then please use this class.
  */
 public abstract class DOMParser<Variations extends Enum<Variations> & parserVariation> {	
+	public Variations variation = null;
+	
 	protected File srcFile;
 	protected boolean isModified = false;
 	protected Map<String, JComponent> UITabbs;
@@ -23,9 +25,8 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 	public DOMParser(File file) {
 		this.srcFile = file;
 		if(file == null) return;
-		
+
 		initGUI();
-		ParseFile();
 	};
 	
 	//file is assumed to be a valid file for the relevant type
@@ -33,6 +34,10 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 	public abstract void SaveToFile(File file);
 	public abstract void initGUI(); 				//populate [UITabbs] with [JPanel] tabs
 	public abstract void parsers();
+	
+	public void setVariation(Object variation) {
+		this.variation = (Variations)variation;	//trust me bro
+	}
 	
 ////////////////////////
 // getters / setters
