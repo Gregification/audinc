@@ -3,6 +3,8 @@ package DOMViewer.parsers;
 import java.io.File;
 import java.util.EnumSet;
 
+import javax.swing.JPanel;
+
 import DOMViewer.DOMParser;
 import DOMViewer.parsers.TextParser.Variations;
 
@@ -30,11 +32,17 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 		// TODO Auto-generated method stub
 		
 	}
-
+	
 	@Override
-	public void parsers() {
+	public void updateGUI() {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public JPanel getMetaPanel() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	enum Variations implements parserVariation{

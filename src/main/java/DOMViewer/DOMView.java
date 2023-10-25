@@ -50,7 +50,7 @@ public abstract class DOMView<
 	public final DefaultMutableTreeNode domTree_root;
 	public final DefaultTreeModel domTree_model;
 	
-	protected JScrollPane tv_sp, ev_sp;	//tree/element view scroll pane
+	private JScrollPane tv_sp;	//tree view scroll pane, element view does not get a scroll pane, just use [eleView]
 	protected ExecutorService executor;	//for refreshing the tree
 	
 	protected JMenuItem[] popupMenuTopElements;
@@ -138,11 +138,22 @@ public abstract class DOMView<
 		// see answer by Araon Digulla ->  https://stackoverflow.com/questions/2822695/java-jtree-how-to-check-if-node-is-displayed#:~:text=getViewport().,true%20%2C%20the%20node%20is%20visible.
 		
 		var path = new TreePath(treenode.getPath());
-		if(		domTree.isVisible(path) &&		//is the tree allowing it to show? 
-				tv_sp.getViewport().getViewRect().intersects(domTree.getPathBounds(path))) //is it inside the view port of the scrollable window? 
-			{
+		if(domTree.isVisible(path)){		//is the tree allowing it to show?  
+			var rect = tv_sp.getViewport().getViewRect();
 			
-			domTree_model.reload(treenode);
+			//rect may be null if java.Swing does not update in time
+			for(int i = 2; rect == null && i > 0; i--) {
+				rect = tv_sp.getViewport().getViewRect();
+				try {
+					Thread.currentThread().sleep(100);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			if(rect != null && rect.intersects(domTree.getPathBounds(path))) //is it inside the view port of the scrollable window?)
+				domTree_model.reload(treenode);
 		}
 	}
 		
@@ -154,17 +165,18 @@ public abstract class DOMView<
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		tv_sp.setPreferredSize(new Dimension(MainWin.stdDimension.width/5, 30));
 		
+		System.out.println("DOMView>initGUI, background; eleView:GREEN");
 		eleView.setBackground(Color.green);
-		ev_sp = new JScrollPane(eleView,
-				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+//		ev_sp = new JScrollPane(eleView,
+//				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+//				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		
 		var c = new GridBagConstraints();
 		c.weightx = c.weighty = 1.0;	
 		c.fill = GridBagConstraints.BOTH;
 		
 		this.setBackground(Color.red);
-		this.add(new JSplitPane(SwingConstants.VERTICAL, tv_sp, ev_sp), c);
+		this.add(new JSplitPane(SwingConstants.VERTICAL, tv_sp, eleView), c);
 		
 		initNodeOptionsPopupMenu();
 	}
@@ -255,7 +267,7 @@ public abstract class DOMView<
 		for(var v : this.popupChildren.values())
 			v.trimToSize();
 		
-		popupMenuTopElements = tmp_popupMenuTopElements.toArray(new JMenuItem[] {});
+		popupMenuTopElements = tmp_popupMenuTopElements.toArray(JMenuItem[]::new);
 	}
 	
 	protected void popupMenu_addApplicableElements(JMenuItem src, JMenu host,  EnumSet<? extends PopupFilterable> allowedFlags, JPopupMenu menu) { //most likely is doing a lot of pointless work

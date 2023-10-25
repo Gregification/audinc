@@ -1,9 +1,10 @@
 package DOMViewer;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 
-import javax.swing.JComponent;
+import javax.swing.JPanel;
 
 //import org.apache.commons.io.FilenameUtils;	//see Maven pom.xml dependency, groupID & artifactDI:"commons-io"
 
@@ -20,7 +21,7 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 	
 	protected File srcFile;
 	protected boolean isModified = false;
-	protected Map<String, JComponent> UITabbs;
+	protected HashMap<String, JPanel> UITabbs;
 	
 	public DOMParser(File file) {
 		this.srcFile = file;
@@ -33,9 +34,10 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 	public abstract void ParseFile();
 	public abstract void SaveToFile(File file);
 	public abstract void initGUI(); 				//populate [UITabbs] with [JPanel] tabs
-	public abstract void parsers();
+	public abstract void updateGUI();
+	public abstract JPanel getMetaPanel();
 	
-	public void setVariation(Object variation) {
+	public void setVariation(Object variation) { //the magic of generic Enums
 		this.variation = (Variations)variation;	//trust me bro
 	}
 	
@@ -45,7 +47,7 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 	public boolean isModified() {
 		return isModified;
 	}
-	public Map<String, JComponent> getUITabbs() {		
+	public Map<String, JPanel> getUITabbs() {		
 		return UITabbs;
 	}
 }

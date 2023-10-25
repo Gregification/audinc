@@ -45,7 +45,7 @@ public enum DOModel {
 		name,
 		description;
 	private Class<? extends DOMParser> parser;
-	private EnumSet<? extends Enum> variEnum;
+	private EnumSet<? extends Enum> variEnum;	//abstract enums,but at what cost :(
 	private Set<String> fileExtensions; //lower case if possible
 	
 	private DOModel(String name, String description, Class<? extends DOMParser> parser, EnumSet<? extends Enum> variEnum, String... fileExtensions) {

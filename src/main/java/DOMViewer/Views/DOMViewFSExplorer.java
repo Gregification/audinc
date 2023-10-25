@@ -1,53 +1,35 @@
 package DOMViewer.Views;
 
-import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
-import javax.swing.SpringLayout;
-import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 
-import DOMViewer.DOMParser;
 import DOMViewer.DOMView;
 import DOMViewer.DOModel;
 import DOMViewer.FileViewer;
 import DOMViewer.PopupFilterable;
 import DOMViewer.PopupOptionable;
 import DOMViewer.nodeObjects.DFolderNodeObj;
-import DOMViewer.parsers.parserVariation;
 import audinc.gui.MainWin;
-import presentables.Presentable;
 
 /*
  * for displaying the file system
@@ -55,6 +37,7 @@ import presentables.Presentable;
 /** 
  */
 public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer.popupOptions, DOMViewer.Views.DOMViewFSExplorer.popupLimit> {
+	private static final long serialVersionUID = 1L;
 	protected FileViewer viewer;
 	
 	public DOMViewFSExplorer() { this(MainWin.settingsDir); }
@@ -142,7 +125,20 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 			.map(e -> (DefaultMutableTreeNode)e.getLastPathComponent())
 			.forEach(e -> domTree_model.removeNodeFromParent(e));
 	}
-	
+	protected void nodeOptions_parseChildren() {
+//		filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream()
+//			.flatMap(e ->{
+//				int i = domTree_model.getChildCount(e);
+//				if(i == 0) return null;
+//				
+//				var arr = new DefaultMutableTreeNode[i];
+//				for(; i > 0; i--) {
+//					arr[i] = (DefaultMutableTreeNode)domTree_model.getChild(e, i);
+//				}
+//				
+//				return arr;
+//			});
+	}
 	protected void nodeOptions_parseCustom() {
 		//good luck
 		filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream()
@@ -155,7 +151,8 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		File file = dfnno.getPath().toFile();
 		
 		JPanel content = new JPanel(new GridBagLayout());
-		var c = new GridBagConstraints();
+		
+		var labelforFile = new JLabel(file.toString());
 		
 		List<DOModel> models = List.of(DOModel.getApplicableModels(file).toArray(DOModel[]::new));
 		String[][] modelRows = models.stream()
@@ -201,8 +198,19 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		
 		modelTable.setRowSelectionInterval(0, 0);
 		
-		content.add(new JScrollPane(modelTable));
-		content.add(new JScrollPane(variTable));
+		var c = new GridBagConstraints();
+			c.weightx 	= c.weighty	= 1.0;
+			c.gridx 	= c.gridy	= 0;
+			c.fill = GridBagConstraints.BOTH;
+		
+			c.gridwidth = 3;
+		content.add(labelforFile, c);
+			c.gridwidth = 1;
+		
+		c.gridy = 1;
+		content.add(new JScrollPane(modelTable),	c);
+			c.gridx = 1;
+		content.add(new JScrollPane(variTable),		c);
 		
 		int result = JOptionPane.showConfirmDialog(null, content, 
 	    		"Parser selector", JOptionPane.OK_CANCEL_OPTION);
@@ -211,7 +219,7 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 			DOModel model 	= models.get(modelTable.getSelectedRow());
 			Object vari 	= variTable.getValueAt(variTable.getSelectedRow(), 0);
 			
-			System.out.println("mode:\t" + model + "\nvari:\t" + vari);
+//			System.out.println("mode:\t" + model + "\nvari:\t" + vari);
 			
 			try {
 				var parser = model.getParser().getConstructor(File.class).newInstance(file);
@@ -228,9 +236,6 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 	    } 
 		
 	}
-	protected void nodeOptions_parseChildren() {
-		
-	}
 	
 	@Override protected void nodeOptionsPopupMenu_actionEvent(popupOptions option, ActionEvent e) {
 		assert option instanceof popupOptions : "whar??";
@@ -245,7 +250,6 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 				System.out.println("i=umimplimented popup menu event : " + optionEnum);
 		}
 	}
-
 	
 	@Override protected void filterPopupLimits(DefaultMutableTreeNode node, EnumSet<popupLimit> sharedLimits) {
 		sharedLimits.remove(node.getAllowsChildren() ? 		//if it allows children => its a folder, therefore it cannot be a file. visa versa

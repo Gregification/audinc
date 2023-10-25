@@ -1,5 +1,6 @@
 package DOMViewer.parsers;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -9,16 +10,16 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.JPanel;
-import javax.swing.JTextField;
+import javax.swing.JTextArea;
 
 import DOMViewer.DOMParser;
-import DOMViewer.parsers.SPCParser.Variations;
 
 public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variations>{
-	private JTextField textContent;
+	private JTextArea textContent;
 	
 	public TextParser(File file) {
 		super(file);
@@ -28,8 +29,7 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 	@Override public void ParseFile() {
 		System.out.println("text parser > parsefile");
 		
-		var sb = new StringBuilder("meow meow meow test");
-		
+		var sb = new StringBuilder();
 		try(var br = new BufferedReader(new FileReader(srcFile))){
 			
 			for(String line; (line = br.readLine()) != null;) {
@@ -44,13 +44,25 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("DOMParser>TextParser>ParseFile, parsed :" + textContent.getText());
+		//System.out.println("DOMParser>TextParser>ParseFile, parsed :" + textContent.getText());
 	}
 
 	@Override
 	public void SaveToFile(File file) {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	@Override
+	public void updateGUI() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public JPanel getMetaPanel() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
@@ -61,18 +73,16 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 		c.weightx = c.weighty = 1.0;	
 		c.fill = GridBagConstraints.BOTH;
 		
-		textContent = new JTextField();
-		textContent.setBackground(Color.ORANGE);
+		textContent = new JTextArea();
+			textContent.setLineWrap(false);
+		
+		textContent.setBackground(Color.LIGHT_GRAY);
 		
 		content.add(textContent, c);
 		
-		this.UITabbs = Map.of("content" , content);
-	}
-
-	@Override
-	public void parsers() {
-		// TODO Auto-generated method stub
+		//System.out.println("TextParser>initGUI, content:" + content);
 		
+		this.UITabbs = new HashMap<String, JPanel>(Map.of("content" , content));
 	}
 	
 	enum Variations implements parserVariation{
