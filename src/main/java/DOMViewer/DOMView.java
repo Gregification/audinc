@@ -333,12 +333,15 @@ public abstract class DOMView<
 		 	    			currentShownNode = node;
 		 	    		}
 		 	    	}
+		 	    	
+		 	    	onLeftClick(e);
 		 	    }
 		     }
 		 };
 		 domTree.addMouseListener(ml);
 	}
 	
+	protected abstract void onLeftClick( MouseEvent me);
 	protected abstract void displayNode(DefaultMutableTreeNode dmtn);
 	
 ///////////////////

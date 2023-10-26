@@ -50,7 +50,7 @@ public enum BasicFileAttribute implements EnumFileAttribute {
 		return fetcher.apply(view);
 	}
 	
-	public Object set(Path path, Object value) throws Exception{
+	public Object set(Path path, Object value) throws Exception {
 		return setter.apply(path, value);
 	}
 	

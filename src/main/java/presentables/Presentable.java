@@ -2,6 +2,7 @@ package presentables;
 
 import java.awt.Color;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -210,6 +211,21 @@ public abstract class Presentable {
 	public static JPanel genLabelInput(String title, JTextField input) {
 		return Presentable.genLabelInput(new JLabel(title), input);
 	}
+	public static GridBagConstraints createGbc(int x, int y) {	//scoured from -> https://stackoverflow.com/questions/9851688/how-to-align-left-or-right-inside-gridbaglayout-cell
+	      GridBagConstraints gbc = new GridBagConstraints();
+	      gbc.gridx = x;
+	      gbc.gridy = y;
+	      gbc.gridwidth = 1;
+	      gbc.gridheight = 1;
+
+	      gbc.anchor = (x == 0) ? GridBagConstraints.WEST : GridBagConstraints.EAST;
+	      gbc.fill = (x == 0) ? GridBagConstraints.BOTH
+	            : GridBagConstraints.HORIZONTAL;
+
+	      gbc.weightx = (x == 0) ? 0.1 : 1.0;
+	      gbc.weighty = 1.0;
+	      return gbc;
+	   }
 	/*
 	 * protected static ZipOutputStream getZOStream(Class<? extends Presentable>
 	 * clas) { ZipOutputStream out = null; try { out = new ZipOutputStream( new

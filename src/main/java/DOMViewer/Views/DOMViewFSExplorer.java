@@ -3,6 +3,7 @@ package DOMViewer.Views;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -123,6 +124,7 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 	protected void nodeOptions_clear() {
 		filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream()
 			.map(e -> (DefaultMutableTreeNode)e.getLastPathComponent())
+			.filter(e -> e != domTree_root)
 			.forEach(e -> domTree_model.removeNodeFromParent(e));
 	}
 	protected void nodeOptions_parseChildren() {
@@ -235,6 +237,12 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 			}
 	    } 
 		
+	}
+	
+	@Override protected void onLeftClick( MouseEvent me) {
+		var node = (DefaultMutableTreeNode)domTree.getLastSelectedPathComponent();
+		var dfno = (DFolderNodeObj)node.getUserObject();
+		viewer.updateMeta(dfno.getPath());
 	}
 	
 	@Override protected void nodeOptionsPopupMenu_actionEvent(popupOptions option, ActionEvent e) {

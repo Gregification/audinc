@@ -1,6 +1,7 @@
 package DOMViewer.Views;
 
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -150,5 +151,11 @@ public class DOMViewFolder extends DOMView<DOMViewer.Views.DOMViewFolder.popupOp
 	@Override
 	protected popupLimit getAllFilter() {
 		return popupLimit.ON_ALL;
+	}
+
+	@Override
+	protected void onLeftClick(MouseEvent me) {
+		// TODO Auto-generated method stub
+		
 	}
 }
