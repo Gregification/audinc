@@ -75,7 +75,7 @@ public class FileViewer extends JTabbedPane{
 		
 		thisPanel = new JPanel(new GridBagLayout());
 			thisPanel.setBorder(BorderFactory.createTitledBorder(
-					   BorderFactory.createEtchedBorder(), "General", TitledBorder.LEFT, TitledBorder.TOP));
+					   BorderFactory.createEtchedBorder(), "Inheriant to file", TitledBorder.LEFT, TitledBorder.TOP));
 			
 		parserPanel = new JPanel(new GridBagLayout());
 			parserPanel.setBorder(BorderFactory.createTitledBorder(
@@ -97,13 +97,12 @@ public class FileViewer extends JTabbedPane{
 	public void updateMeta(Path path) {
 		thisPanel.removeAll();	
 		
+		int x = 0, y = 1;
+		
 		try {
 			BasicFileAttributes FileAttrs = Files.readAttributes(path, BasicFileAttributes.class);
-			
-			int x = 0, y = 1;
 				
 			for(var attr : BasicFileAttribute.values()) {
-				var c = Presentable.createGbc(x, y);
 				
 				var label = new JLabel(attr.getTitle() + " :");
 					label.setToolTipText(attr.getDescription());
@@ -115,10 +114,9 @@ public class FileViewer extends JTabbedPane{
 				y++;
 			}
 			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} catch (IOException e) { e.printStackTrace(); }
+		
+		
 		thisPanel.validate();
 	}
 }
