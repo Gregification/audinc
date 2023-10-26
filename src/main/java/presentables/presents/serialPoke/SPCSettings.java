@@ -56,7 +56,7 @@ public class SPCSettings {
 			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_CTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 
 			default:
-				throw new RuntimeException("SPCSetting>fetchSettings> failed to find setting: " + setting.toString());
+				throw new RuntimeException("womp womp SPCSetting>fetchSettings> failed to find setting: " + setting.toString());
 		}
 	}
 	
@@ -70,46 +70,26 @@ public class SPCSettings {
 		var value = setting.clas.cast(rawValue);
 		
 		switch(setting) {
-			case SYSTEM_PORT_PATH : 
-				break;
-			case SYSTEM_PORT_LOCATION : 
-				break;
-			case DESCRIPTIVE_PORT_NAME :
-				break;
-			case PORT_DESCRIPTION :
-				break;
-			case PORT_LOCATION : 
-				break;
-			case BAUD_RATE : 
-				break;
-			case DEVICE_WRITE_BUFFER_SIZE : 
-				break;
-			case DEVICE_READ_BUFFER_SIZE : 
-				break;
-			case VENDOR_ID : 
-				break;
-			case DATA_BITS_PER_WORD : 
-				break;
-			case NUM_STOP_BITS : 
-				break;
-			case PARITY : 
-				break;
-			case TIMEOUT_READ : 
-				break;
-			case TIMEOUT_WRITE : 
-				break;
-			case FLOWCONTROL_DATA_SET_READY_ENABLED : 
-				break;
-			case FLOWCONTROL_DATA_TERMINAL_READY_ENABLED : 
-				break;
-			case FLOWCONTROL_XIN_ONOFF_ENABLED : 
-				break;
-			case FLOWCONTROL_XOUT_ONOFF_ENABLED : 
-				break;
-			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED : 
-				break;
-			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 
-				break;
+			case SYSTEM_PORT_PATH : 				break;
+			case SYSTEM_PORT_LOCATION : 				break;
+			case DESCRIPTIVE_PORT_NAME :				break;
+			case PORT_DESCRIPTION :				break;
+			case PORT_LOCATION : 				break;
+			case BAUD_RATE : 				break;
+			case DEVICE_WRITE_BUFFER_SIZE :				break;
+			case DEVICE_READ_BUFFER_SIZE : 				break;
+			case VENDOR_ID : 				break;
+			case DATA_BITS_PER_WORD :				break;
+			case NUM_STOP_BITS : 				break;
+			case PARITY : 				break;
+			case TIMEOUT_READ : 				break;
+			case TIMEOUT_WRITE : 				break;
+			case FLOWCONTROL_DATA_SET_READY_ENABLED :				break;
+			case FLOWCONTROL_DATA_TERMINAL_READY_ENABLED :				break;
+			case FLOWCONTROL_XIN_ONOFF_ENABLED : 				break;
+			case FLOWCONTROL_XOUT_ONOFF_ENABLED :				break;
+			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED :				break;
+			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 				break;
 	
 			default:
 				System.out.println("SPCSetting>function : failed to match setting" + setting.toString());

@@ -135,25 +135,16 @@ public abstract class DOMView<
 	protected abstract popupFilter getAllFilter();
 	
 	protected void updateTreeViewForNode(DefaultMutableTreeNode treenode) {
-		// see answer by Araon Digulla ->  https://stackoverflow.com/questions/2822695/java-jtree-how-to-check-if-node-is-displayed#:~:text=getViewport().,true%20%2C%20the%20node%20is%20visible.
+		// see answer by Araon Digulla for how visibility is determined ->  https://stackoverflow.com/questions/2822695/java-jtree-how-to-check-if-node-is-displayed#:~:text=getViewport().,true%20%2C%20the%20node%20is%20visible.
+		// see for how to access dispatch thread -> https://docs.oracle.com/javase/tutorial/uiswing/concurrency/dispatch.html
 		
 		var path = new TreePath(treenode.getPath());
-		if(domTree.isVisible(path)){		//is the tree allowing it to show?  
-			var rect = tv_sp.getViewport().getViewRect();
-			
-			//rect may be null if java.Swing does not update in time
-			for(int i = 2; rect == null && i > 0; i--) {
-				rect = tv_sp.getViewport().getViewRect();
-				try {
-					Thread.currentThread().sleep(100);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			
-			if(rect != null && rect.intersects(domTree.getPathBounds(path))) //is it inside the view port of the scrollable window?)
-				domTree_model.reload(treenode);
+		if(domTree.isVisible(path)){		//is the tree allowing it to show?
+			SwingUtilities.invokeLater(() ->{	//in swing dispatch thread
+				var pthBnd = domTree.getPathBounds(path);
+				if(tv_sp.getViewport().getViewRect().intersects(pthBnd)) //is it inside the view port of the scrollable window?)
+					domTree_model.reload(treenode);
+			});
 		}
 	}
 		

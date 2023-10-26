@@ -1,6 +1,7 @@
 package DOMViewer;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,5 +50,9 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 	}
 	public Map<String, JPanel> getUITabbs() {		
 		return UITabbs;
+	}
+	
+	public Path getPath() {
+		return srcFile.toPath();
 	}
 }
