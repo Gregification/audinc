@@ -8,6 +8,7 @@ import java.awt.event.ItemListener;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFileAttributes;
@@ -15,11 +16,15 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
@@ -128,33 +133,44 @@ public class FileViewer extends JTabbedPane{
 						var cal  = Calendar.getInstance();
 			            	cal.setTime(date);
 						
-			            LocalDate localdate = LocalDate.of(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
-			            LocalTime localtime = LocalTime.of(cal.get(Calendar.HOUR), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND));	
+			            LocalDateTime ldt = LocalDateTime.ofInstant(cal.toInstant(), ZoneId.systemDefault());
 			            
-						disp.getDatePicker().setDate(localdate);
-						disp.getTimePicker().setTime(localtime);
+						disp.getDatePicker().setDate(ldt.toLocalDate());
+						disp.getTimePicker().setTime(ldt.toLocalTime());
 						
-						DateChangeListener listener;
 						
-						if(attr == BasicFileAttribute.LAST_MODIFIED_TIME)
-							listener = new DateChangeListener() {
+						BiFunction<BasicFileAttributeView, FileTime, Boolean> setNewTimeAction;
+						if(attr == BasicFileAttribute.LAST_MODIFIED_TIME) {
+							setNewTimeAction = (view, ft) ->{
+								try { view.setTimes(ft, null, null);
+								} catch (IOException e) { return false; }
+								return true;
+							};
+						}else if(attr == BasicFileAttribute.CREATION_TIME) {	
+							setNewTimeAction = (view, ft) ->{
+								try { view.setTimes(null, null,ft);
+								} catch (IOException e) { return false; }
+								return true;
+							};
+						}else{// if(attr == BasicFileAttribute.LAST_ACCESS_TIME) {
+							setNewTimeAction = (view, ft) ->{
+								try { view.setTimes(null, ft, null);
+								} catch (IOException e) { return false; }
+								return true;
+							};
+						}
+						
+						DateChangeListener listener = new DateChangeListener() {
 								@Override public void dateChanged(DateChangeEvent event) {
-									FileTime ft = FileTime.from(disp.getDateTimePermissive().toEpochSecond(null), TimeUnit.SECONDS);
-									try {
-										Files.setLastModifiedTime(path, ft);
-									} catch (IOException e) { e.printStackTrace(); }
+									//TODOOOOOOOO :soy-jack:
+									FileTime ft = FileTime.from(disp.getDateTimePermissive().toEpochSecond(ZoneOffset.UTC), TimeUnit.SECONDS);
+									
+									BasicFileAttributeView attrView = Files.getFileAttributeView(path, BasicFileAttributeView.class);
+									setNewTimeAction.apply(attrView, ft);
 								}
 							};
-						else
-							listener = new DateChangeListener() {
-								@Override public void dateChanged(DateChangeEvent event) {
-									//TODOOOOOOOO
-//									FileTime ft = FileTime.from(disp.getDateTimePermissive().toEpochSecond(null), TimeUnit.SECONDS);
-//									try {
-//										Files.setLastModifiedTime(path, ft);
-//									} catch (IOException e) { e.printStackTrace(); }
-								}
-							};
+
+							
 						disp.getDatePicker().addDateChangeListener(listener);
 						
 						display = disp;
