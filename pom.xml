@@ -39,7 +39,14 @@
 	   <artifactId>jSerialComm</artifactId>
 	   <version>[2.0.0,3.0.0)</version>
 	</dependency>
-    
+	
+	<!-- swing based calender date picker -->
+    <dependency>
+	    <groupId>com.github.lgooddatepicker</groupId>
+	    <artifactId>LGoodDatePicker</artifactId>
+	    <version>11.2.1</version>
+	</dependency>
+
     <!-- external jars -->
   	<!--<dependency>
         <groupId>lib</groupId>

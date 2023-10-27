@@ -21,6 +21,8 @@ import java.lang.reflect.Method;
 //import java.util.zip.ZipOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -32,6 +34,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SpringLayout;
 import javax.swing.border.BevelBorder;
 
@@ -211,6 +214,16 @@ public abstract class Presentable {
 	public static JPanel genLabelInput(String title, JTextField input) {
 		return Presentable.genLabelInput(new JLabel(title), input);
 	}
+	public static void genLabledContent(JComponent host, String title, String tooltip, int x, int y, JComponent... displays) {
+		var label = new JLabel(title+" :");
+			
+		if(!tooltip.isBlank())
+			label.setToolTipText(tooltip);
+			
+		host.add(label, 	Presentable.createGbc(x, y));
+		for(var v : displays)
+			host.add(v,	Presentable.createGbc(++x, y));
+	}
 	public static GridBagConstraints createGbc(int x, int y) {	//scoured from -> https://stackoverflow.com/questions/9851688/how-to-align-left-or-right-inside-gridbaglayout-cell
 	      GridBagConstraints gbc = new GridBagConstraints();
 	      gbc.gridx = x;
@@ -225,7 +238,8 @@ public abstract class Presentable {
 	      gbc.weightx = (x == 0) ? 0.1 : 1.0;
 	      gbc.weighty = 1.0;
 	      return gbc;
-	   }
+	 }
+	
 	/*
 	 * protected static ZipOutputStream getZOStream(Class<? extends Presentable>
 	 * clas) { ZipOutputStream out = null; try { out = new ZipOutputStream( new

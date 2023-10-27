@@ -2,6 +2,7 @@ package FileMetadata;
 
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.function.Function;
 
@@ -19,10 +20,10 @@ public enum POSIXFileAttribute implements EnumFileAttribute{
 	private String 
 	title,
 	description;
-	private Function<BasicFileAttributes, Object> fetcher;
+	private Function<PosixFileAttributes, Object> fetcher;
 	private CheckedBiFunction<Path, Object, Object, Exception> setter;
 	
-	public Object fetch(BasicFileAttributes view) {
+	public Object fetch(PosixFileAttributes view) {
 		return fetcher.apply(view);
 	}
 	
@@ -30,12 +31,8 @@ public enum POSIXFileAttribute implements EnumFileAttribute{
 		return setter.apply(path, value);
 	}
 	
-	private void temp(PosixFilePermission p) {
-	
-	}
-	
 	private POSIXFileAttribute(
-				Function<BasicFileAttributes, Object> fetcher,
+				Function<PosixFileAttributes, Object> fetcher,
 				CheckedBiFunction<Path, Object, Object, Exception> setter,
 				String title,
 				String desc
@@ -47,7 +44,7 @@ public enum POSIXFileAttribute implements EnumFileAttribute{
 		this.description = desc;
 	}
 	private POSIXFileAttribute(
-				Function<BasicFileAttributes, Object> fetcher,
+				Function<PosixFileAttributes, Object> fetcher,
 				CheckedBiFunction<Path, Object, Object, Exception> setter,
 				String desc
 			){
