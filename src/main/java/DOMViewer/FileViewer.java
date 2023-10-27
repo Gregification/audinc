@@ -16,8 +16,10 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
@@ -32,6 +34,8 @@ import javax.swing.border.TitledBorder;
 
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DateTimePicker;
+import com.github.lgooddatepicker.optionalusertools.DateChangeListener;
+import com.github.lgooddatepicker.zinternaltools.DateChangeEvent;
 
 import FileMetadata.BasicFileAttribute;
 import presentables.Presentable;
@@ -130,7 +134,29 @@ public class FileViewer extends JTabbedPane{
 						disp.getDatePicker().setDate(localdate);
 						disp.getTimePicker().setTime(localtime);
 						
-//						Files.setLastModifiedTime(path, null)
+						DateChangeListener listener;
+						
+						if(attr == BasicFileAttribute.LAST_MODIFIED_TIME)
+							listener = new DateChangeListener() {
+								@Override public void dateChanged(DateChangeEvent event) {
+									FileTime ft = FileTime.from(disp.getDateTimePermissive().toEpochSecond(null), TimeUnit.SECONDS);
+									try {
+										Files.setLastModifiedTime(path, ft);
+									} catch (IOException e) { e.printStackTrace(); }
+								}
+							};
+						else
+							listener = new DateChangeListener() {
+								@Override public void dateChanged(DateChangeEvent event) {
+									//TODOOOOOOOO
+//									FileTime ft = FileTime.from(disp.getDateTimePermissive().toEpochSecond(null), TimeUnit.SECONDS);
+//									try {
+//										Files.setLastModifiedTime(path, ft);
+//									} catch (IOException e) { e.printStackTrace(); }
+								}
+							};
+						disp.getDatePicker().addDateChangeListener(listener);
+						
 						display = disp;
 					}else {
 						display = new JLabel(attr.fetch(FileAttrs).toString());
