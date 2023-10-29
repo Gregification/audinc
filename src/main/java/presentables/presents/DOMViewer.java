@@ -53,6 +53,8 @@ public class DOMViewer extends Presentable{
 	+ "<li>json</li>"
 	+ "<li>files</li>"
 	+ "</ul>"
+	+ "metadata support is only tested for windows, i havent bothered to debug/impliment the details for other file systems"
+	+ "<br> - if you would like to see those features impliment them yourself (shouldnt be too hard, use the 'base attributes' as refrence)"
 	+ "</body>"
 	+ "</html>"; }
 

@@ -163,16 +163,16 @@ public class FileViewer extends JTabbedPane{
 						DateChangeListener listener = new DateChangeListener() {
 								@Override public void dateChanged(DateChangeEvent event) {
 									//TODOOOOOOOO :soy-jack:
-									FileTime ft = FileTime.from(disp.getDateTimePermissive().toEpochSecond(ZoneOffset.UTC), TimeUnit.SECONDS);
 									
 									BasicFileAttributeView attrView = Files.getFileAttributeView(path, BasicFileAttributeView.class);
+									
+									FileTime ft = FileTime.from(disp.getDateTimePermissive().toEpochSecond(ZoneOffset.UTC), TimeUnit.SECONDS);
 									setNewTimeAction.apply(attrView, ft);
 								}
 							};
 
 							
 						disp.getDatePicker().addDateChangeListener(listener);
-						
 						display = disp;
 					}else {
 						display = new JLabel(attr.fetch(FileAttrs).toString());

@@ -12,6 +12,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -68,7 +69,7 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 			
 			if(src.exists()) {
 				if(src.isDirectory()) {
-					var sb = new StringBuilder("----------------" + treenode + '\n');
+					//var sb = new StringBuilder("----------------" + treenode + '\n');
 					List.of(src.listFiles()).stream()
 						.sorted((o1, o2) -> Boolean.compare(o1.isDirectory(), o2.isDirectory()))	//priority = files
 						.parallel()
@@ -82,11 +83,11 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 							//create new job
 							executor.execute(parse_recursive1(subNode, executor));
 							
-							sb.append(subPath.toString());
-							sb.append('\n');
+//							sb.append(subPath.toString());
+//							sb.append('\n');
 						});
-					System.out.println(sb.toString());
-					sb.setLength(0);
+//					System.out.println(sb.toString());
+//					sb.setLength(0);
 				}else {	
 					//update to leaf, parse the file
 					
@@ -100,7 +101,7 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 
 	@Override protected void displayNode(DefaultMutableTreeNode dmtn) {
 		// TODO Auto-generated method stub
-		System.out.println("displaying node: " + dmtn.toString());
+		//System.out.println("displaying node: " + dmtn.toString());
 		
 		var node = (DFolderNodeObj)dmtn.getUserObject();
 		
@@ -239,8 +240,37 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		
 	}
 	
+	protected void nodeOptions_delete() {
+		List<DefaultMutableTreeNode> dfmtns = filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream().parallel()
+			.map(e -> (DefaultMutableTreeNode)e.getLastPathComponent())
+			.filter(e -> e != domTree_root)
+			.filter(e -> !(e.getAllowsChildren() && e.getChildCount() > 0))//only minimal nodes, no nodes with children allowed
+			.collect(Collectors.toList());
+		
+		for(var node : dfmtns) {
+			Path path = ((DFolderNodeObj)node.getUserObject()).path();
+			
+			int result = JOptionPane.showConfirmDialog(
+					null,
+					new JLabel("delete file pernamently? " + path.toAbsolutePath().toString()),
+					"delete file confirmation",
+					JOptionPane.OK_CANCEL_OPTION);
+			
+			if (result == JOptionPane.OK_OPTION) {
+				path.toFile().delete();	//remove from file system
+				domTree_model.removeNodeFromParent(node);	//remove from tree
+			}else if(result == JOptionPane.CANCEL_OPTION) {	//idk, forgot what i was about to do
+				
+			}else if(result == JOptionPane.CLOSED_OPTION) {
+				return;
+			}
+		}
+	}
+	
 	@Override protected void onLeftClick( MouseEvent me) {
 		var node = (DefaultMutableTreeNode)domTree.getLastSelectedPathComponent();
+		if(node == null) return; // i have no idea why this triggers. it only gets called by the ui
+		
 		var dfno = (DFolderNodeObj)node.getUserObject();
 		viewer.updateMeta(dfno.getPath());
 	}
@@ -250,7 +280,8 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		
 		var optionEnum = (popupOptions)option;
 		switch(optionEnum) {
-			case CLEAR : 			nodeOptions_clear(); 		break; 
+			case CLEAR : 			nodeOptions_clear(); 		break;
+			case DELETE:			nodeOptions_delete(); 		break;
 			case REFRESH :			nodeOptions_refresh(); 		break;
 			case PARSE_CUSTOM :		nodeOptions_parseCustom();	break;
 			case PARSE_CHILDREN :	nodeOptions_parseChildren();break;
