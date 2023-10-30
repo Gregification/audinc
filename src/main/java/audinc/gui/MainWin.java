@@ -194,7 +194,7 @@ public class MainWin extends JFrame {
         SwingConstants.CENTER);
 
         JLabel artists = new JLabel("<html>"
-        +"<br/><p>GDC 3.0 lisence 2023</p>"
+        +"<br/><p>MIT lisence 2023</p>"
         +"</html>",
         SwingConstants.CENTER);
 

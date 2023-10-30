@@ -34,10 +34,10 @@ public enum BasicFileAttribute implements EnumFileAttribute {
 							"Tells whether the file is something other than a regular file, directory, or symbolic link."),
 		IS_REGULAR_FILE		(BasicFileAttributes::isRegularFile,
 							null,
-							"Tells weather the file is a regular file with opaque content."),
+							"Tells whether the file is a regular file with opaque content."),
 		IS_SYMBOLIC_LINK	(BasicFileAttributes::isSymbolicLink,
 							null,
-							"Tells weather the file is a symbolic link.")
+							"Tells whether the file is a symbolic link.")
 	;
 	
 	private String 

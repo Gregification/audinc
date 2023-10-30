@@ -7,12 +7,13 @@ import javax.swing.JPanel;
 
 import DOMViewer.DOMParser;
 import DOMViewer.parsers.TextParser.Variations;
+import presentables.presents.serialPoke.SPCSettings;
 
 public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>{
-
+	public SPCSettings settings;
+	
 	public SPCParser(File file) {
 		super(file);
-		// TODO Auto-generated constructor stub
 	}
 
 	@Override

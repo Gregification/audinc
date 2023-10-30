@@ -37,6 +37,7 @@ import javax.swing.SpringLayout;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyledDocument;
@@ -46,20 +47,21 @@ import com.fazecast.jSerialComm.SerialPortDataListener;
 import com.fazecast.jSerialComm.SerialPortEvent;
 
 import DOMViewer.DOMView;
+import DOMViewer.DOModel;
+import DOMViewer.FileViewer;
+import DOMViewer.parsers.SPCParser;
 import audinc.gui.MainWin;
 import audinc.gui.WrapLayout;
 import presentables.Presentable;
 import presentables.presents.SerialPoke;
 
-public class SerialPokeCommConnection{
-	public static final String FileExtension_Settings = "spccS";
-	
+public class SerialPokeCommConnection{	
 	public String title;
 	public SerialPort sp;
 	public int logSettings 			= Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
 	
-	public SPCSettings settings;
-	public Path settingsPath;
+	public FileViewer viewer;
+	public SPCParser settingsParser;
 	
 	//GUI
 	public JPanel content 			= null;
@@ -72,11 +74,11 @@ public class SerialPokeCommConnection{
 	private Path logTranscriptPath;
 	private BufferedWriter logger = null;
 	private JLabel noticeDisplay;
-	private DOMView settingsView;
 	
 	public SerialPokeCommConnection(SerialPort sp, String title) {
 		this.title = title;
 		this.sp = sp;
+		this.viewer = new FileViewer(null);
 		
 		setSettingsTo(getDefaultSettingsPath());
 		
@@ -96,7 +98,7 @@ public class SerialPokeCommConnection{
 		
 		genGUI();
 		
-		setNoticeText("this connection is not opened untill explicetely told to open", new Color(0x0));
+		setNoticeText("this connection is not opened untill explicetely told to open", Color.black);
 	}
 	
 	public void quit() {
@@ -188,11 +190,12 @@ public class SerialPokeCommConnection{
 		if(!src.toFile().exists())
 			return false;
 		
+		settingsParser = new SPCParser(src.toFile());
 		
-		settings = SPCSettings.getSettings(sp);
+		settingsParser.settings = SPCSettings.getSettings(sp);
 		
 		try(var br =  new BufferedReader(new FileReader(src.toFile()))) {
-			settings.rebase(sp);
+			settingsParser.settings.rebase(sp);
 			br.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -200,11 +203,13 @@ public class SerialPokeCommConnection{
 			e.printStackTrace();
 		}
 		
-		if(settings.modifiedSettings.size() > 0) {
-			settings.applyModified(sp);
+		if(settingsParser.settings.modifiedSettings.size() > 0) {
+			settingsParser.settings.applyModified(sp);
 		}
 		
-		System.out.println("serial poke comm connection > setSettingsTo (of " + settings.modifiedSettings.size() + " changed) -> src:" + src);
+		viewer.setParser(settingsParser);
+		
+		System.out.println("serial poke comm connection > setSettingsTo (of " + settingsParser.settings.modifiedSettings.size() + " changed) -> src:" + src);
 		
 		return true;
 	}
@@ -225,10 +230,24 @@ public class SerialPokeCommConnection{
 		genUI_tab_settings();
 		genUI_tab_liveInfo();
 		
-		
 		content.add(content_tabb, BorderLayout.CENTER);
 	}
 	
+	public void onSelectSettingFileClick() {
+		JFileChooser fc = new JFileChooser(settingsParser.getPath().getParent().toAbsolutePath().toString());
+		
+		FileNameExtensionFilter allowedFiles = new FileNameExtensionFilter("spc settings", new String[] {SPCSettings.FileExtension_Settings});
+			fc.addChoosableFileFilter(allowedFiles);
+			fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		
+		switch(fc.showOpenDialog(null)) {
+			case JFileChooser.APPROVE_OPTION : 
+				setSettingsTo(fc.getSelectedFile().toPath());
+				break;
+			case JFileChooser.CANCEL_OPTION : 
+				break;
+		}
+	}
 	public void openLoggingDialoug() {		
 		JFrame cframe = new JFrame();
         	cframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -465,7 +484,7 @@ public class SerialPokeCommConnection{
 		content_tabb.addTab(
 				"settings",
 				MainWin.getImageIcon("res/note.png", MainWin.stdtabIconSize),
-				settingsView,
+				this.viewer,
 				"seral port settings and info");
 	}
 	
@@ -564,12 +583,19 @@ public class SerialPokeCommConnection{
 	        			appendNoticeText((sp.closePort() ? "success" : "failed" ), Color.black);
 	        		}
 			 	});
+		
+		var selectSettingButton = new JButton("choose settings file");
+			selectSettingButton.addActionListener(e -> {
+					onSelectSettingFileClick();
+				});
+		
 		tab_cont.add(jcb_toggleport);
+		tab_cont.add(selectSettingButton);
 		
 		content_tabb.addTab("editor", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize), tab_cont, "general manager");
 	}
 	
 	private Path getDefaultSettingsPath() {
-		return Presentable.makeRoot(SerialPoke.class, Path.of(title + "." + FileExtension_Settings));
+		return Presentable.makeRoot(SerialPoke.class, Path.of(title + "." + SPCSettings.FileExtension_Settings));
 	}
 }

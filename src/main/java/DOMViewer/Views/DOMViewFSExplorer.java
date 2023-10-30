@@ -101,9 +101,10 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 
 	@Override protected void displayNode(DefaultMutableTreeNode dmtn) {
 		// TODO Auto-generated method stub
-		//System.out.println("displaying node: " + dmtn.toString());
 		
 		var node = (DFolderNodeObj)dmtn.getUserObject();
+		
+		System.out.println("displaying node: " + dmtn.toString() + " \tnodeObj:" + (node == null ? "null" : ((DFolderNodeObj)node).parser() == null ? "null parser" : ((DFolderNodeObj)node).parser()));
 		
 		this.viewer.setParser(node.getParser());
 	}
@@ -146,11 +147,13 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		//good luck
 		filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream()
 			.map(e -> (DefaultMutableTreeNode)e.getLastPathComponent())
-			.map(e -> (DFolderNodeObj)e.getUserObject())
-			.filter(e -> e.getParser() == null)
-			.forEach(this::openCustomParseDialog);
+			.filter(e -> ((DFolderNodeObj)e.getUserObject()).getParser() == null)
+			.forEach(e -> {
+					var newDFNodeObj = openCustomParseDialog((DFolderNodeObj)e.getUserObject());
+					e.setUserObject(newDFNodeObj);
+				});
 	}
-	protected void openCustomParseDialog(DFolderNodeObj dfnno) { //everything about how a parser is created is a trust exercise
+	protected DFolderNodeObj openCustomParseDialog(DFolderNodeObj dfnno) { //everything about how a parser is created is a trust exercise
 		File file = dfnno.getPath().toFile();
 		
 		JPanel content = new JPanel(new GridBagLayout());
@@ -237,7 +240,7 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 				e1.printStackTrace();
 			}
 	    } 
-		
+		return dfnno;
 	}
 	
 	protected void nodeOptions_delete() {

@@ -20,6 +20,7 @@ import com.fazecast.jSerialComm.SerialPort;
 
 //var set = Set.of(setting.StopBitOptions.getEnumConstants());
 public class SPCSettings {
+	public static final String FileExtension_Settings = "spccS";
 	public final static EnumSet<SPCSetting> HotSwappableSettings 	= SPCSetting.keepHotSwappables(EnumSet.allOf(SPCSetting.class)); 
 	public final static List<SPCSetting> 	AvaliableSettings 		= List.of(SPCSetting.values());
 	

@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FilenameUtils;
 
 import DOMViewer.parsers.*;
+import presentables.presents.serialPoke.SPCSettings;
 import presentables.presents.serialPoke.SerialPokeCommConnection;
 
 /*
@@ -38,7 +39,7 @@ public enum DOModel {
 	SerialPokeSettings	("SP COMM","Serial Poke COMM Connection Setting",
 				SPCParser.class,
 				SPCParser.getVariEnum(),
-				SerialPokeCommConnection.FileExtension_Settings)
+				SPCSettings.FileExtension_Settings)
 	;
 
 	private String 

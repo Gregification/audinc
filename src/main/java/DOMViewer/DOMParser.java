@@ -22,7 +22,7 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 	
 	protected File srcFile;
 	protected boolean isModified = false;
-	protected HashMap<String, JPanel> UITabbs;
+	protected HashMap<String, JPanel> UITabbs = new HashMap<>();
 	
 	public DOMParser(File file) {
 		this.srcFile = file;

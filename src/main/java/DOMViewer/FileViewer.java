@@ -1,43 +1,22 @@
 package DOMViewer;
 
-import java.awt.Color;
-import java.awt.GridBagConstraints;
+import java.awt.*;
 import java.awt.GridBagLayout;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
+import java.awt.event.*;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributeView;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.*;
+import java.nio.file.attribute.*;
 import java.nio.file.attribute.FileTime;
-import java.nio.file.attribute.PosixFileAttributes;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.sql.Date;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.util.Calendar;
-import java.util.List;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.function.*;
 
-import javax.swing.BorderFactory;
-import javax.swing.JCheckBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTabbedPane;
-import javax.swing.SwingConstants;
-import javax.swing.border.TitledBorder;
+import javax.swing.*;
+import javax.swing.border.*;
 
-import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DateTimePicker;
 import com.github.lgooddatepicker.optionalusertools.DateChangeListener;
 import com.github.lgooddatepicker.zinternaltools.DateChangeEvent;
@@ -48,6 +27,7 @@ import presentables.Presentable;
 public class FileViewer extends JTabbedPane{
 	protected DOMParser parser;
 	private JPanel metaTab, thisPanel, parserPanel;
+	private JLabel pathDisplay;
 	
 	public FileViewer(DOMParser parser) {
 		super();
@@ -87,6 +67,8 @@ public class FileViewer extends JTabbedPane{
 	}
 	
 	private void initGUI() {
+		pathDisplay = new JLabel();
+		
 		//meta panels
 		metaTab = new JPanel(new GridBagLayout());
 			System.out.println("FileViewer>initGUI, background; metapanel:PINK");
@@ -109,11 +91,17 @@ public class FileViewer extends JTabbedPane{
 								JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)),
 				c);
 		
-		addTab("Meta", metaTab);
+		var metaWrapper = new JPanel(new BorderLayout());
+			metaWrapper.add(metaTab, BorderLayout.CENTER);
+			metaWrapper.add(pathDisplay, BorderLayout.PAGE_START);
+		
+		addTab("Meta", metaWrapper);
 	}
 	
 	public void updateMeta(Path path) {
 		thisPanel.removeAll();	
+		
+		pathDisplay.setText(path.toAbsolutePath().toString());
 		
 		int x = 0, y = 0;
 		
