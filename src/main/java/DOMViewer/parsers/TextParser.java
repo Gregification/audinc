@@ -1,8 +1,6 @@
 package DOMViewer.parsers;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.io.BufferedReader;
 import java.io.File;
@@ -11,8 +9,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
@@ -45,7 +41,10 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 
 	@Override public void SaveToFile(File file){		
 		try(FileWriter fw = new FileWriter(file, false);) {//overwrites
-			fw.write(textContent.getText());
+			for(var s : textContent.getText().split("\\n")) {
+				fw.write(s);
+				fw.write('\n');	//this works, but textContent dosen't actually display the whitespace when its reloaded... y :(
+			}
 		} catch (IOException e) { e.printStackTrace(); } //this entire function should throw some custom exception so the user can be prompted for a try but eh. todo it later... eventually
 	}
 	
