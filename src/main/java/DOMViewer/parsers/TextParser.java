@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 
 import DOMViewer.DOMParser;
+import presentables.Presentable;
 
 public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variations>{
 	private JTextArea textContent;
@@ -26,31 +28,25 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 		setVariation(Variations.PLAIN_TEXT);
 	}
 
-	@Override public void ParseFile() {
-		System.out.println("text parser > parsefile");
-		
-		var sb = new StringBuilder();
+	@Override public void ParseFile() {		
 		try(var br = new BufferedReader(new FileReader(srcFile))){
+			var sb = new StringBuilder();
 			
-			for(String line; (line = br.readLine()) != null;) {
+			for(String line; (line = br.readLine()) != null;)
 				sb.append(line);
-			}
 			
 			this.textContent.setText(sb.toString());
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
+		} catch (FileNotFoundException e) { // TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (IOException e) { // TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		//System.out.println("DOMParser>TextParser>ParseFile, parsed :" + textContent.getText());
 	}
 
-	@Override
-	public void SaveToFile(File file) {
-		// TODO Auto-generated method stub
-		
+	@Override public void SaveToFile(File file){		
+		try(FileWriter fw = new FileWriter(file, false);) {//overwrites
+			fw.write(textContent.getText());
+		} catch (IOException e) { e.printStackTrace(); } //this entire function should throw some custom exception so the user can be prompted for a try but eh. todo it later... eventually
 	}
 	
 	@Override
@@ -67,22 +63,16 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 
 	@Override
 	public void initGUI() {
+		UITabbs.clear();
+		
 		var content = new JPanel(new GridBagLayout());
+			textContent = new JTextArea();
+				textContent.setLineWrap(false);
+				textContent.setBackground(new Color(150, 200,200));//color.teal. DO NOT CHANGE ALPHA else swing goes full R. 
 		
-		var c = new GridBagConstraints();
-		c.weightx = c.weighty = 1.0;	
-		c.fill = GridBagConstraints.BOTH;
+		content.add(textContent, Presentable.createGbc(0, 0));		
 		
-		textContent = new JTextArea();
-			textContent.setLineWrap(false);
-		
-		textContent.setBackground(Color.LIGHT_GRAY);
-		
-		content.add(textContent, c);
-		
-		//System.out.println("TextParser>initGUI, content:" + content);
-		
-		this.UITabbs = new HashMap<String, JPanel>(Map.of("content" , content));
+		UITabbs.put("content", content);
 	}
 	
 	enum Variations implements parserVariation{

@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -22,6 +23,7 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 
@@ -32,6 +34,7 @@ import DOMViewer.PopupFilterable;
 import DOMViewer.PopupOptionable;
 import DOMViewer.nodeObjects.DFolderNodeObj;
 import audinc.gui.MainWin;
+import presentables.presents.serialPoke.SPCSettings;
 
 /*
  * for displaying the file system
@@ -103,8 +106,7 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		// TODO Auto-generated method stub
 		
 		var node = (DFolderNodeObj)dmtn.getUserObject();
-		
-		System.out.println("displaying node: " + dmtn.toString() + " \tnodeObj:" + (node == null ? "null" : ((DFolderNodeObj)node).parser() == null ? "null parser" : ((DFolderNodeObj)node).parser()));
+		//System.out.println("displaying node: " + dmtn.toString() + " \tnodeObj:" + (node == null ? "null" : ((DFolderNodeObj)node).parser() == null ? "null parser" : ((DFolderNodeObj)node).parser()));
 		
 		this.viewer.setParser(node.getParser());
 	}
@@ -147,8 +149,10 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		//good luck
 		filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream()
 			.map(e -> (DefaultMutableTreeNode)e.getLastPathComponent())
-			.filter(e -> ((DFolderNodeObj)e.getUserObject()).getParser() == null)
+			.filter(e -> getNodeObj(e).getParser() == null)
 			.forEach(e -> {
+					assert e.getUserObject() instanceof DFolderNodeObj : "wtf, go fix it. idk how or why this is even broke";
+				
 					var newDFNodeObj = openCustomParseDialog((DFolderNodeObj)e.getUserObject());
 					e.setUserObject(newDFNodeObj);
 				});
@@ -251,7 +255,7 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 			.collect(Collectors.toList());
 		
 		for(var node : dfmtns) {
-			Path path = ((DFolderNodeObj)node.getUserObject()).path();
+			Path path = getNodeObj(node).path();
 			
 			int result = JOptionPane.showConfirmDialog(
 					null,
@@ -278,6 +282,35 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 		viewer.updateMeta(dfno.getPath());
 	}
 	
+	protected void nodeOptions_save(boolean overwrite) {
+		var nos = filterForUniqueRoots(List.of(domTree.getSelectionPaths())).stream().parallel()
+			.map(e -> (DefaultMutableTreeNode)e.getLastPathComponent())
+			.map(e -> this.getNodeObj(e))
+			.filter(e -> e.parser() != null)
+			.collect(Collectors.toList());
+		
+		if(overwrite) {
+			for(var nobj : nos) {
+				nobj.parser().SaveToFile(
+						nobj.parser().srcFile);
+			}
+		}else {
+			for(var nobj : nos) {
+				JFileChooser fc = new JFileChooser(nobj.getPath().getParent().toAbsolutePath().toString());
+					fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				
+				switch(fc.showOpenDialog(null)) {
+					case JFileChooser.APPROVE_OPTION : 
+						nobj.parser().SaveToFile(
+								fc.getSelectedFile().toPath().toFile());
+						break;
+					case JFileChooser.CANCEL_OPTION :
+						return;
+				}
+			}
+		}
+	}
+	
 	@Override protected void nodeOptionsPopupMenu_actionEvent(popupOptions option, ActionEvent e) {
 		assert option instanceof popupOptions : "whar??";
 		
@@ -286,6 +319,8 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 			case CLEAR : 			nodeOptions_clear(); 		break;
 			case DELETE:			nodeOptions_delete(); 		break;
 			case REFRESH :			nodeOptions_refresh(); 		break;
+			case SAVE_OVERWRITE :	nodeOptions_save(true);		break;
+			case SAVE_AS : 			nodeOptions_save(false);	break;
 			case PARSE_CUSTOM :		nodeOptions_parseCustom();	break;
 			case PARSE_CHILDREN :	nodeOptions_parseChildren();break;
 			default:
@@ -296,6 +331,13 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 	@Override protected void filterPopupLimits(DefaultMutableTreeNode node, EnumSet<popupLimit> sharedLimits) {
 		sharedLimits.remove(node.getAllowsChildren() ? 		//if it allows children => its a folder, therefore it cannot be a file. visa versa
 				popupLimit.ON_FILE : popupLimit.ON_FOLDER);
+		
+		var nodeobj = getNodeObj(node);
+		if(nodeobj.parser() == null) sharedLimits.remove(popupLimit.NON_NULL_PARSER);
+	}
+	
+	private DFolderNodeObj getNodeObj(DefaultMutableTreeNode node) {
+		return ((DFolderNodeObj)node.getUserObject());
 	}
 
 	enum popupOptions implements PopupOptionable {
@@ -314,12 +356,16 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 						"view parsing options",
 						PARSE_d,
 						popupLimit.ON_FILE),
-		SAVE_d			("save"),
+		SAVE_d			("save", 
+						"",
+						popupLimit.NON_NULL_PARSER),
 		SAVE_OVERWRITE	("overwrite",	
 						"overwrite the selected file/folder(s)",
 						SAVE_d),
-		SAVE_AS			("save as ...",
-						SAVE_d)
+		SAVE_AS			("save as",
+						"save as ...",
+						SAVE_d,
+						popupLimit.ON_FILE)
 		;
 		
 		private String 
@@ -381,7 +427,8 @@ public class DOMViewFSExplorer extends DOMView<DOMViewer.Views.DOMViewFSExplorer
 	enum popupLimit implements PopupFilterable {
 		ON_FOLDER,
 		ON_FILE,
-		ON_ALL
+		ON_ALL,
+		NON_NULL_PARSER
 		;
 	}
 

@@ -9,6 +9,8 @@ import java.util.function.Function;
 import presentables.CheckedBiFunction;
 
 /*
+ * not in use. posix has its own built in enum. this can serve as another template i guess
+ * 
  * reference -> https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/PosixFilePermissions.html
  * PosixFilePermission reference -> https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/PosixFilePermission.html
  */

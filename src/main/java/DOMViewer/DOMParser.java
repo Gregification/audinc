@@ -20,7 +20,7 @@ import DOMViewer.parsers.*;
 public abstract class DOMParser<Variations extends Enum<Variations> & parserVariation> {	
 	public Variations variation = null;
 	
-	protected File srcFile;
+	public final File srcFile;
 	protected boolean isModified = false;
 	protected HashMap<String, JPanel> UITabbs = new HashMap<>();
 	

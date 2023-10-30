@@ -44,7 +44,10 @@ public class FileViewer extends JTabbedPane{
 			remove(1);//meta tab is the first (i = 0) and we dont ever want to remove that
 		}
 		
-		if(parser == null || parser == this.parser) return;
+		if(parser == null || parser == this.parser) {
+			this.parser = parser;
+			return;
+		}
 		
 		this.parser = parser;
 		updateMeta(parser.getPath());
