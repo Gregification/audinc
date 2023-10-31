@@ -1,6 +1,7 @@
 package DOMViewer.parsers;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -26,6 +27,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import DOMViewer.DOMParser;
+import audinc.gui.MainWin;
 import presentables.Presentable;
 import presentables.presents.serialPoke.SPCSetting;
 import presentables.presents.serialPoke.SPCSettings;
@@ -113,9 +115,8 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 					comboBoxFunctions.put(clas, i -> {
 							var s = i.toString();
 							if(!s.isBlank())
-								try {
-
-								}catch(Exception e) {};
+								try { spinner.setValue(DOMParser.parseValue_stringers.get(clas).apply(s));
+								}catch(NumberFormatException e) {}
 							
 							return null;
 						});
@@ -128,6 +129,16 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 							spinner.addChangeListener(e -> {
 						  			settings.setSetting(setting, (Double)spinner.getModel().getValue());
 						  		});
+							
+					comboBoxFunctions.put(clas, i -> {
+							var s = i.toString();
+							if(!s.isBlank())
+								try { spinner.setValue(DOMParser.parseValue_stringers.get(clas).apply(s));
+								}catch(NumberFormatException e) {}
+								
+								return null;
+						});
+							
 					comp = spinner;
 				} else if(clas == String.class) {
 					var field = new JTextField();
@@ -135,16 +146,31 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 						field.addActionListener(e ->{
 								settings.setSetting(setting, field.getText());
 							});
+					
+					comboBoxFunctions.put(clas, i -> {
+							var s = i.toString();
+							if(!s.isBlank())	field.setText(s);
+							
+							return null;
+						});
+					
 					comp = field;
 				} else {
 					throw new RuntimeException("non-implimented class in SPCSetting:"  + clas);
 				}
 				
-				if(setting.choosableValues != null || setting.choosableValues.length > 1) {
+				if(setting.choosableValues != null && setting.choosableValues.length > 1) {
 					assert comboBoxFunctions.containsKey(clas) 
 						: "cannot create a combobox without a function. you forgot to make a function for objects of class: " + clas;
 					
-					getComboButton(setting, comboBoxFunctions.get(clas));
+					JButton comboBtn = getComboButton(setting, comboBoxFunctions.get(clas));
+					//switch-er-roo, to make [comp] contain [comboBtn] and the original value of itself([comp])
+					var newComp = new JPanel(new GridBagLayout());
+					float scale = 1f;
+					comboBtn.setPreferredSize(new Dimension((int)(MainWin.stdtabIconSize.width * scale), (int)(MainWin.stdtabIconSize.height * scale)));
+					newComp.add(comboBtn, Presentable.createGbc(0, 0));
+					newComp.add(comp, Presentable.createGbc(1, 0));
+					comp = newComp;
 				}
 				
 			}
