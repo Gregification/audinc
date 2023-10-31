@@ -64,8 +64,6 @@ public class FileViewer extends JTabbedPane{
 		
 		//meta panels
 		metaTab = new JPanel(new GridBagLayout());
-			System.out.println("FileViewer>initGUI, background; metapanel:PINK");
-			metaTab.setBackground(Color.PINK);
 		
 		var c = new GridBagConstraints();
 			c.weightx = c.weighty = 1.0;
@@ -95,7 +93,6 @@ public class FileViewer extends JTabbedPane{
 		updateMeta(parser.getPath());
 		clearTabbs();
 		appParserTabbs();
-		System.out.println("tabb count : " + parser.UITabbs.size());
 	}
 	
 	public void updateMeta(Path path) {

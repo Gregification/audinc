@@ -61,7 +61,7 @@ public class SPCSettings {
 			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_CTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 
 			default:
-				throw new RuntimeException("womp womp SPCSetting>fetchSettings> failed to find setting: " + setting.toString());
+				throw new RuntimeException("failed to match setting: " + setting.name());
 		}
 	}
 	
@@ -97,8 +97,7 @@ public class SPCSettings {
 			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 				break;
 	
 			default:
-				System.out.println("SPCSetting>function : failed to match setting" + setting.toString());
-				break;
+				throw new RuntimeException("failed to match setting: " + setting.name());
 		}
 		
 		return true;

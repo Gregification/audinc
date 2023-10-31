@@ -71,7 +71,8 @@ public class MainWin extends JFrame {
 	public static int 
 			stdTextSpace 			= 40,	//standard spacing unit between gui components 
 			stdStructSpace 			= 15,
-			stdPreferredNumThreads 	= 3;	//applies to other things besides threads (CompleteableFuture, ...etc)	
+			stdPreferredNumThreads 	= 3,
+			stdTextFieldSize		= 10;
 	public static Dimension 
 			stdDimension 		= new Dimension((int)(480*stdDimensionScale),	(int)(270*stdDimensionScale)),
 			stdtabIconSize 		= new Dimension((int)(11*stdDimensionScale),	(int)(11*stdDimensionScale)),

@@ -23,7 +23,7 @@ import DOMViewer.parsers.*;
  * 		used by [SerialPoke]), but if your trying to make something compatible and can be used by the rest 
  * 		of the program for other purposes then please use this class.
  */
-public abstract class DOMParser<Variations extends Enum<Variations> & parserVariation> {	
+public abstract class DOMParser<Variations extends Enum<Variations> & parserVariation> {		
 	public Variations variation = null;
 	
 	public final File srcFile;

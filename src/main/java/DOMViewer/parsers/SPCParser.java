@@ -2,15 +2,22 @@ package DOMViewer.parsers;
 
 import java.awt.Color;
 import java.awt.GridBagLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.*;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.function.Function;
 
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerModel;
@@ -20,6 +27,7 @@ import javax.swing.event.ChangeListener;
 
 import DOMViewer.DOMParser;
 import presentables.Presentable;
+import presentables.presents.serialPoke.SPCSetting;
 import presentables.presents.serialPoke.SPCSettings;
 
 /*
@@ -53,12 +61,16 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 		settingsPanel = new JPanel(new GridBagLayout());
 		
 		int offx = 0;
+		var comboBoxFunctions = new HashMap<Class<? extends Object>, Function<JMenuItem, Void>>();
+		
 		for(var setting : SPCSettings.AvaliableSettings) {
 			int y = setting.ordinal();
-			
 			//add label
+			var label = new JLabel(setting.toString());
+				if(!setting.description.isBlank())
+					label.setToolTipText(setting.description);
 			settingsPanel.add(
-					new JLabel(setting.toString()),
+					label,
 					Presentable.createGbc(offx, y));
 			
 			JComponent comp = null;
@@ -70,19 +82,25 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 			
 			//add value display
 			if(!setting.isEditable()) {
-				comp = new JLabel(value == null ? "undecalred" : value.toString()); //10/10 scalability
-			}else {
+				var field = new JTextField(value == null ? "undefined" : value.toString()); //10/10 scalability
+					field.setEditable(false);
+				comp = field;
+			}else {	//my fellow Americans we, uhh, this is a great standard , nothing needs corrected
 				var clas = setting.clas;
 				
-				//my fellow Americans we, uhh, this is a great standard , nothing needs corrected
 				if(clas == Boolean.class) {
-					var c = new JCheckBox("enabled");
+					var c = new JCheckBox();
 					boolean val = value == null ? false : (Boolean)value;
 					
 					c.setEnabled(val);
 					c.addItemListener(e -> {
 							settings.setSetting(setting, e.getStateChange() == ItemEvent.SELECTED);
 						});
+					
+					comboBoxFunctions.put(clas, i -> {
+							throw new UnsupportedOperationException("please dont have a drop down menu for booleans.. correct it in SPCSetting");
+						});
+					
 					comp = c;
 				} else if(clas == Integer.class) {
 					JSpinner spinner = new JSpinner(
@@ -91,6 +109,17 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 					  	spinner.addChangeListener(e -> {
 					  			settings.setSetting(setting, (int)spinner.getModel().getValue());
 					  		});
+					  	
+					comboBoxFunctions.put(clas, i -> {
+							var s = i.toString();
+							if(!s.isBlank())
+								try {
+
+								}catch(Exception e) {};
+							
+							return null;
+						});
+					  	
 					comp = spinner;
 				} else if(clas == Double.class || clas == Float.class) {
 					JSpinner spinner = new JSpinner(
@@ -101,7 +130,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 						  		});
 					comp = spinner;
 				} else if(clas == String.class) {
-					var field = new JTextField(10);
+					var field = new JTextField();
 						field.setText(value == null ? "undefined" : value.toString());
 						field.addActionListener(e ->{
 								settings.setSetting(setting, field.getText());
@@ -110,11 +139,22 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 				} else {
 					throw new RuntimeException("non-implimented class in SPCSetting:"  + clas);
 				}
+				
+				if(setting.choosableValues != null || setting.choosableValues.length > 1) {
+					assert comboBoxFunctions.containsKey(clas) 
+						: "cannot create a combobox without a function. you forgot to make a function for objects of class: " + clas;
+					
+					getComboButton(setting, comboBoxFunctions.get(clas));
+				}
+				
 			}
 			
 			
 			//disable if not hot swappable
-			comp.setEnabled(!setting.isHotSwappable);
+			if(setting.isHotSwappable) {
+				var highlight = new Color(107,62,3);
+				label.setForeground(highlight);
+			}
 			
 			settingsPanel.add(
 					comp,
@@ -123,7 +163,6 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 		
 		UITabbs.clear();
 		UITabbs.put("Fazecast/jSerialComm", settingsPanel);
-		System.out.println("womp womp, init gui");
 	}
 	
 	@Override
@@ -162,5 +201,31 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 	
 	public static EnumSet<? extends Enum> getVariEnum() {
 		return EnumSet.allOf(Variations.class);
+	}
+	
+	private JButton getComboButton(SPCSetting setting, Function<JMenuItem, Void> dollarStoreActionListener) {
+		var btn = new JButton("...");
+			btn.addActionListener(new ActionListener() {
+				JPopupMenu menu = null;
+				
+				@Override public void actionPerformed(ActionEvent e) {
+					if(menu == null) {
+						menu = new JPopupMenu();
+						
+						for(var v : setting.choosableValues) {
+							var mi = new JMenuItem(v.toString());
+								mi.addActionListener(ev -> {
+										dollarStoreActionListener.apply(mi);
+									});
+								
+							menu.add(mi);
+						}
+					}
+					
+					menu.show(btn, 0, 0);
+				}
+				
+			});
+		return btn;
 	}
 }
