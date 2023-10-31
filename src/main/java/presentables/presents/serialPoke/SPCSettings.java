@@ -14,6 +14,8 @@ import javax.management.RuntimeErrorException;
 
 import com.fazecast.jSerialComm.SerialPort;
 
+import DOMViewer.DOMParser;
+
 /*
  * acts as abstraction API for what ever might be considered a value of the class [com.fazecast.jSerialComm.SerialPort] 
  */
@@ -29,7 +31,9 @@ public class SPCSettings {
 	
 	public static SPCSettings getSettings(SerialPort sp) 	{
 		System.out.println("SPCSettings>constructor>avaliable settings: " + SPCSettings.AvaliableSettings);
-		return new SPCSettings(sp); 
+		var s = new SPCSettings();
+		s.rebase(sp);
+		return s;
 	}
 	
 	public static Object fetchSetting(SPCSetting setting, SerialPort sp) {			
@@ -66,7 +70,7 @@ public class SPCSettings {
 		assert rawValue.getClass().isInstance(setting.clas) : "trying to assign mismatched objects";
 		
 		if(!setting.isEditable() || (sp.isOpen() && !SPCSettings.HotSwappableSettings.contains(setting)))
-			return false; 
+			return false;
 		
 		var value = setting.clas.cast(rawValue);
 		
@@ -100,15 +104,15 @@ public class SPCSettings {
 		return true;
 	}
 	
-	public SPCSettings(SerialPort sp) {
-		rebase(sp);
-	}
-	
 	public SPCSettings(BufferedReader br) throws IOException {
 		rebaseFrom(br);
 	}
 	
 	
+	public SPCSettings() {
+		// TODO Auto-generated constructor stub
+	}
+
 	public void rebase(SerialPort sp) {
 		AvaliableSettings.parallelStream()
 			.forEach(setting -> {
@@ -134,7 +138,10 @@ public class SPCSettings {
 	public boolean setSetting(SPCSetting setting, Object value) {
 		System.out.println("SPCSetting>changing value of setting: " + setting + " \t to value: " + value);
 		
-		assert value.getClass().isInstance(setting.clas) : "bruh";//given [value] foes not match the accepted data type
+		assert 
+				value.getClass().isInstance(setting.clas)||
+				value.getClass().equals(setting.clas)
+			: "bruh\nexpected:" + setting.clas + "\nvalue:" + value.getClass();//given [value] foes not match the accepted data type
 		
 		if(value == null || !SPCSetting.isEditable(setting)) {
 			System.out.println("SPCSetting>failed to change value, is readonly:" + setting);
@@ -154,80 +161,45 @@ public class SPCSettings {
 ///////////////////
 //save & load
 ///////////////////
-	public void writeTo(BufferedWriter bw) {
-		AvaliableSettings.stream()
-			.forEach(setting -> {
-				Object value = settings.get(setting);
-				var clas = setting.clas;
-				
-				try {
-					bw.write(setting.name());
-					bw.newLine();
-					
-					//using if-else's because I can't figure out how to make a switch of type [Class]
-					//not using instance-of because thats not as specific
-					if(
-							clas == Boolean	.class	||
-							clas == String	.class	||
-							clas == Integer	.class) {
-						bw.write(value.toString());
-					}
-					
-					bw.newLine();
-				} catch (IOException e) {
-					System.out.println(clas.toGenericString());
-					e.printStackTrace(); 
-				}
-			});
-	}
-	
-	public void rebaseFrom(BufferedReader br) throws IOException {
-		int count = this.AvaliableSettings.size();
-		String line;
-		SPCSetting loadedSetting = null;
-		while((line = br.readLine()) != null && count > 0) {
-			count--;
-			if(loadedSetting == null) {
-				loadedSetting = SPCSetting.valueOf(line);
-				
-				Object value = null;
-				var clas = loadedSetting.clas;
-				
-				assert parseValue_read_buffered.containsKey(clas) : "SPCSetting contains a unknown class. unable to parse";
-				
-				value = parseValue_read_buffered.get(clas).apply(br);
-				
-				settings.put(loadedSetting, value);
-			}else {
-				Object value = null;
-				var clas = loadedSetting.clas;
-				
-				assert parseValue_read_stringers.containsKey(clas) : "SPCSetting contains a unknown class. unable to parse";
-				
-				value = parseValue_read_stringers.get(clas).apply(line);
-					
-				settings.put(loadedSetting, value);
+	public void writeTo(BufferedWriter bw) throws IOException{
+		for(var setting : AvaliableSettings) {
+			var clas = setting.clas;
+			bw.write(setting.name());
+			bw.newLine();
+			
+			if(DOMParser.parseValue_stringers.containsKey(clas)) {
+				bw.write(settings.get(setting).toString());
+				bw.newLine();
 			}
+			else
+				DOMParser.writeValue.get(clas).apply(bw);
 		}
 	}
 	
-	
-	public final static Map<Class<? extends Object>, Function<String, Object>> parseValue_read_stringers = Map.of(
-			Boolean.class	, Boolean::parseBoolean,
-			Integer.class	, Integer::parseInt,
-			Double.class	, Double::parseDouble
-		);
-	public final static Map<Class<? extends Object>, Function<BufferedReader, Object>> parseValue_read_buffered = Map.of(
-				
-		);
-	public final static Set<Class<? extends Object>> parseValue_write_stringers = Set.of(
-			Boolean.class	,
-			Integer.class	,
-			Double.class	
-		);
-	public final static Map<Class<? extends Object>, Function<BufferedReader, Object>> parseValue_write_buffered = Map.of(
-				
-		);
+	public void rebaseFrom(BufferedReader br) throws IOException {
+		int count = SPCSettings.AvaliableSettings.size();//in case of overrun
+		SPCSetting loadedSetting = null;
+		
+		for(String line;(line = br.readLine()) != null && count > 0; count--) {
+			loadedSetting = SPCSetting.valueOf(line);
+			
+			Object value = null;
+			var clas = loadedSetting.clas;
+			
+			assert 
+					DOMParser.parseValue_stringers.containsKey(clas) ||
+					DOMParser.parseValue.containsKey(clas) 
+				: "SPCSetting contains a unknown class. unable to parse : " + clas;
+			
+			if(DOMParser.parseValue_stringers.containsKey(clas))
+				value = DOMParser.parseValue_stringers.get(clas).apply(br.readLine());
+			else
+				value = DOMParser.parseValue.get(clas).apply(br);
+			
+			settings.put(loadedSetting, value);
+			modifiedSettings.add(loadedSetting);
+		}
+	}
 }
 
 /*

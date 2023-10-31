@@ -1,5 +1,1 @@
-text here will be read if i can ever find a FreeTTS distrobution that dosent have inherient fatal errors.     >:( testme
-
-
-
-ow meow meow fat cat for meow
+text here will be read if i can ever find a FreeTTS distrobution that dosent have inherient fatal errors.     >:( test

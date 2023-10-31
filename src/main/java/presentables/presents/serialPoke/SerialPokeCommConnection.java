@@ -37,6 +37,8 @@ import javax.swing.SpringLayout;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
@@ -484,8 +486,14 @@ public class SerialPokeCommConnection{
 		content_tabb.addTab(
 				"settings",
 				MainWin.getImageIcon("res/note.png", MainWin.stdtabIconSize),
-				this.viewer,
+				viewer,
 				"seral port settings and info");
+		content_tabb.addChangeListener(e -> {
+				var selectedComponent = content_tabb.getSelectedComponent(); 
+				if(selectedComponent.equals(viewer)) {
+					viewer.updateMeta();
+				}
+			});
 	}
 	
 	private void genUI_tab_liveInfo() {
@@ -589,8 +597,14 @@ public class SerialPokeCommConnection{
 					onSelectSettingFileClick();
 				});
 		
+		var refreshSettingButton = new JButton("reload settings");
+			selectSettingButton.addActionListener(e -> {
+					viewer.updateAll();
+				});
+			
 		tab_cont.add(jcb_toggleport);
 		tab_cont.add(selectSettingButton);
+		tab_cont.add(refreshSettingButton);
 		
 		content_tabb.addTab("editor", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize), tab_cont, "general manager");
 	}

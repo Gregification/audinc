@@ -40,9 +40,7 @@ public class FileViewer extends JTabbedPane{
 	}
 
 	public void setParser(DOMParser parser) {
-		while (getTabCount() > 1) {
-			remove(1);//meta tab is the first (i = 0) and we dont ever want to remove that
-		}
+		clearTabbs();
 		
 		if(parser == null || parser == this.parser) {
 			this.parser = parser;
@@ -53,18 +51,10 @@ public class FileViewer extends JTabbedPane{
 		updateMeta(parser.getPath());
 		
 		parser.ParseFile();
-		var tabs = parser.getUITabbs();
-		for(var v : tabs.keySet()) {
-			String title = v.toString();
-			var content = (JPanel)tabs.get(title);
-			var wrapper = new JScrollPane(content,
-					JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-					JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-			addTab(v.toString(), wrapper);
-		}
+		appParserTabbs();
 	}
 	
-	public void updateGUI() {
+	public void updateAll() {
 		parser.updateGUI();
 		updateMeta(parser.getPath());
 	}
@@ -99,6 +89,13 @@ public class FileViewer extends JTabbedPane{
 			metaWrapper.add(pathDisplay, BorderLayout.PAGE_START);
 		
 		addTab("Meta", metaWrapper);
+	}
+	
+	public void updateMeta() {
+		updateMeta(parser.getPath());
+		clearTabbs();
+		appParserTabbs();
+		System.out.println("tabb count : " + parser.UITabbs.size());
 	}
 	
 	public void updateMeta(Path path) {
@@ -228,5 +225,22 @@ public class FileViewer extends JTabbedPane{
 		panel.setBorder(BorderFactory.createTitledBorder(
 				BorderFactory.createEtchedBorder(), title, TitledBorder.LEFT, TitledBorder.TOP));
 		return panel;
+	}
+	
+	private void clearTabbs() {
+		while (getTabCount() > 1) {
+			remove(1);//meta tab is the first (i = 0) and we dont ever want to remove that
+		}
+	}
+	
+	private void appParserTabbs() {
+		var tabs = parser.getUITabbs();
+		for(var v : tabs.keySet()) {
+			var content = (JPanel)tabs.get(v.toString());
+			var wrapper = new JScrollPane(content,
+					JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+					JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+			addTab(v.toString(), wrapper);
+		}
 	}
 }

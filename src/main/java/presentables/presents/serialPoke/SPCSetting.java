@@ -9,11 +9,11 @@ public enum SPCSetting {
 		//(String:title, Class:object type, Boolean:allowCustomValue, Boolean:isHowSwappable, String:description, Object[]:choosableValues)
 		//PROTOCALL					(String.class, false, false, (Object[])(protocallOptions.values())), //unable to tell if rs485 is being used ???
 		SYSTEM_PORT_NAME			("port name", 
-									String.class, false, 	"port name as defined by the system"),
+									 String.class, 	false, 		"port name as defined by the system"),
 		SYSTEM_PORT_PATH 			("port path",
-									String.class, false, 	"port path as defined by the system"),
+									 String.class, 	false, 		"port path as defined by the system"),
 		SYSTEM_PORT_LOCATION		("port location",
-									String.class, false, 	"port location as defined by the system"),
+									 String.class, 	false, 		"port location as defined by the system"),
 		DESCRIPTIVE_PORT_NAME		(String.class ,	false,		"port name as defined by this program"),
 		PORT_DESCRIPTION			(Integer.class, false, 		""),
 		PORT_LOCATION				(Integer.class, false, 		""),
@@ -23,21 +23,21 @@ public enum SPCSetting {
 		VENDOR_ID					(Integer.class, false,		""),
 		DATA_BITS_PER_WORD			(Integer.class, false,		""),
 		NUM_STOP_BITS				(String.class ,	false,		"", (Object[])(stopbitOptions.values())),
-		PARITY						(String.class, false,		"", (Object[])(parityOptions.values())),
+		PARITY						(String.class, 	false,		"", (Object[])(parityOptions.values())),
 		TIMEOUT_READ				(Integer.class, true ,		"time out in miliseconds before a packet is considered lost"),
 		TIMEOUT_WRITE				(Integer.class, true ,		"time out in miliseconds before a write attempt is givenup"),
 		FLOWCONTROL_DATA_SET_READY_ENABLED		("DSR enabled",
-									Boolean.class, true , false, "Data Set Ready"),
+									 Boolean.class, true , false, "Data Set Ready"),
 		FLOWCONTROL_DATA_TERMINAL_READY_ENABLED 	("DTR enabled",
-									Boolean.class, true , false,"Data Terminal/Transmission Ready"),
+									 Boolean.class, true , false,"Data Terminal/Transmission Ready"),
 		FLOWCONTROL_XIN_ONOFF_ENABLED	("IN XonXoff enabled",
-									Boolean.class, true , false,"Input buffer flag signals"),
+									 Boolean.class, true , false,"Input buffer flag signals"),
 		FLOWCONTROL_XOUT_ONOFF_ENABLED	("OUT XonXoff enabled",
-									Boolean.class, true , false,"Output buffer flag signals"),
+									 Boolean.class, true , false,"Output buffer flag signals"),
 		FLOWCONTROL_REQUEST_TO_SEND_ENABLED		("RTS enabled",
-									Boolean.class, true , false,"Request To Send"),
+									 Boolean.class, true , false,"Request To Send"),
 		FLOWCONTROL_CLEAR_TO_SEND_ENABLED		("CTS enabled",
-									Boolean.class, true , false,"Clear To Send")
+									 Boolean.class, true , false,"Clear To Send")
 	;
 	
 	public final Class<? extends Enum> 
@@ -54,7 +54,7 @@ public enum SPCSetting {
 	
 	public Class<? extends Object> clas;
 	
-	enum protocallOptions{
+	enum protocallOptions{		//j-serial? j-serial-retardation, why can we not tell what protocol is being used??? there;s a enable rj485 option but no way to check if its in use  
 			RS232	("RS232"),
 			RS485	("RS485")
 		;
@@ -164,6 +164,7 @@ public enum SPCSetting {
  * c&p
  * 
  * SPCSettings
+
 SYSTEM_PORT_NAME
 SYSTEM_PORT_PATH
 SYSTEM_PORT_LOCATION

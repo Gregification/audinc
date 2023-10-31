@@ -28,8 +28,10 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 		try(var br = new BufferedReader(new FileReader(srcFile))){
 			var sb = new StringBuilder();
 			
-			for(String line; (line = br.readLine()) != null;)
+			for(String line; (line = br.readLine()) != null;) {
 				sb.append(line);
+				sb.append('\n');
+			}
 			
 			this.textContent.setText(sb.toString());
 		} catch (FileNotFoundException e) { // TODO Auto-generated catch block
@@ -62,8 +64,6 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 
 	@Override
 	public void initGUI() {
-		UITabbs.clear();
-		
 		var content = new JPanel(new GridBagLayout());
 			textContent = new JTextArea();
 				textContent.setLineWrap(false);
@@ -71,6 +71,7 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 		
 		content.add(textContent, Presentable.createGbc(0, 0));		
 		
+		UITabbs.clear();
 		UITabbs.put("content", content);
 	}
 	
