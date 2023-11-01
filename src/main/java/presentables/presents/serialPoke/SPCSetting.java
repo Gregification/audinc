@@ -40,7 +40,7 @@ public enum SPCSetting {
 									 Boolean.class, true , false,"Clear To Send")
 	;
 	
-	public final Class<? extends Enum> 
+	public static final Class<? extends Enum> 
 		StopBitOptions 	= stopbitOptions.class,
 		ParityOptions	= parityOptions.class;
 	

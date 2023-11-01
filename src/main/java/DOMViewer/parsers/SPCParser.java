@@ -147,12 +147,26 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 								settings.setSetting(setting, field.getText());
 							});
 					
-					comboBoxFunctions.put(clas, i -> {
-							var s = i.toString();
-							if(!s.isBlank())	field.setText(s);
-							
-							return null;
-						});
+						Object ref; 
+					if((ref = setting.choosableValues[0]) instanceof Enum) {
+						if(SPCSetting.ParityOptions.isInstance(ref)) {
+							comboBoxFunctions.put(clas, i -> {
+								var s = i.toString();
+								if(!s.isBlank()) {
+									
+								}
+								
+								return null;
+							});
+						}
+					}else {
+						comboBoxFunctions.put(clas, i -> {
+								var s = i.toString();
+								if(!s.isBlank())	field.setText(s);
+								
+								return null;
+							});
+					}
 					
 					comp = field;
 				} else {
@@ -164,7 +178,11 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 						: "cannot create a combobox without a function. you forgot to make a function for objects of class: " + clas;
 					
 					JButton comboBtn = getComboButton(setting, comboBoxFunctions.get(clas));
-					//switch-er-roo, to make [comp] contain [comboBtn] and the original value of itself([comp])
+					
+					/*
+					 * switch-er-roo, to make [comp] contain [comboBtn] and the original value of itself([comp])
+					 * TODO: make [comboBtn]'s size constant regardless of how the other component get resized 
+					 */
 					var newComp = new JPanel(new GridBagLayout());
 					float scale = 1f;
 					comboBtn.setPreferredSize(new Dimension((int)(MainWin.stdtabIconSize.width * scale), (int)(MainWin.stdtabIconSize.height * scale)));
