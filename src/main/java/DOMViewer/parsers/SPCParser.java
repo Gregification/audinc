@@ -63,7 +63,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 		settingsPanel = new JPanel(new GridBagLayout());
 		
 		int offx = 0;
-		var comboBoxFunctions = new HashMap<Class<? extends Object>, Function<JMenuItem, Void>>();
+		var comboBoxFunctions = new HashMap<Class<? extends Object>, Function<Object, Void>>();
 		
 		for(var setting : SPCSettings.AvaliableSettings) {
 			int y = setting.ordinal();
@@ -71,6 +71,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 			var label = new JLabel(setting.toString());
 				if(!setting.description.isBlank())
 					label.setToolTipText(setting.description);
+				
 			settingsPanel.add(
 					label,
 					Presentable.createGbc(offx, y));
@@ -143,23 +144,34 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 				} else if(clas == String.class) {
 					var field = new JTextField();
 						field.setText(value == null ? "undefined" : value.toString());
+					
+					Class<? extends Object> ref;
+					if((ref = setting.choosableValues[0].getClass()).isEnum()) {
+						field.setEditable(false);
+						
+						comboBoxFunctions.put(clas, i -> {
+							try {
+								Enum selectedEnum;
+								if(SPCSetting.ParityOptions == ref) {
+									selectedEnum = SPCSetting.ParityOptions.cast(i);
+								}else if(SPCSetting.StopBitOptions == ref) {
+									selectedEnum = SPCSetting.StopBitOptions.cast(i);
+								} else {
+									throw new UnsupportedOperationException("enum of class | " + ref + " | not implimented in SPCParser.clases are listed form SPCSetting.choosableValues"); 
+								}
+
+								field.setText(selectedEnum.toString());
+								settings.setSetting(setting, selectedEnum);
+							}catch(ClassCastException cce) { }//do nothing
+							
+							return null;
+						});
+						
+					}else {
 						field.addActionListener(e ->{
 								settings.setSetting(setting, field.getText());
 							});
-					
-						Object ref; 
-					if((ref = setting.choosableValues[0]) instanceof Enum) {
-						if(SPCSetting.ParityOptions.isInstance(ref)) {
-							comboBoxFunctions.put(clas, i -> {
-								var s = i.toString();
-								if(!s.isBlank()) {
-									
-								}
-								
-								return null;
-							});
-						}
-					}else {
+						
 						comboBoxFunctions.put(clas, i -> {
 								var s = i.toString();
 								if(!s.isBlank())	field.setText(s);
@@ -247,7 +259,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 		return EnumSet.allOf(Variations.class);
 	}
 	
-	private JButton getComboButton(SPCSetting setting, Function<JMenuItem, Void> dollarStoreActionListener) {
+	private JButton getComboButton(SPCSetting setting, Function<Object, Void> dollarStoreActionListener) {
 		var btn = new JButton("...");
 			btn.addActionListener(new ActionListener() {
 				JPopupMenu menu = null;
@@ -259,7 +271,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 						for(var v : setting.choosableValues) {
 							var mi = new JMenuItem(v.toString());
 								mi.addActionListener(ev -> {
-										dollarStoreActionListener.apply(mi);
+										dollarStoreActionListener.apply(v);
 									});
 								
 							menu.add(mi);
