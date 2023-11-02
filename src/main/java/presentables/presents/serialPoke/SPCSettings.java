@@ -30,7 +30,6 @@ public class SPCSettings {
 	protected EnumSet<SPCSetting>			modifiedSettings		= EnumSet.noneOf(SPCSetting.class);
 	
 	public static SPCSettings getSettings(SerialPort sp) 	{
-		System.out.println("SPCSettings>constructor>avaliable settings: " + SPCSettings.AvaliableSettings);
 		var s = new SPCSettings();
 		s.rebase(sp);
 		return s;
@@ -157,6 +156,10 @@ public class SPCSettings {
 		return SPCSettings.fetchSetting(setting, sp);
 	}
 	
+	public EnumSet<SPCSetting> getModifiedSettings(){
+		return modifiedSettings;
+	}
+	
 ///////////////////
 //save & load
 ///////////////////
@@ -189,14 +192,17 @@ public class SPCSettings {
 					DOMParser.parseValue_stringers.containsKey(clas) ||
 					DOMParser.parseValue.containsKey(clas) 
 				: "SPCSetting contains a unknown class. unable to parse : " + clas;
-			
-			if(DOMParser.parseValue_stringers.containsKey(clas))
-				value = DOMParser.parseValue_stringers.get(clas).apply(br.readLine());
-			else
-				value = DOMParser.parseValue.get(clas).apply(br);
-			
-			settings.put(loadedSetting, value);
-			modifiedSettings.add(loadedSetting);
+			try {
+				if(DOMParser.parseValue_stringers.containsKey(clas))
+					value = DOMParser.parseValue_stringers.get(clas).apply(br.readLine());
+				else
+					value = DOMParser.parseValue.get(clas).apply(br);
+				
+				settings.put(loadedSetting, value);
+				modifiedSettings.add(loadedSetting);
+			}catch(IllegalArgumentException e) {
+				throw new IllegalArgumentException("bad parser, fix in DOMParser or SPCSetting.\n  Given setting: " + loadedSetting + "\n  attempted parse by: " + clas, e);
+			}
 		}
 	}
 }

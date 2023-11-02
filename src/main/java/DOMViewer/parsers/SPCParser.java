@@ -2,6 +2,7 @@ package DOMViewer.parsers;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -38,6 +39,7 @@ import presentables.presents.serialPoke.SPCSettings;
 public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>{
 	public SPCSettings settings;
 	private JPanel settingsPanel;
+	private HashMap<SPCSetting, Function<Object, Void>> functionsToUpdateUI;
 	
 	public SPCParser(File file) {
 		super(file);
@@ -51,8 +53,9 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 
 	@Override
 	public void SaveToFile(File file) {
-		// TODO Auto-generated method stub
-		
+		try(BufferedWriter br = new BufferedWriter(new FileWriter(file))){
+			settings.writeTo(br);
+		} catch(IOException e) { }
 	}
 	
 	@Override public void init() {
@@ -63,7 +66,8 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 		settingsPanel = new JPanel(new GridBagLayout());
 		
 		int offx = 0;
-		var comboBoxFunctions = new HashMap<Class<? extends Object>, Function<Object, Void>>();
+		functionsToUpdateUI 	= new HashMap<>();
+		var comboBoxFunctions 	= new HashMap<Class<? extends Object>, Function<Object, Void>>(); //memoized
 		
 		for(var setting : SPCSettings.AvaliableSettings) {
 			int y = setting.ordinal();
@@ -81,44 +85,61 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 			assert settings != null : "top setting";
 			assert settings.settings != null : "sub setting";
 			
-			Object value = settings.settings.get(setting);
-			
 			//add value display
 			if(!setting.isEditable()) {
-				var field = new JTextField(value == null ? "undefined" : value.toString()); //10/10 scalability
+				var field = new JTextField(); //10/10 scalability
 					field.setEditable(false);
+					
+				functionsToUpdateUI.put(setting, o ->{
+						if(o == null)
+							throw new IllegalArgumentException("invalid value, is null?" + (o==null));
+						
+						field.setText(o.toString());
+						return null;
+					});
+					
 				comp = field;
 			}else {	//my fellow Americans we, uhh, this is a great standard , nothing needs corrected
 				var clas = setting.clas;
 				
 				if(clas == Boolean.class) {
 					var c = new JCheckBox();
-					boolean val = value == null ? false : (Boolean)value;
-					
-					c.setEnabled(val);
 					c.addItemListener(e -> {
 							settings.setSetting(setting, e.getStateChange() == ItemEvent.SELECTED);
 						});
 					
-					comboBoxFunctions.put(clas, i -> {
-							throw new UnsupportedOperationException("please dont have a drop down menu for booleans.. correct it in SPCSetting");
+					//no combo box for booleans 
+					
+					functionsToUpdateUI.put(setting, o ->{
+							if(o == null || !(o instanceof Boolean))
+								throw new IllegalArgumentException("invalid value, is null?" + (o==null));
+							
+							c.setSelected((boolean)o);
+							return null;
 						});
 					
 					comp = c;
 				} else if(clas == Integer.class) {
 					JSpinner spinner = new JSpinner(
 							new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
-						spinner.setValue(value == null ? 0 : value);
 					  	spinner.addChangeListener(e -> {
 					  			settings.setSetting(setting, (int)spinner.getModel().getValue());
 					  		});
 					  	
-					comboBoxFunctions.put(clas, i -> {
+					comboBoxFunctions.putIfAbsent(clas, i -> {
 							var s = i.toString();
 							if(!s.isBlank())
 								try { spinner.setValue(DOMParser.parseValue_stringers.get(clas).apply(s));
 								}catch(NumberFormatException e) {}
 							
+							return null;
+						});
+					
+					functionsToUpdateUI.put(setting, o ->{
+							if(o == null || !(o instanceof Integer))
+								throw new IllegalArgumentException("invalid value, is null?" + (o==null));
+							
+							spinner.getModel().setValue(o);
 							return null;
 						});
 					  	
@@ -126,12 +147,11 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 				} else if(clas == Double.class || clas == Float.class) {
 					JSpinner spinner = new JSpinner(
 								new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, .1)); //no point in this being big
-							spinner.setValue(value == null ? 0 : value);
 							spinner.addChangeListener(e -> {
 						  			settings.setSetting(setting, (Double)spinner.getModel().getValue());
 						  		});
 							
-					comboBoxFunctions.put(clas, i -> {
+					comboBoxFunctions.putIfAbsent(clas, i -> {
 							var s = i.toString();
 							if(!s.isBlank())
 								try { spinner.setValue(DOMParser.parseValue_stringers.get(clas).apply(s));
@@ -139,50 +159,57 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 								
 								return null;
 						});
+					
+					functionsToUpdateUI.put(setting, o ->{
+							if(o == null || !(o instanceof Double || o instanceof Float))
+								throw new IllegalArgumentException("invalid value, is null?" + (o==null));
+							
+							spinner.getModel().setValue(o);
+							return null;
+						});
 							
 					comp = spinner;
 				} else if(clas == String.class) {
 					var field = new JTextField();
-						field.setText(value == null ? "undefined" : value.toString());
 					
-					Class<? extends Object> ref;
-					if((ref = setting.choosableValues[0].getClass()).isEnum()) {
-						field.setEditable(false);
-						
-						comboBoxFunctions.put(clas, i -> {
-							try {
-								Enum selectedEnum;
-								if(SPCSetting.ParityOptions == ref) {
-									selectedEnum = SPCSetting.ParityOptions.cast(i);
-								}else if(SPCSetting.StopBitOptions == ref) {
-									selectedEnum = SPCSetting.StopBitOptions.cast(i);
-								} else {
-									throw new UnsupportedOperationException("enum of class | " + ref + " | not implimented in SPCParser.clases are listed form SPCSetting.choosableValues"); 
-								}
-
-								field.setText(selectedEnum.toString());
-								settings.setSetting(setting, selectedEnum);
-							}catch(ClassCastException cce) { }//do nothing
+					functionsToUpdateUI.put(setting, o ->{
+							if(o == null)	//trust exercise :D . trust that it is a string or a valid enum!
+								throw new IllegalArgumentException("invalid value, is null?" + (o==null));
 							
+							field.setText(o.toString());
 							return null;
 						});
 						
-					}else {
-						field.addActionListener(e ->{
-								settings.setSetting(setting, field.getText());
-							});
-						
-						comboBoxFunctions.put(clas, i -> {
-								var s = i.toString();
-								if(!s.isBlank())	field.setText(s);
-								
-								return null;
-							});
-					}
+					
+					field.addActionListener(e ->{
+							settings.setSetting(setting, field.getText());
+						});
+					
+					comboBoxFunctions.putIfAbsent(clas, i -> {
+							if(i instanceof Enum) {
+								try {
+									Enum selectedEnum;
+									if(SPCSetting.ParityOptions == i.getClass()) {
+										selectedEnum = SPCSetting.ParityOptions.cast(i);
+									}else if(SPCSetting.StopBitOptions == i.getClass()) {
+										selectedEnum = SPCSetting.StopBitOptions.cast(i);
+									} else {
+										throw new UnsupportedOperationException("enum of class | " + i.getClass() + " | not implimented in SPCParser.clases are listed form SPCSetting.choosableValues"); 
+									}
+	
+									functionsToUpdateUI.get(setting).apply(selectedEnum);
+									settings.setSetting(setting, selectedEnum);
+								}catch(ClassCastException cce) { }//do nothing
+							} else {
+								field.setText(i.toString());
+							}
+							field.setText(i.toString());
+							return null;
+						});
 					
 					comp = field;
 				} else {
-					throw new RuntimeException("non-implimented class in SPCSetting:"  + clas);
+					throw new UnsupportedOperationException("non-implimented class in SPCSetting:"  + clas);
 				}
 				
 				if(setting.choosableValues != null && setting.choosableValues.length > 1) {
@@ -196,17 +223,22 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 					 * TODO: make [comboBtn]'s size constant regardless of how the other component get resized 
 					 */
 					var newComp = new JPanel(new GridBagLayout());
+					
 					float scale = 1f;
 					comboBtn.setPreferredSize(new Dimension((int)(MainWin.stdtabIconSize.width * scale), (int)(MainWin.stdtabIconSize.height * scale)));
-					newComp.add(comboBtn, Presentable.createGbc(0, 0));
+					var c = Presentable.createGbc(0, 0);
+						c.fill = GridBagConstraints.NONE;
+						
+					newComp.add(comboBtn, c);
 					newComp.add(comp, Presentable.createGbc(1, 0));
+					
 					comp = newComp;
 				}
 				
 			}
 			
 			
-			//disable if not hot swappable
+			//make visual indication if a setting is hot swappable
 			if(setting.isHotSwappable) {
 				var highlight = new Color(107,62,3);
 				label.setForeground(highlight);
@@ -223,8 +255,11 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 	
 	@Override
 	public void updateGUI() {
-		// TODO Auto-generated method stub
-		
+		for(var setting : SPCSettings.AvaliableSettings) {
+			Object value = settings.settings.get(setting);
+			if(value != null)
+				functionsToUpdateUI.get(setting).apply(value);
+		}
 	}
 
 	@Override
@@ -283,5 +318,9 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 				
 			});
 		return btn;
+	}
+
+	@Override public boolean isModified() {
+		return this.isModified = this.settings.getModifiedSettings().size() != 0;
 	}
 }

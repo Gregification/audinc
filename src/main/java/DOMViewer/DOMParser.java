@@ -87,6 +87,7 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 	
 	/*
 	 * things w/ custom writers
+	 * - if it is in parseValue_stringers only, then Object.toString() will be used to write data
 	 */
 	public final static Map<Class<? extends Object>, Function<BufferedWriter, Object>> writeValue = Map.of(
 				

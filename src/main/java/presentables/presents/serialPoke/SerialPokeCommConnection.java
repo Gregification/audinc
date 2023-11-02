@@ -199,6 +199,7 @@ public class SerialPokeCommConnection{
 		try(var br =  new BufferedReader(new FileReader(src.toFile()))) {
 			settingsParser.settings.rebase(sp);
 			br.close();
+			settingsParser.updateGUI();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -232,9 +233,29 @@ public class SerialPokeCommConnection{
 		genUI_tab_settings();
 		genUI_tab_liveInfo();
 		
+		content_tabb.addChangeListener(new ChangeListener() {
+				@Override public void stateChanged(ChangeEvent e) {
+					var selectedComponent = content_tabb.getSelectedComponent(); 
+					
+					if(selectedComponent.equals(viewer)) {
+						viewer.updateMeta();
+					}else if(selectedComponent.equals(settingsParser)) {
+						settingsParser.updateGUI();
+					}
+					
+					//save settings if there has been any changes
+					onSaveSettingsClick(false);
+				}
+				
+			});
+		
 		content.add(content_tabb, BorderLayout.CENTER);
 	}
-	
+	public void onSaveSettingsClick(boolean forceSave) {
+		if(forceSave || settingsParser.isModified()) {
+			settingsParser.SaveToFile(settingsParser.srcFile);
+		}
+	}
 	public void onSelectSettingFileClick() {
 		JFileChooser fc = new JFileChooser(settingsParser.getPath().getParent().toAbsolutePath().toString());
 		
@@ -488,12 +509,6 @@ public class SerialPokeCommConnection{
 				MainWin.getImageIcon("res/note.png", MainWin.stdtabIconSize),
 				viewer,
 				"seral port settings and info");
-		content_tabb.addChangeListener(e -> {
-				var selectedComponent = content_tabb.getSelectedComponent(); 
-				if(selectedComponent.equals(viewer)) {
-					viewer.updateMeta();
-				}
-			});
 	}
 	
 	private void genUI_tab_liveInfo() {
