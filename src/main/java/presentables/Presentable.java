@@ -67,7 +67,6 @@ public abstract class Presentable {
 	}
 	public static Path makeRoot(Class<? extends Presentable> clas, Path extension) {
 		Path path = Presentable.getRoot(clas);
-		
 		var file = path.toFile();
 		if(!file.exists()) {
 			try {
@@ -77,15 +76,16 @@ public abstract class Presentable {
 			}
 		}
 		
-		System.out.println("presentable>makeroot, dir path: \t\t" + path.toAbsolutePath().toString());
-		System.out.println("does dir exist? " + file.exists());
+//		System.out.println("presentable>makeroot, dir path: \t\t" + path.toAbsolutePath().toString());
+//		System.out.println("does dir exist? " + file.exists());
 		
-		var extPath = path.resolve(extension);
+		var extPath = path.resolve(extension).toAbsolutePath();
 		if(!extPath.toFile().exists()) {
 			try {
-				System.out.println("presentable>makeroot, full path: \t\t" + extPath.toFile().toString());
+//				System.out.println("presentable>makeroot, full path: \t\t" + extPath.toFile().toString());
 				Files.createFile(extPath);
 			} catch (IOException e) {
+				System.out.println("error!");
 				e.printStackTrace();
 			}
 		}

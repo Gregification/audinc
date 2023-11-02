@@ -1,1 +1,0 @@
-text here will be read if i can ever find a FreeTTS distrobution that dosent have inherient fatal errors.     >:( test

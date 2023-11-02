@@ -174,11 +174,8 @@ public class SerialPoke extends Presentable{
 	}
 	
 	private void onNewEditorSelect(JTabbedPane tabbedPane) {
-//		String title = editorTab_portDescriptor_txt.getText();
-		String title = tabbedPane.getTabCount() + "." + editorTab_portDescriptor_txt.getText();
+		String title = " " + editorTab_portDescriptor_txt.getText();	//why leading ' ' ? see -> (tldr: is windows reserved file name) -> https://discord.com/channels/648956210850299986/1169668074413232238
 		SerialPort sp = SerialPort.getCommPort(editorTab_portDescriptor_txt.getText());
-		
-		System.out.println("serialpoke>onNewEditorSelect, title:" + title);
 		
 		SerialPokeCommConnection spcc = new SerialPokeCommConnection(sp, title);
 		if(spcc.content == null) return;
