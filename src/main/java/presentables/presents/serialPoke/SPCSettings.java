@@ -170,7 +170,13 @@ public class SPCSettings {
 			bw.newLine();
 			
 			if(DOMParser.parseValue_stringers.containsKey(clas)) {
-				bw.write(settings.get(setting).toString());
+				String string;
+				if(clas.isEnum())
+					string = ((Enum)settings.get(setting)).name();
+				else
+					string = settings.get(setting).toString();
+				
+				bw.write(string);
 				bw.newLine();
 			}
 			else
@@ -195,13 +201,16 @@ public class SPCSettings {
 			try {
 				if(DOMParser.parseValue_stringers.containsKey(clas))
 					value = DOMParser.parseValue_stringers.get(clas).apply(br.readLine());
-				else
+				else {
+					assert DOMParser.parseValue.containsKey(clas) : "class | " + clas + " | is not listed in as a Stringer or given a parsing method";
+					
 					value = DOMParser.parseValue.get(clas).apply(br);
+				}
 				
 				settings.put(loadedSetting, value);
 				modifiedSettings.add(loadedSetting);
 			}catch(IllegalArgumentException e) {
-				throw new IllegalArgumentException("bad parser, fix in DOMParser or SPCSetting.\n  Given setting: " + loadedSetting + "\n  attempted parse by: " + clas, e);
+				System.err.println("SPCSettings > rebase : bad parse, either bad source file or the parser itself. fix in DOMParser or SPCSetting.\n  Given setting: " + loadedSetting + "\n  attempted parse by: " + clas);
 			}
 		}
 	}

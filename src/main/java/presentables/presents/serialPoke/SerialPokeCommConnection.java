@@ -192,27 +192,15 @@ public class SerialPokeCommConnection{
 		if(!src.toFile().exists())
 			return false;
 		
-		settingsParser = new SPCParser(src.toFile());
-		
-		settingsParser.settings = SPCSettings.getSettings(sp);
-		
-		try(var br =  new BufferedReader(new FileReader(src.toFile()))) {
-			settingsParser.settings.rebase(sp);
-			br.close();
-			settingsParser.updateGUI();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		if(settingsParser == null || src.toAbsolutePath().toFile().equals(settingsParser.srcFile)) {
+			settingsParser = new SPCParser(src.toFile());
+			viewer.setParser(settingsParser);
 		}
 		
-		if(settingsParser.settings.modifiedSettings.size() > 0) {
-			settingsParser.settings.applyModified(sp);
-		}
+		settingsParser.ParseFile();
+		settingsParser.updateGUI();
 		
-		viewer.setParser(settingsParser);
-		
-		System.out.println("serial poke comm connection > setSettingsTo (of " + settingsParser.settings.modifiedSettings.size() + " changed) -> src:" + src);
+		System.out.println("serial poke comm connection > setSettingsTo (" + settingsParser.settings.modifiedSettings.size() + " changed) -> src:" + src);
 		
 		return true;
 	}

@@ -67,7 +67,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 		
 		int offx = 0;
 		functionsToUpdateUI 	= new HashMap<>();
-		var comboBoxFunctions 	= new HashMap<Class<? extends Object>, Function<Object, Void>>(); //memoized
+		var comboBoxFunctions 	= new HashMap<Class<? extends Object>, Function<Object, Void>>(); //handles what happens when a ui element is selected. actually changes setting value
 		
 		for(var setting : SPCSettings.AvaliableSettings) {
 			int y = setting.ordinal();
@@ -129,7 +129,10 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 					comboBoxFunctions.putIfAbsent(clas, i -> {
 							var s = i.toString();
 							if(!s.isBlank())
-								try { spinner.setValue(DOMParser.parseValue_stringers.get(clas).apply(s));
+								try { 
+									Object value = DOMParser.parseValue_stringers.get(clas).apply(s);
+									if(value != null)
+										spinner.setValue(value);
 								}catch(NumberFormatException e) {}
 							
 							return null;
@@ -154,14 +157,14 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 					comboBoxFunctions.putIfAbsent(clas, i -> {
 							var s = i.toString();
 							if(!s.isBlank())
-								try { spinner.setValue(DOMParser.parseValue_stringers.get(clas).apply(s));
-								}catch(NumberFormatException e) {}
-								
+								try { 
+									spinner.setValue(DOMParser.parseValue_stringers.get(clas).apply(s));
+								}catch(NumberFormatException e) {} //do nothing
 								return null;
 						});
 					
 					functionsToUpdateUI.put(setting, o ->{
-							if(o == null || !(o instanceof Double || o instanceof Float))
+							if(!(o instanceof Double || o instanceof Float))
 								throw new IllegalArgumentException("invalid value, is null?" + (o==null));
 							
 							spinner.getModel().setValue(o);
@@ -173,9 +176,6 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 					var field = new JTextField();
 					
 					functionsToUpdateUI.put(setting, o ->{
-							if(o == null)	//trust exercise :D . trust that it is a string or a valid enum!
-								throw new IllegalArgumentException("invalid value, is null?" + (o==null));
-							
 							field.setText(o.toString());
 							return null;
 						});
@@ -185,27 +185,50 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 							settings.setSetting(setting, field.getText());
 						});
 					
-					comboBoxFunctions.putIfAbsent(clas, i -> {
-							if(i instanceof Enum) {
-								try {
-									Enum selectedEnum;
-									if(SPCSetting.ParityOptions == i.getClass()) {
-										selectedEnum = SPCSetting.ParityOptions.cast(i);
-									}else if(SPCSetting.StopBitOptions == i.getClass()) {
-										selectedEnum = SPCSetting.StopBitOptions.cast(i);
-									} else {
-										throw new UnsupportedOperationException("enum of class | " + i.getClass() + " | not implimented in SPCParser.clases are listed form SPCSetting.choosableValues"); 
-									}
-	
-									functionsToUpdateUI.get(setting).apply(selectedEnum);
-									settings.setSetting(setting, selectedEnum);
-								}catch(ClassCastException cce) { }//do nothing
-							} else {
-								field.setText(i.toString());
-							}
-							field.setText(i.toString());
+					comboBoxFunctions.putIfAbsent(clas, o -> {
+							if(o == null) throw new IllegalArgumentException("invalid value, is null?" + (o==null));
+						
+							field.setText(o.toString());
 							return null;
 						});
+					
+					comp = field;
+				} else if(clas == SPCSetting.StopBitOptions){
+					var field = new JTextField();
+						field.setEditable(false);
+					functionsToUpdateUI.put(setting, o ->{ field.setText(o.toString()); return null; });
+						
+					comboBoxFunctions.putIfAbsent(clas, i ->{
+							assert SPCSetting.StopBitOptions== i.getClass()
+									: "something broke else where! check this.updateGUI() for leads";
+							try {
+								Enum selectedEnum = SPCSetting.StopBitOptions.cast(i);	
+		
+								functionsToUpdateUI.get(setting).apply(selectedEnum);
+								settings.setSetting(setting, selectedEnum);
+							}catch(ClassCastException cce) { }//do nothing
+							
+							return null;
+						});
+					
+					comp = field;
+				} else if(clas == SPCSetting.ParityOptions){
+					var field = new JTextField();
+						field.setEditable(false);	
+					functionsToUpdateUI.put(setting, o ->{ field.setText(o.toString()); return null; });
+						
+					comboBoxFunctions.putIfAbsent(clas, i ->{
+						assert SPCSetting.ParityOptions == i.getClass()
+								: "something broke else where! check this.updateGUI() for leads";
+						try {
+							Enum selectedEnum = SPCSetting.ParityOptions.cast(i);	
+	
+							functionsToUpdateUI.get(setting).apply(selectedEnum);
+							settings.setSetting(setting, selectedEnum);
+						}catch(ClassCastException cce) { }//do nothing
+						
+						return null;
+					});
 					
 					comp = field;
 				} else {
@@ -213,6 +236,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 				}
 				
 				if(setting.choosableValues != null && setting.choosableValues.length > 1) {
+					assert comp != null : "forgot to assign [comp] for objects of class:" + clas;
 					assert comboBoxFunctions.containsKey(clas) 
 						: "cannot create a combobox without a function. you forgot to make a function for objects of class: " + clas;
 					
@@ -257,8 +281,11 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 	public void updateGUI() {
 		for(var setting : SPCSettings.AvaliableSettings) {
 			Object value = settings.settings.get(setting);
-			if(value != null)
+			if(value != null) {
+				assert functionsToUpdateUI.containsKey(setting) : "forgot to make a [functinosToUpdateUI] entry for settings: " + setting;
+				
 				functionsToUpdateUI.get(setting).apply(value);
+			}
 		}
 	}
 

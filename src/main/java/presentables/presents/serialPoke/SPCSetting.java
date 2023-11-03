@@ -4,7 +4,7 @@ import java.util.EnumSet;
 
 /*
  * if adding a class object type that is formerly unlisted make sure to include it in the file related constructors of [SPCSettings.java]
- * - enums must have a class of String.class!
+ * - enums must use their own class!
  */
 public enum SPCSetting {
 		//(String:title, Class:object type, Boolean:allowCustomValue, Boolean:isHowSwappable, String:description, Object[]:choosableValues)
@@ -16,15 +16,15 @@ public enum SPCSetting {
 		SYSTEM_PORT_LOCATION		("port location",
 									 String.class, 	false, 		"port location as defined by the system"),
 		DESCRIPTIVE_PORT_NAME		(String.class ,	false,		"port name as defined by this program"),
-		PORT_DESCRIPTION			(String.class, false, 		""),
-		PORT_LOCATION				(String.class, false, 		""),
+		PORT_DESCRIPTION			(String.class, 	false, 		""),
+		PORT_LOCATION				(String.class,	false, 		""),
 		BAUD_RATE					(Integer.class, true ,		"baud rate for communication of this clients connection"),
 		DEVICE_WRITE_BUFFER_SIZE	(Integer.class, false, 		"write size (bytes) for this device"),
 		DEVICE_READ_BUFFER_SIZE		(Integer.class, false,		"read size (bytes) of the this devices buffer"),
-		VENDOR_ID					(String.class, false,		""),
+		VENDOR_ID					(String.class, 	false,		""),
 		DATA_BITS_PER_WORD			(Integer.class, false,		""),
-		NUM_STOP_BITS				(String.class ,	false,		"", (Object[])(stopbitOptions.values())),
-		PARITY						(String.class, 	false,		"", (Object[])(parityOptions.values())),
+		NUM_STOP_BITS				(stopbitOptions.class,	false,		"", (Object[])(stopbitOptions.values())),
+		PARITY						(parityOptions.class , 	false,		"", (Object[])(parityOptions.values())),
 		TIMEOUT_READ				(Integer.class, true ,		"time out in miliseconds before a packet is considered lost"),
 		TIMEOUT_WRITE				(Integer.class, true ,		"time out in miliseconds before a write attempt is givenup"),
 		FLOWCONTROL_DATA_SET_READY_ENABLED		("DSR enabled",

@@ -16,6 +16,7 @@ import javax.swing.JTextField;
 //import org.apache.commons.io.FilenameUtils;	//see Maven pom.xml dependency, groupID & artifactDI:"commons-io"
 
 import DOMViewer.parsers.*;
+import presentables.presents.serialPoke.SPCSetting;
 
 /*
  * file parser. is not directly involved in UI operations or creation(that is handled by the [DOMView] class)
@@ -75,7 +76,9 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 			Integer.class	, Integer	:: parseInt,
 			Double.class	, Double	:: parseDouble,
 			Float.class		, Float		:: parseFloat,
-			String.class	, s 		-> s
+			String.class	, s 		-> s,
+			SPCSetting.StopBitOptions	, s -> Enum.valueOf(SPCSetting.StopBitOptions, s),
+			SPCSetting.ParityOptions	, s -> Enum.valueOf(SPCSetting.ParityOptions, s)
 		);
 	
 	/*
