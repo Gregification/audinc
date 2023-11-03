@@ -133,16 +133,13 @@ public class SPCSettings {
 		applyModified(sp);
 	}
 	
-	public boolean setSetting(SPCSetting setting, Object value) {
-		System.out.println("SPCSetting>changing value of setting: " + setting + " \t to value: " + value);
-		
-		assert 
-				value.getClass().isInstance(setting.clas)||
+	public boolean setSetting(SPCSetting setting, Object value) {		
+		assert 	value.getClass().isInstance(setting.clas)||
 				value.getClass().equals(setting.clas)
-			: "bruh\nexpected:" + setting.clas + "\nvalue:" + value.getClass();//given [value] foes not match the accepted data type
+			: "bruh\n expected:" + setting.clas + "\n got:" + value.getClass();//given [value] foes not match the accepted data type
 		
 		if(value == null || !SPCSetting.isEditable(setting)) {
-			System.out.println("SPCSetting>failed to change value, is readonly:" + setting);
+			System.out.println("SPCSettings> setSetting: failed to change value, is readonly:" + setting);
 			return false;
 		}
 		
@@ -166,18 +163,24 @@ public class SPCSettings {
 	public void writeTo(BufferedWriter bw) throws IOException{
 		for(var setting : AvaliableSettings) {
 			var clas = setting.clas;
-			bw.write(setting.name());
-			bw.newLine();
 			
 			if(DOMParser.parseValue_stringers.containsKey(clas)) {
-				String string;
 				if(clas.isEnum())
-					string = ((Enum)settings.get(setting)).name();
-				else
-					string = settings.get(setting).toString();
-				
-				bw.write(string);
-				bw.newLine();
+					try {
+						String string = ((Enum)settings.get(setting)).name(); //throws exception
+						
+						bw.write(setting.name());
+						bw.newLine();
+						
+						bw.write(string);
+						bw.newLine();
+					}catch (ClassCastException cce) { } //invalid... for some reason. idk, not saving it => it should fix itself the next time it loads
+				else {
+					bw.write(setting.name());
+					bw.newLine();
+					bw.write(settings.get(setting).toString());
+					bw.newLine();
+				}
 			}
 			else
 				DOMParser.writeValue.get(clas).apply(bw);
@@ -189,7 +192,11 @@ public class SPCSettings {
 		SPCSetting loadedSetting = null;
 		
 		for(String line;(line = br.readLine()) != null && count > 0; count--) {
-			loadedSetting = SPCSetting.valueOf(line);
+			try {
+				loadedSetting = SPCSetting.valueOf(line);
+			}catch(ClassCastException | IllegalArgumentException e) {	//skips invalid or blank lines 
+				continue;
+			}
 			
 			Object value = null;
 			var clas = loadedSetting.clas;
@@ -199,16 +206,21 @@ public class SPCSettings {
 					DOMParser.parseValue.containsKey(clas) 
 				: "SPCSetting contains a unknown class. unable to parse : " + clas;
 			try {
-				if(DOMParser.parseValue_stringers.containsKey(clas))
-					value = DOMParser.parseValue_stringers.get(clas).apply(br.readLine());
+				if(DOMParser.parseValue_stringers.containsKey(clas)) {
+					String ln = br.readLine();
+					if(ln != null && !ln.isBlank())
+						value = DOMParser.parseValue_stringers.get(clas).apply(ln);
+				}
 				else {
 					assert DOMParser.parseValue.containsKey(clas) : "class | " + clas + " | is not listed in as a Stringer or given a parsing method";
 					
 					value = DOMParser.parseValue.get(clas).apply(br);
 				}
 				
-				settings.put(loadedSetting, value);
-				modifiedSettings.add(loadedSetting);
+				if(value != null) {
+					settings.put(loadedSetting, value);
+					modifiedSettings.add(loadedSetting);
+				}
 			}catch(IllegalArgumentException e) {
 				System.err.println("SPCSettings > rebase : bad parse, either bad source file or the parser itself. fix in DOMParser or SPCSetting.\n  Given setting: " + loadedSetting + "\n  attempted parse by: " + clas);
 			}

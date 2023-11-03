@@ -48,14 +48,14 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 	@Override public void ParseFile() {
 		try(var br = new BufferedReader(new FileReader(srcFile))){
 			settings.rebaseFrom(br);
-		} catch (IOException e) { e.printStackTrace(); }
+		} catch (IOException e) { }
 	}
 
 	@Override
 	public void SaveToFile(File file) {
 		try(BufferedWriter br = new BufferedWriter(new FileWriter(file))){
 			settings.writeTo(br);
-		} catch(IOException e) { }
+		} catch(IOException e) { }	//not out problem anymore
 	}
 	
 	@Override public void init() {
