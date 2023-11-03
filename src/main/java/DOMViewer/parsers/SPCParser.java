@@ -7,7 +7,6 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.io.*;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -22,10 +21,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
-import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 import DOMViewer.DOMParser;
 import audinc.gui.MainWin;
@@ -99,7 +95,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 					});
 					
 				comp = field;
-			}else {	//my fellow Americans we, uhh, this is a great standard , nothing needs corrected
+			} else {	//my fellow Americans we, uhh, this is a great standard , nothing needs corrected
 				var clas = setting.clas;
 				
 				if(clas == Boolean.class) {

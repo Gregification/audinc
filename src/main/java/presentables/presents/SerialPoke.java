@@ -163,14 +163,15 @@ public class SerialPoke extends Presentable{
 //gui
 ///////////////////
 	private void onEditorTabSelect() {
-		//update table
-		for(var v : SerialPort.getCommPorts()) {
-			System.out.println(v.toString());
+		//clear table
+		commTable_model.setRowCount(0);
+		
+		//repopulate table
+		for(var v : SerialPort.getCommPorts())
 			commTable_model.addRow(new Object[] {v.toString()});
-		}
-		if(commTable_model.getRowCount() == 0) {
+
+		if(commTable_model.getRowCount() == 0)
 			commTable_model.addRow(new Object[] {"no connections found", -1});
-		}
 	}
 	
 	private void onNewEditorSelect(JTabbedPane tabbedPane) {
@@ -265,7 +266,11 @@ public class SerialPoke extends Presentable{
 			+ "<li>see live port events</li>"
 			+ "<li>reroute ports(wip)</li>"
 			+ "</ul>"
-			+ "<b>the ability to multiplex ports is dependent on host machine</b>"
+			+ "<b>disclaimers!</b>"
+			+ "<ul>"
+			+ "<li>the ability to multiplex ports is dependent on host machine</li>"
+			+ "<li>the com port detector is terriable, some ports may appear under a different name, example: a vitrual COM3 connection may appear as \"vitural port\" but the connection name would be \"COM3\". you have to figure that out yourself</li>"
+			+ "</ul"
 			+ "<br>Serial Poke? Cereal Pike!"
 			+ "</body>"; }
 	

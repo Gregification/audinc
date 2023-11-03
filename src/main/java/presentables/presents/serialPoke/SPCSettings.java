@@ -5,12 +5,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-
-import javax.management.RuntimeErrorException;
 
 import com.fazecast.jSerialComm.SerialPort;
 
@@ -27,7 +22,7 @@ public class SPCSettings {
 	public final static List<SPCSetting> 	AvaliableSettings 		= List.of(SPCSetting.values());
 	
 	public ConcurrentHashMap<SPCSetting, Object> settings			= new ConcurrentHashMap<>(SPCSetting.values().length);
-	protected EnumSet<SPCSetting>			modifiedSettings		= EnumSet.noneOf(SPCSetting.class);
+	protected EnumSet<SPCSetting>			modifiedSettings		= EnumSet.noneOf(SPCSetting.class);	//from either file or port, whichever was last updated
 	
 	public static SPCSettings getSettings(SerialPort sp) 	{
 		var s = new SPCSettings();
@@ -161,6 +156,7 @@ public class SPCSettings {
 //save & load
 ///////////////////
 	public void writeTo(BufferedWriter bw) throws IOException{
+		modifiedSettings.clear();
 		for(var setting : AvaliableSettings) {
 			var clas = setting.clas;
 			
@@ -190,6 +186,7 @@ public class SPCSettings {
 	public void rebaseFrom(BufferedReader br) throws IOException {
 		int count = SPCSettings.AvaliableSettings.size();//in case of overrun
 		SPCSetting loadedSetting = null;
+		modifiedSettings.clear();
 		
 		for(String line;(line = br.readLine()) != null && count > 0; count--) {
 			try {
@@ -219,7 +216,6 @@ public class SPCSettings {
 				
 				if(value != null) {
 					settings.put(loadedSetting, value);
-					modifiedSettings.add(loadedSetting);
 				}
 			}catch(IllegalArgumentException e) {
 				System.err.println("SPCSettings > rebase : bad parse, either bad source file or the parser itself. fix in DOMParser or SPCSetting.\n  Given setting: " + loadedSetting + "\n  attempted parse by: " + clas);

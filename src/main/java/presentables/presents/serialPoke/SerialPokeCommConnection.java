@@ -2,20 +2,15 @@ package presentables.presents.serialPoke;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Stack;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -32,7 +27,6 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.JToolBar;
-import javax.swing.JTree;
 import javax.swing.SpringLayout;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EtchedBorder;
@@ -48,8 +42,6 @@ import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortDataListener;
 import com.fazecast.jSerialComm.SerialPortEvent;
 
-import DOMViewer.DOMView;
-import DOMViewer.DOModel;
 import DOMViewer.FileViewer;
 import DOMViewer.parsers.SPCParser;
 import audinc.gui.MainWin;
@@ -228,7 +220,7 @@ public class SerialPokeCommConnection{
 					var selectedComponent = content_tabb.getSelectedComponent(); 
 					
 					if(selectedComponent.equals(viewer)) {
-						viewer.updateMeta();
+						viewer.updateMeta(viewer.getParser().getPath());
 					}else if(selectedComponent.equals(settingsParser)) {
 						settingsParser.updateGUI();
 					}
@@ -582,19 +574,24 @@ public class SerialPokeCommConnection{
 	}
 	
 	private void genUI_tab_editor() {
-		JPanel tab_cont = new JPanel();
+		JPanel tab_cont = new JPanel(new WrapLayout());
+		
+		var applySettingButton = new JButton("apply settings");
 		
 		JCheckBox jcb_toggleport = new JCheckBox("port enabled", sp.isOpen());
 			jcb_toggleport.setToolTipText("open/close port. ");
 			jcb_toggleport.addItemListener(il -> {
+					
 				 	if(il.getStateChange() == ItemEvent.SELECTED) {
 				 		int delay = 200;
-	        			setNoticeText("opening port ("+delay+"mil delay)... ", Color.black);
-	        			appendNoticeText((sp.openPort(delay) ? "success" : "failed" ), Color.black);
+	        			setNoticeText((sp.openPort(delay) ? "port is open" : "failed to open port" ), Color.black);
+	        			jcb_toggleport.setSelected(sp.isOpen());
 	        		}else if(il.getStateChange() == ItemEvent.DESELECTED) { 
-	        			setNoticeText("closing port ... " , Color.black);
-	        			appendNoticeText((sp.closePort() ? "success" : "failed" ), Color.black);
+	        			if(sp.isOpen())
+	        				setNoticeText((sp.closePort() ? "closed port " : "failed to close port" ), Color.black);
 	        		}
+				 	
+				 	applySettingButton.setEnabled(!sp.isOpen());
 			 	});
 		
 		var selectSettingButton = new JButton("choose settings file");
@@ -602,14 +599,30 @@ public class SerialPokeCommConnection{
 					onSelectSettingFileClick();
 				});
 		
-		var refreshSettingButton = new JButton("reload settings");
+		var refreshSettingButton = new JButton("rebase settings from port");
 			selectSettingButton.addActionListener(e -> {
+					settingsParser.settings.rebase(sp);
 					viewer.updateAll();
+				});
+		
+			
+			applySettingButton.setEnabled(!sp.isOpen());
+			applySettingButton.setToolTipText("port connectoin will be closed to apply");
+			applySettingButton.addActionListener(e -> {
+					jcb_toggleport.setSelected(false);
+					settingsParser.settings.applyAll(sp);
+				});
+		
+		var saveSettingButton = new JButton("save settings to file");
+			saveSettingButton.addActionListener(e -> {
+					onSaveSettingsClick(true);
 				});
 			
 		tab_cont.add(jcb_toggleport);
+		tab_cont.add(saveSettingButton);
 		tab_cont.add(selectSettingButton);
 		tab_cont.add(refreshSettingButton);
+		tab_cont.add(applySettingButton);
 		
 		content_tabb.addTab("editor", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize), tab_cont, "general manager");
 	}
