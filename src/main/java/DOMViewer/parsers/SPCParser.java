@@ -189,7 +189,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 						});
 					
 					comp = field;
-				} else if(clas == SPCSetting.StopBitOptions){
+				} else if(clas == SPCSetting.StopBitOptions){//too much work,for me, to make this some generic method, there's only a finite amount of these anyways so it dosen't have much of a impact
 					var field = new JTextField();
 						field.setEditable(false);
 					functionsToUpdateUI.put(setting, o ->{ field.setText(o.toString()); return null; });
@@ -218,6 +218,25 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 								: "something broke else where! check this.updateGUI() for leads";
 						try {
 							Enum selectedEnum = SPCSetting.ParityOptions.cast(i);	
+	
+							functionsToUpdateUI.get(setting).apply(selectedEnum);
+							settings.setSetting(setting, selectedEnum);
+						}catch(ClassCastException cce) { }//do nothing
+						
+						return null;
+					});
+					
+					comp = field;
+				} else if(clas == SPCSetting.ProtocallOptions){
+						var field = new JTextField();
+						field.setEditable(false);	
+					functionsToUpdateUI.put(setting, o ->{ field.setText(o.toString()); return null; });
+						
+					comboBoxFunctions.putIfAbsent(clas, i ->{
+						assert SPCSetting.ProtocallOptions == i.getClass()
+								: "something broke else where! check this.updateGUI() for leads";
+						try {
+							Enum selectedEnum = SPCSetting.ProtocallOptions.cast(i);	
 	
 							functionsToUpdateUI.get(setting).apply(selectedEnum);
 							settings.setSetting(setting, selectedEnum);

@@ -2,6 +2,8 @@ package presentables.presents.serialPoke;
 
 import java.util.EnumSet;
 
+import com.fazecast.jSerialComm.SerialPort;
+
 /*
  * if adding a class object type that is formerly unlisted make sure to include it in the file related constructors of [SPCSettings.java]
  * - enums must use their own class!
@@ -18,6 +20,7 @@ public enum SPCSetting {
 		DESCRIPTIVE_PORT_NAME		(String.class ,	false,		"port name as defined by this program"),
 		PORT_DESCRIPTION			(String.class, 	false, 		""),
 		PORT_LOCATION				(String.class,	false, 		""),
+		PROTOCALL					(protocallOptions.class, false, "", (Object[])(protocallOptions.values())),
 		BAUD_RATE					(Integer.class, true ,		"baud rate for communication of this clients connection"),
 		DEVICE_WRITE_BUFFER_SIZE	(Integer.class, false, 		"write size (bytes) for this device"),
 		DEVICE_READ_BUFFER_SIZE		(Integer.class, false,		"read size (bytes) of the this devices buffer"),
@@ -43,7 +46,10 @@ public enum SPCSetting {
 	
 	public static final Class<? extends Enum> 
 		StopBitOptions 	= stopbitOptions.class,
-		ParityOptions	= parityOptions.class;
+		ParityOptions	= parityOptions.class,
+		ProtocallOptions= protocallOptions.class;
+	
+	public static final protocallOptions defaultProtocol = protocallOptions.RS232;
 	
 	public String
 		title				= "default title",
@@ -55,7 +61,31 @@ public enum SPCSetting {
 	
 	public Class<? extends Object> clas;
 	
-	enum protocallOptions{		//j-serial? j-serial-retardation, why can we not tell what protocol is being used??? there;s a enable rj485 option but no way to check if its in use  
+	public static stopbitOptions getStopBitOption(int bits) {
+		switch(bits) {
+			case SerialPort.ONE_STOP_BIT : 				return stopbitOptions.ONE_STOP_BIT;
+			case SerialPort.TWO_STOP_BITS : 			return stopbitOptions.TWO_STOP_BITS;
+			case SerialPort.ONE_POINT_FIVE_STOP_BITS : 	return stopbitOptions.ONE_POINT_FIVE_STOP_BITS;
+			
+			default:
+				return null;
+		}
+	}
+	
+	public static stopbitOptions getParityOption(int bits) {
+		switch(bits) {
+			case SerialPort.SPACE_PARITY : 	return stopbitOptions.ONE_STOP_BIT;
+			case SerialPort.MARK_PARITY : 	return stopbitOptions.TWO_STOP_BITS;
+			case SerialPort.NO_PARITY: 		return stopbitOptions.ONE_POINT_FIVE_STOP_BITS;
+			case SerialPort.EVEN_PARITY: 	return stopbitOptions.ONE_POINT_FIVE_STOP_BITS;
+			case SerialPort.ODD_PARITY: 	return stopbitOptions.ONE_POINT_FIVE_STOP_BITS;
+			
+			default:
+				return null;
+		}
+	}
+	
+	enum protocallOptions{		//j-serial? j-serial-retardation, why can we not tell what protocol is being used(or is it just hidden somewhere)??? there;s a enable rj485 option but no way to check if its in use????  
 			RS232	("RS232"),
 			RS485	("RS485")
 		;

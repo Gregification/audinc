@@ -224,9 +224,6 @@ public class SerialPokeCommConnection{
 					}else if(selectedComponent.equals(settingsParser)) {
 						settingsParser.updateGUI();
 					}
-					
-					//save settings if there has been any changes
-					onSaveSettingsClick(false);
 				}
 				
 			});
@@ -235,6 +232,7 @@ public class SerialPokeCommConnection{
 	}
 	public void onSaveSettingsClick(boolean forceSave) {
 		if(forceSave || settingsParser.isModified()) {
+			System.out.println(System.nanoTime() + "\tsaving");
 			settingsParser.SaveToFile(settingsParser.srcFile);
 		}
 	}
@@ -614,6 +612,7 @@ public class SerialPokeCommConnection{
 				});
 		
 		var saveSettingButton = new JButton("save settings to file");
+			saveSettingButton.setToolTipText("everything not saved will be lost");
 			saveSettingButton.addActionListener(e -> {
 					onSaveSettingsClick(true);
 				});

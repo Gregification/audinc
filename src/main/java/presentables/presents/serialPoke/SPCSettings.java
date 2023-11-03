@@ -43,7 +43,7 @@ public class SPCSettings {
 			case DEVICE_READ_BUFFER_SIZE : 					return sp.getDeviceReadBufferSize();
 			case VENDOR_ID : 								return sp.getVendorID();
 			case DATA_BITS_PER_WORD : 						return sp.getNumDataBits();
-			case NUM_STOP_BITS : 							return sp.getNumStopBits();
+			case NUM_STOP_BITS : 							return SPCSetting.getStopBitOption(sp.getNumStopBits());
 			case PARITY : 									return sp.getParity();
 			case TIMEOUT_READ : 							return sp.getReadTimeout();
 			case TIMEOUT_WRITE : 							return sp.getWriteTimeout();
@@ -53,7 +53,8 @@ public class SPCSettings {
 			case FLOWCONTROL_XOUT_ONOFF_ENABLED : 			return (SerialPort.FLOW_CONTROL_XONXOFF_OUT_ENABLED & sp.getFlowControlSettings()) == 1;
 			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_RTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_CTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
-
+			case PROTOCALL :								return SPCSetting.defaultProtocol;
+			
 			default:
 				throw new RuntimeException("failed to match setting: " + setting.name());
 		}
@@ -69,26 +70,26 @@ public class SPCSettings {
 		var value = setting.clas.cast(rawValue);
 		
 		switch(setting) {
-			case SYSTEM_PORT_PATH : 				break;
+			case SYSTEM_PORT_PATH : 					break;
 			case SYSTEM_PORT_LOCATION : 				break;
 			case DESCRIPTIVE_PORT_NAME :				break;
-			case PORT_DESCRIPTION :				break;
-			case PORT_LOCATION : 				break;
-			case BAUD_RATE : 				break;
+			case PORT_DESCRIPTION :						break;
+			case PORT_LOCATION : 						break;
+			case BAUD_RATE : 							break;
 			case DEVICE_WRITE_BUFFER_SIZE :				break;
 			case DEVICE_READ_BUFFER_SIZE : 				break;
-			case VENDOR_ID : 				break;
-			case DATA_BITS_PER_WORD :				break;
-			case NUM_STOP_BITS : 				break;
-			case PARITY : 				break;
-			case TIMEOUT_READ : 				break;
-			case TIMEOUT_WRITE : 				break;
-			case FLOWCONTROL_DATA_SET_READY_ENABLED :				break;
-			case FLOWCONTROL_DATA_TERMINAL_READY_ENABLED :				break;
-			case FLOWCONTROL_XIN_ONOFF_ENABLED : 				break;
-			case FLOWCONTROL_XOUT_ONOFF_ENABLED :				break;
-			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED :				break;
-			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 				break;
+			case VENDOR_ID : 							break;
+			case DATA_BITS_PER_WORD :					break;
+			case NUM_STOP_BITS : 						break;
+			case PARITY : 								break;
+			case TIMEOUT_READ : 						break;
+			case TIMEOUT_WRITE : 						break;
+			case FLOWCONTROL_DATA_SET_READY_ENABLED :	break;
+			case FLOWCONTROL_DATA_TERMINAL_READY_ENABLED :		break;
+			case FLOWCONTROL_XIN_ONOFF_ENABLED : 		break;
+			case FLOWCONTROL_XOUT_ONOFF_ENABLED :		break;
+			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED :	break;
+			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 	break;
 	
 			default:
 				throw new RuntimeException("failed to match setting: " + setting.name());
@@ -109,7 +110,9 @@ public class SPCSettings {
 	public void rebase(SerialPort sp) {
 		AvaliableSettings.parallelStream()
 			.forEach(setting -> {
-				settings.put(setting, getSetting(setting, sp));
+				var v = getSetting(setting, sp);
+				if(v != null)
+					settings.put(setting, v);
 			});
 		modifiedSettings.clear();
 	}
