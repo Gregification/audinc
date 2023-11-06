@@ -10,6 +10,7 @@ import java.awt.event.ItemEvent;
 import java.io.*;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.function.Function;
 
 import javax.swing.JButton;
@@ -194,24 +195,23 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 						field.setEditable(false);
 					functionsToUpdateUI.put(setting, o ->{ field.setText(o.toString()); return null; });
 					
-					//we need it to be parsed as its specific class because these are passed around abstractly and checked using "instanceof"
-					Function<String, Enum> enumvalueof;	
-					if(clas == SPCSetting.parityOptions.class)
-						enumvalueof = SPCSetting.parityOptions::valueOf;
-					else if(clas == SPCSetting.stopbitOptions.class)
-						enumvalueof = SPCSetting.stopbitOptions::valueOf;
-					else if(clas == SPCSetting.timeoutOptions.class)
-						enumvalueof = SPCSetting.timeoutOptions::valueOf;
-					else if(clas == SPCSetting.protocallOptions.class)
-						enumvalueof = SPCSetting.protocallOptions::valueOf;
-					else 
-						enumvalueof = i -> null;
+					//need it to be parsed as its specific class because these are passed around abstractly and checked using "instanceof"
+					final Class classToCastTo = List.of(	//gets the first matching class else null
+									SPCSetting.parityOptions.class,
+									SPCSetting.stopbitOptions.class,
+									SPCSetting.timeoutOptions.class,
+									SPCSetting.protocallOptions.class
+								).stream()
+							.filter(c -> c == clas)
+							.findFirst().get();
+					
+					assert classToCastTo != null : "enum not listed!";
 					
 					comboBoxFunctions.putIfAbsent(clas, new Function<Object, Void>(){
-						private Function<String, Enum> enumValueOf = enumvalueof;
+						private final Class caster = classToCastTo;
 						@Override public Void apply(Object i) {
 							try {
-								Enum selectedEnum = this.enumValueOf.apply(i.toString());	
+								var selectedEnum = this.caster.cast(i);	
 		
 								functionsToUpdateUI.get(setting).apply(selectedEnum);
 								settings.setSetting(setting, selectedEnum);
