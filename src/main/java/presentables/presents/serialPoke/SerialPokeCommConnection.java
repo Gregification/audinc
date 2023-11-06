@@ -92,7 +92,7 @@ public class SerialPokeCommConnection{
 		
 		genGUI();
 		
-		setNoticeText("this connection is not opened untill explicetely told to open", Color.black);
+		setNoticeText("connection is not opened untill explicetely told to open", Color.black);
 	}
 	
 	public void quit() {
@@ -605,9 +605,9 @@ public class SerialPokeCommConnection{
 		
 			
 			applySettingButton.setEnabled(!sp.isOpen());
-			applySettingButton.setToolTipText("port connectoin will be closed to apply");
+			applySettingButton.setToolTipText("port connection must be closed inorder to apply settings ");
 			applySettingButton.addActionListener(e -> {
-					jcb_toggleport.setSelected(false);
+					if(jcb_toggleport.isSelected())	jcb_toggleport.setSelected(false);
 					settingsParser.settings.applyAll(sp);
 				});
 		

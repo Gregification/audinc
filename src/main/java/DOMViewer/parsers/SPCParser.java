@@ -189,60 +189,37 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 						});
 					
 					comp = field;
-				} else if(clas == SPCSetting.StopBitOptions){//too much work,for me, to make this some generic method, there's only a finite amount of these anyways so it dosen't have much of a impact
+				}else if(clas.isEnum()){//this works. i keep . there's only a finite amount of these so it dosen't matter much
 					var field = new JTextField();
 						field.setEditable(false);
 					functionsToUpdateUI.put(setting, o ->{ field.setText(o.toString()); return null; });
-						
-					comboBoxFunctions.putIfAbsent(clas, i ->{
-							assert SPCSetting.StopBitOptions== i.getClass()
-									: "something broke else where! check this.updateGUI() for leads";
+					
+					//we need it to be parsed as its specific class because these are passed around abstractly and checked using "instanceof"
+					Function<String, Enum> enumvalueof;	
+					if(clas == SPCSetting.parityOptions.class)
+						enumvalueof = SPCSetting.parityOptions::valueOf;
+					else if(clas == SPCSetting.stopbitOptions.class)
+						enumvalueof = SPCSetting.stopbitOptions::valueOf;
+					else if(clas == SPCSetting.timeoutOptions.class)
+						enumvalueof = SPCSetting.timeoutOptions::valueOf;
+					else if(clas == SPCSetting.protocallOptions.class)
+						enumvalueof = SPCSetting.protocallOptions::valueOf;
+					else 
+						enumvalueof = i -> null;
+					
+					comboBoxFunctions.putIfAbsent(clas, new Function<Object, Void>(){
+						private Function<String, Enum> enumValueOf = enumvalueof;
+						@Override public Void apply(Object i) {
 							try {
-								Enum selectedEnum = SPCSetting.StopBitOptions.cast(i);	
+								Enum selectedEnum = this.enumValueOf.apply(i.toString());	
 		
 								functionsToUpdateUI.get(setting).apply(selectedEnum);
 								settings.setSetting(setting, selectedEnum);
 							}catch(ClassCastException cce) { }//do nothing
 							
 							return null;
-						});
-					
-					comp = field;
-				} else if(clas == SPCSetting.ParityOptions){
-					var field = new JTextField();
-						field.setEditable(false);	
-					functionsToUpdateUI.put(setting, o ->{ field.setText(o.toString()); return null; });
+						}
 						
-					comboBoxFunctions.putIfAbsent(clas, i ->{
-						assert SPCSetting.ParityOptions == i.getClass()
-								: "something broke else where! check this.updateGUI() for leads";
-						try {
-							Enum selectedEnum = SPCSetting.ParityOptions.cast(i);	
-	
-							functionsToUpdateUI.get(setting).apply(selectedEnum);
-							settings.setSetting(setting, selectedEnum);
-						}catch(ClassCastException cce) { }//do nothing
-						
-						return null;
-					});
-					
-					comp = field;
-				} else if(clas == SPCSetting.ProtocallOptions){
-						var field = new JTextField();
-						field.setEditable(false);	
-					functionsToUpdateUI.put(setting, o ->{ field.setText(o.toString()); return null; });
-						
-					comboBoxFunctions.putIfAbsent(clas, i ->{
-						assert SPCSetting.ProtocallOptions == i.getClass()
-								: "something broke else where! check this.updateGUI() for leads";
-						try {
-							Enum selectedEnum = SPCSetting.ProtocallOptions.cast(i);	
-	
-							functionsToUpdateUI.get(setting).apply(selectedEnum);
-							settings.setSetting(setting, selectedEnum);
-						}catch(ClassCastException cce) { }//do nothing
-						
-						return null;
 					});
 					
 					comp = field;

@@ -6,7 +6,9 @@ import com.fazecast.jSerialComm.SerialPort;
 
 /*
  * if adding a class object type that is formerly unlisted make sure to include it in the file related constructors of [SPCSettings.java]
- * - enums must use their own class!
+ * - enums must use their own class! 
+ * 
+ * questionable enum system but too muchwork to change it. if your reading this and feel like it then go for it
  */
 public enum SPCSetting {
 		//(String:title, Class:object type, Boolean:allowCustomValue, Boolean:isHowSwappable, String:description, Object[]:choosableValues)
@@ -29,7 +31,8 @@ public enum SPCSetting {
 		NUM_STOP_BITS				(stopbitOptions.class,	false,		"", (Object[])(stopbitOptions.values())),
 		PARITY						(parityOptions.class , 	false,		"", (Object[])(parityOptions.values())),
 		TIMEOUT_READ				(Integer.class, true ,		"time out in miliseconds before a packet is considered lost"),
-		TIMEOUT_WRITE				(Integer.class, true ,		"time out in miliseconds before a write attempt is givenup"),
+		TIMEOUT_WRITE				(Integer.class, true ,		"time out in miliseconds before a write attempt is givenup. not that time based write timeouts are only avaliable on windows system and will have no effect otherwise"),
+		TIMEOUT						(timeoutOptions.class , 	false,		"", (Object[])(timeoutOptions.values())),
 		FLOWCONTROL_DATA_SET_READY_ENABLED		("DSR enabled",
 									 Boolean.class, true , false, "Data Set Ready"),
 		FLOWCONTROL_DATA_TERMINAL_READY_ENABLED 	("DTR enabled",
@@ -44,11 +47,6 @@ public enum SPCSetting {
 									 Boolean.class, true , false,"Clear To Send")
 	;
 	
-	public static final Class<? extends Enum> 
-		StopBitOptions 	= stopbitOptions.class,
-		ParityOptions	= parityOptions.class,
-		ProtocallOptions= protocallOptions.class;
-	
 	public static final protocallOptions defaultProtocol = protocallOptions.RS232;
 	
 	public String
@@ -61,31 +59,7 @@ public enum SPCSetting {
 	
 	public Class<? extends Object> clas;
 	
-	public static stopbitOptions getStopBitOption(int bits) {
-		switch(bits) {
-			case SerialPort.ONE_STOP_BIT : 				return stopbitOptions.ONE_STOP_BIT;
-			case SerialPort.TWO_STOP_BITS : 			return stopbitOptions.TWO_STOP_BITS;
-			case SerialPort.ONE_POINT_FIVE_STOP_BITS : 	return stopbitOptions.ONE_POINT_FIVE_STOP_BITS;
-			
-			default:
-				return null;
-		}
-	}
-	
-	public static stopbitOptions getParityOption(int bits) {
-		switch(bits) {
-			case SerialPort.SPACE_PARITY : 	return stopbitOptions.ONE_STOP_BIT;
-			case SerialPort.MARK_PARITY : 	return stopbitOptions.TWO_STOP_BITS;
-			case SerialPort.NO_PARITY: 		return stopbitOptions.ONE_POINT_FIVE_STOP_BITS;
-			case SerialPort.EVEN_PARITY: 	return stopbitOptions.ONE_POINT_FIVE_STOP_BITS;
-			case SerialPort.ODD_PARITY: 	return stopbitOptions.ONE_POINT_FIVE_STOP_BITS;
-			
-			default:
-				return null;
-		}
-	}
-	
-	enum protocallOptions{		//j-serial? j-serial-retardation, why can we not tell what protocol is being used(or is it just hidden somewhere)??? there;s a enable rj485 option but no way to check if its in use????  
+	public enum protocallOptions{		//j-serial? j-serial-retardation, why can we not tell what protocol is being used(or is it just hidden somewhere)??? there;s a enable rj485 option but no way to check if its in use????  
 			RS232	("RS232"),
 			RS485	("RS485")
 		;
@@ -96,30 +70,66 @@ public enum SPCSetting {
 		@Override public String toString() 		{ return title; }
 	}
 	
-	enum stopbitOptions{
-		ONE_POINT_FIVE_STOP_BITS	("1.5 stop bits"),
-		ONE_STOP_BIT				("1 stop bit"),
-		TWO_STOP_BITS				("2 stop bits")
+	public enum stopbitOptions{
+			ONE_POINT_FIVE_STOP_BITS	(SerialPort.ONE_POINT_FIVE_STOP_BITS, 	"1.5 stop bits"),
+			ONE_STOP_BIT				(SerialPort.ONE_STOP_BIT, 				"1 stop bit"),
+			TWO_STOP_BITS				(SerialPort.TWO_STOP_BITS, 				"2 stop bits")
 		;
 		
 		public String title;
+		public int SerialPortMask;
 		
-		private stopbitOptions(String title) 	{ this.title = title; }		
+		private stopbitOptions(int spm, String title) 	{ this.title = title; this.SerialPortMask = spm;}		
 		@Override public String toString() 		{ return title; }
+		
+		public static stopbitOptions getCorresponding(int mask) {
+			for(var v : stopbitOptions.values())
+				if((v.SerialPortMask & mask) != 0) return v;
+			return  null;
+		}
 	}
 	
-	enum parityOptions{
-			EVEN_PARITY		("even parity"),
-			MARK_PARITY		("mark parity"),
-			NO_PARITY		("no parity"),
-			ODD_PARITY		("odd parity"),
-			SPACE_PARITY	("space parity"),
+	public enum parityOptions{
+			EVEN_PARITY		(SerialPort.EVEN_PARITY, 	"even parity"),
+			MARK_PARITY		(SerialPort.MARK_PARITY, 	"mark parity"),
+			NO_PARITY		(SerialPort.NO_PARITY, 		"no parity"),
+			ODD_PARITY		(SerialPort.ODD_PARITY, 	"odd parity"),
+			SPACE_PARITY	(SerialPort.SPACE_PARITY, 	"space parity"),
 		;
 		
 		public String title;
+		public int SerialPortMask;
 		
-		private parityOptions(String title) 	{ this.title = title; }		
+		private parityOptions(int spm, String title) 	{ this.title = title; this.SerialPortMask = spm;}		
 		@Override public String toString() 		{ return title; }
+		public static parityOptions getCorresponding(int mask) {
+			for(var v : parityOptions.values())
+				if((v.SerialPortMask & mask) != 0) return v;
+			return  null;
+		}
+	}
+	
+	public enum timeoutOptions{
+			NONBLOCKING			(SerialPort.TIMEOUT_NONBLOCKING),
+			READ_BLOCKING		(SerialPort.TIMEOUT_READ_BLOCKING),
+			READ_SEMI_BLOCKING	(SerialPort.TIMEOUT_READ_SEMI_BLOCKING),
+			SCANNER 			(SerialPort.TIMEOUT_SCANNER),
+			WRITE_BLOCKING		(SerialPort.TIMEOUT_WRITE_BLOCKING),
+		;
+		
+		public static timeoutOptions defaultTimeout = timeoutOptions.NONBLOCKING;
+		
+		public String title;
+		public int SerialPortMask;
+		
+		private timeoutOptions(int spm, String title) 	{ this.title = title; this.SerialPortMask = spm;}
+		private timeoutOptions(int spm) 	{ this(spm, ""); this.title = this.name().toLowerCase().replace('_', ' ');}
+		@Override public String toString() 		{ return title; }
+		public static timeoutOptions getCorresponding(int mask) {
+			for(var v : timeoutOptions.values())
+				if((v.SerialPortMask & mask) != 0) return v;
+			return  null;
+		}
 	}
 	
 	private SPCSetting(

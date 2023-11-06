@@ -10,8 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.fazecast.jSerialComm.SerialPort;
 
 import DOMViewer.DOMParser;
+import presentables.presents.serialPoke.SPCSetting.stopbitOptions;
+import presentables.presents.serialPoke.SPCSetting.timeoutOptions;
 
-/*
+/**
  * acts as abstraction API for what ever might be considered a value of the class [com.fazecast.jSerialComm.SerialPort] 
  */
 
@@ -43,7 +45,7 @@ public class SPCSettings {
 			case DEVICE_READ_BUFFER_SIZE : 					return sp.getDeviceReadBufferSize();
 			case VENDOR_ID : 								return sp.getVendorID();
 			case DATA_BITS_PER_WORD : 						return sp.getNumDataBits();
-			case NUM_STOP_BITS : 							return SPCSetting.getStopBitOption(sp.getNumStopBits());
+			case NUM_STOP_BITS : 							return stopbitOptions.getCorresponding(sp.getNumStopBits());
 			case PARITY : 									return sp.getParity();
 			case TIMEOUT_READ : 							return sp.getReadTimeout();
 			case TIMEOUT_WRITE : 							return sp.getWriteTimeout();
@@ -54,35 +56,49 @@ public class SPCSettings {
 			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_RTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_CTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 			case PROTOCALL :								return SPCSetting.defaultProtocol;
+			case TIMEOUT :									return timeoutOptions.defaultTimeout;
 			
 			default:
-				throw new RuntimeException("failed to match setting: " + setting.name());
+				throw new UnsupportedOperationException("failed to match setting: " + setting.name());
 		}
 	}
 	
-	public static boolean ApplySetting(SPCSetting setting, SerialPort sp, Object rawValue) {
+	/**
+	 * edits the corresponding attribute of a SerialPort (from JSerial) from a given SPCSetting. for Enum's the [value] parameter should be the actual mask integer from the SerialPort class
+	 * , use functions such as "[SPCSetting.stopbitOptions].SerialPortMask" to get the integer value. 
+	 * @param setting : the chosen setting
+	 * @param sp : the target serial port
+	 * @param value : the new value of the attribute 
+	 * @return TRUE if the value has been successfully changed. FLASE if the given setting is not allowed to be changed, either because - its not a editable setting - or - it is not a hot-swappable setting and the port is open -. 
+	 * @throws ClassCastException if the given value does not match the class in [SPCSetting.clas]
+	 */
+	public static boolean ApplySetting(SPCSetting setting, SerialPort sp, Object value) throws ClassCastException {
 		System.out.println("applying setting changes");
-		assert rawValue.getClass().isInstance(setting.clas) : "trying to assign mismatched objects";
+		
+		assert value.getClass().isInstance(setting.clas) : "trying to assign mismatched objects"; //is assert because only in development does the input to this differ.
 		
 		if(!setting.isEditable() || (sp.isOpen() && !SPCSettings.HotSwappableSettings.contains(setting)))
 			return false;
 		
-		var value = setting.clas.cast(rawValue);
-		
 		switch(setting) {
-			case SYSTEM_PORT_PATH : 					break;
-			case SYSTEM_PORT_LOCATION : 				break;
-			case DESCRIPTIVE_PORT_NAME :				break;
-			case PORT_DESCRIPTION :						break;
-			case PORT_LOCATION : 						break;
-			case BAUD_RATE : 							break;
-			case DEVICE_WRITE_BUFFER_SIZE :				break;
-			case DEVICE_READ_BUFFER_SIZE : 				break;
-			case VENDOR_ID : 							break;
-			case DATA_BITS_PER_WORD :					break;
-			case NUM_STOP_BITS : 						break;
-			case PARITY : 								break;
-			case TIMEOUT_READ : 						break;
+//			case SYSTEM_PORT_PATH : 					break;
+//			case SYSTEM_PORT_LOCATION : 				break;
+//			case DESCRIPTIVE_PORT_NAME :				break;
+//			case PORT_DESCRIPTION :						break;
+//			case PORT_LOCATION : 						break;
+			case BAUD_RATE : 							sp.setBaudRate((int)value); 			
+				break;
+//			case DEVICE_WRITE_BUFFER_SIZE :				break;
+//			case DEVICE_READ_BUFFER_SIZE : 				break;
+//			case VENDOR_ID : 							break;
+			case DATA_BITS_PER_WORD :					sp.setNumDataBits((int)value);
+				break;
+			case NUM_STOP_BITS :						sp.setNumStopBits((int)value); 						
+				break;
+			case PARITY :								sp.setParity((int)value); 								
+				break;
+			case TIMEOUT_READ :							 						
+				break;
 			case TIMEOUT_WRITE : 						break;
 			case FLOWCONTROL_DATA_SET_READY_ENABLED :	break;
 			case FLOWCONTROL_DATA_TERMINAL_READY_ENABLED :		break;
@@ -181,8 +197,14 @@ public class SPCSettings {
 					bw.newLine();
 				}
 			}
-			else
-				DOMParser.writeValue.get(clas).apply(bw);
+			else {
+				try { //if your getting a NullPointerException here. all SPCSetting clases must have a entry in DOMParser
+					DOMParser.writeValue.get(clas).apply(bw);	
+				}catch(NullPointerException e) {
+					System.out.print(clas.toString());
+					throw e;
+				}
+			}
 		}
 	}
 	

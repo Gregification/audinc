@@ -77,8 +77,10 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 			Double.class	, Double	:: parseDouble,
 			Float.class		, Float		:: parseFloat,
 			String.class	, s 		-> s,
-			SPCSetting.StopBitOptions	, s -> Enum.valueOf(SPCSetting.StopBitOptions, s),
-			SPCSetting.ParityOptions	, s -> Enum.valueOf(SPCSetting.ParityOptions, s)
+			SPCSetting.stopbitOptions.class	, s -> Enum.valueOf(SPCSetting.stopbitOptions.class, s)	,	//redundant but works, hassle to reward ratio bad => me no change
+			SPCSetting.parityOptions.class	, s -> Enum.valueOf(SPCSetting.parityOptions.class,  s)	,
+			SPCSetting.timeoutOptions.class	, s -> Enum.valueOf(SPCSetting.timeoutOptions.class, s) ,
+			SPCSetting.protocallOptions.class,s -> Enum.valueOf(SPCSetting.protocallOptions.class,s)	
 		);
 	
 	/*
