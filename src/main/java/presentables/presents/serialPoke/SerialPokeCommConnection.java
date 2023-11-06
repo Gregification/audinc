@@ -589,7 +589,7 @@ public class SerialPokeCommConnection{
 	        				setNoticeText((sp.closePort() ? "closed port " : "failed to close port" ), Color.black);
 	        		}
 				 	
-				 	applySettingButton.setEnabled(!sp.isOpen());
+//				 	applySettingButton.setEnabled(!sp.isOpen());
 			 	});
 		
 		var selectSettingButton = new JButton("choose settings file");
@@ -603,12 +603,11 @@ public class SerialPokeCommConnection{
 					viewer.updateAll();
 				});
 		
-			
-			applySettingButton.setEnabled(!sp.isOpen());
-			applySettingButton.setToolTipText("port connection must be closed inorder to apply settings ");
+			applySettingButton.setToolTipText("port connection may be briefly interrupted when applying");
 			applySettingButton.addActionListener(e -> {
-					if(jcb_toggleport.isSelected())	jcb_toggleport.setSelected(false);
+//					if(jcb_toggleport.isSelected())	jcb_toggleport.setSelected(false);
 					settingsParser.settings.applyAll(sp);
+					if(sp.isOpen()) sp.openPort(); //resets port parameters
 				});
 		
 		var saveSettingButton = new JButton("save settings to file");

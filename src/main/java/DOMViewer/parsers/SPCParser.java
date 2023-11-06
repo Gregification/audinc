@@ -205,7 +205,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 							.filter(c -> c == clas)
 							.findFirst().get();
 					
-					assert classToCastTo != null : "enum not listed!";
+					assert classToCastTo != null : "enum not listed!"; //list the new enum above
 					
 					comboBoxFunctions.putIfAbsent(clas, new Function<Object, Void>(){
 						private final Class caster = classToCastTo;

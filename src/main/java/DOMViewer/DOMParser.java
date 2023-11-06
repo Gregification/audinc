@@ -68,8 +68,9 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 ////////////////////////
 //parsers / writers / readers
 ////////////////////////
-	/*
-	 * things that can be written-to(with toString) and read-form a string with bufferedReader.nextLine (without any line breaks)
+	/**
+	 * things that can be written-to(with toString) and read-form a string with bufferedReader.nextLine (without any line breaks).
+	 * includes Enums
 	 */
 	public final static Map<Class<? extends Object>, Function<String, Object>> parseValue_stringers = Map.of(	
 			Boolean.class	, Boolean	:: parseBoolean,
@@ -77,14 +78,14 @@ public abstract class DOMParser<Variations extends Enum<Variations> & parserVari
 			Double.class	, Double	:: parseDouble,
 			Float.class		, Float		:: parseFloat,
 			String.class	, s 		-> s,
-			SPCSetting.stopbitOptions.class	, s -> Enum.valueOf(SPCSetting.stopbitOptions.class, s)	,	//redundant but works, hassle to reward ratio bad => me no change
+			SPCSetting.stopbitOptions.class	, s -> Enum.valueOf(SPCSetting.stopbitOptions.class, s)	,	//redundant but works, hassle/reward ratio no good => me no change
 			SPCSetting.parityOptions.class	, s -> Enum.valueOf(SPCSetting.parityOptions.class,  s)	,
 			SPCSetting.timeoutOptions.class	, s -> Enum.valueOf(SPCSetting.timeoutOptions.class, s) ,
 			SPCSetting.protocallOptions.class,s -> Enum.valueOf(SPCSetting.protocallOptions.class,s)	
 		);
 	
-	/*
-	 * things w/ custom parsers
+	/**
+	 * things that require custom parsers, parsers will be handed a [BufferedReader]
 	 */
 	public final static Map<Class<? extends Object>, Function<BufferedReader, Object>> parseValue = Map.of(
 			

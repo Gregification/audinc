@@ -270,6 +270,7 @@ public class SerialPoke extends Presentable{
 			+ "<ul>"
 			+ "<li>the ability to multiplex ports is dependent on host machine</li>"
 			+ "<li>the com port detector is terriable, some ports may appear under a different name, example: a vitrual COM3 connection may appear as \"vitural port\" but the connection name would be \"COM3\". you have to figure that out yourself</li>"
+			+ "<li>if connecting to serial over bluetooth port connection may timeout. try try again</li>"
 			+ "</ul"
 			+ "<br>Serial Poke? Cereal Pike!"
 			+ "</body>"; }

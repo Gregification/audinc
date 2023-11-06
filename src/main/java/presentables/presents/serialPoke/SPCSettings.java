@@ -56,7 +56,7 @@ public class SPCSettings {
 			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_RTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_CTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 			case PROTOCALL :								return SPCSetting.defaultProtocol;
-			case TIMEOUT :									return timeoutOptions.defaultTimeout;
+			case TIMEOUT_MODE :								return timeoutOptions.defaultTimeout;
 			
 			default:
 				throw new UnsupportedOperationException("failed to match setting: " + setting.name());
@@ -81,26 +81,30 @@ public class SPCSettings {
 			return false;
 		
 		switch(setting) {
-//			case SYSTEM_PORT_PATH : 					break;
-//			case SYSTEM_PORT_LOCATION : 				break;
-//			case DESCRIPTIVE_PORT_NAME :				break;
-//			case PORT_DESCRIPTION :						break;
-//			case PORT_LOCATION : 						break;
+			case SYSTEM_PORT_PATH : 					break;
+			case SYSTEM_PORT_LOCATION : 				break;
+			case DESCRIPTIVE_PORT_NAME :				break;
+			case PORT_DESCRIPTION :						break;
+			case PORT_LOCATION : 						break;
 			case BAUD_RATE : 							sp.setBaudRate((int)value); 			
 				break;
-//			case DEVICE_WRITE_BUFFER_SIZE :				break;
-//			case DEVICE_READ_BUFFER_SIZE : 				break;
-//			case VENDOR_ID : 							break;
+			case DEVICE_WRITE_BUFFER_SIZE :				break;
+			case DEVICE_READ_BUFFER_SIZE : 				break;
+			case VENDOR_ID : 							break;
 			case DATA_BITS_PER_WORD :					sp.setNumDataBits((int)value);
 				break;
 			case NUM_STOP_BITS :						sp.setNumStopBits((int)value); 						
 				break;
 			case PARITY :								sp.setParity((int)value); 								
 				break;
-			case TIMEOUT_READ :							 						
+			case TIMEOUT_READ :							sp.setComPortTimeouts((int)fetchSetting(SPCSetting.TIMEOUT_MODE, sp), (int)value, sp.getWriteTimeout());			
 				break;
-			case TIMEOUT_WRITE : 						break;
-			case FLOWCONTROL_DATA_SET_READY_ENABLED :	break;
+			case TIMEOUT_MODE :							sp.setComPortTimeouts((int)value, sp.getReadTimeout(), sp.getWriteTimeout());							
+				break;
+			case TIMEOUT_WRITE :						sp.setComPortTimeouts((int)fetchSetting(SPCSetting.TIMEOUT_MODE, sp), sp.getReadTimeout(), (int)value); 						
+				break;
+			case FLOWCONTROL_DATA_SET_READY_ENABLED :	sp.setFlowControl((boolean)value ? sp.getFlowControlSettings() & SerialPort.FLOW_CONTROL_DSR_ENABLED : 0);	
+				break;
 			case FLOWCONTROL_DATA_TERMINAL_READY_ENABLED :		break;
 			case FLOWCONTROL_XIN_ONOFF_ENABLED : 		break;
 			case FLOWCONTROL_XOUT_ONOFF_ENABLED :		break;
@@ -198,7 +202,7 @@ public class SPCSettings {
 				}
 			}
 			else {
-				try { //if your getting a NullPointerException here. all SPCSetting clases must have a entry in DOMParser
+				try { //if your getting a NullPointerException here check the entry in DOMParser
 					DOMParser.writeValue.get(clas).apply(bw);	
 				}catch(NullPointerException e) {
 					System.out.print(clas.toString());

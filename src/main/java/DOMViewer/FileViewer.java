@@ -98,7 +98,7 @@ public class FileViewer extends JTabbedPane{
 	public void updateMeta(Path path) {
 		thisPanel.removeAll();	
 		
-		pathDisplay.setText(path.toAbsolutePath().toString());
+		pathDisplay.setText(path.toAbsolutePath().normalize().toString());
 		
 		int x = 0, y = 0;
 		
