@@ -179,7 +179,6 @@ public class SerialPoke extends Presentable{
 		SerialPort sp = SerialPort.getCommPort(editorTab_portDescriptor_txt.getText());
 		
 		SerialPokeCommConnection spcc = new SerialPokeCommConnection(sp, title);
-		if(spcc.content == null) return;
 		SPCConnections.add(spcc);
 		
 		int tabI = tabbedPane.getTabCount();
@@ -189,7 +188,7 @@ public class SerialPoke extends Presentable{
 		JLabel tabTitle		= new JLabel(title);
 		JButton tabClosebtn = new JButton("X");
 			tabClosebtn.setBorder(new CompoundBorder(BorderFactory.createEmptyBorder(), new EmptyBorder(0,10,0,0)));//border padding: top,left,bottom,right
-			tabClosebtn.addActionListener(event -> {spcc.quit(); tabbedPane.remove(spcc.content);});
+			tabClosebtn.addActionListener(event -> {spcc.quit(); tabbedPane.remove(spcc);});
 		
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 0;
@@ -202,7 +201,7 @@ public class SerialPoke extends Presentable{
 		gbc.weightx = 0;
 		tabPanel.add(tabClosebtn, gbc);
 		
-		tabbedPane.addTab(title, spcc.content);
+		tabbedPane.addTab(title, spcc);
 		tabbedPane.setTabComponentAt(tabI, tabPanel);
 		
 		//select new tab

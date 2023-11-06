@@ -55,7 +55,7 @@ public enum SPCSetting {
 	public Object[] choosableValues;
 	public Boolean 
 		allowCustomValues	= false,
-		isHotSwappable		= false;
+		isHotSwappable		= false;//honestly this dosen't do anything. only here because too much hassle to remove. I didn't have a complete understanding how JSerial handled connections when i was making hot-swappable limitations
 	
 	public Class<? extends Object> clas;
 	
@@ -70,7 +70,7 @@ public enum SPCSetting {
 		@Override public String toString() 		{ return title; }
 	}
 	
-	public enum stopbitOptions{
+	public enum stopbitOptions implements Wrappable{
 			ONE_POINT_FIVE_STOP_BITS	(SerialPort.ONE_POINT_FIVE_STOP_BITS, 	"1.5 stop bits"),
 			ONE_STOP_BIT				(SerialPort.ONE_STOP_BIT, 				"1 stop bit"),
 			TWO_STOP_BITS				(SerialPort.TWO_STOP_BITS, 				"2 stop bits")
@@ -87,9 +87,10 @@ public enum SPCSetting {
 				if((v.SerialPortMask & mask) != 0) return v;
 			return  null;
 		}
+		@Override public Object getValue() { return this.SerialPortMask; }
 	}
 	
-	public enum parityOptions{
+	public enum parityOptions implements Wrappable{
 			EVEN_PARITY		(SerialPort.EVEN_PARITY, 	"even parity"),
 			MARK_PARITY		(SerialPort.MARK_PARITY, 	"mark parity"),
 			NO_PARITY		(SerialPort.NO_PARITY, 		"no parity"),
@@ -101,15 +102,16 @@ public enum SPCSetting {
 		public int SerialPortMask;
 		
 		private parityOptions(int spm, String title) 	{ this.title = title; this.SerialPortMask = spm;}		
-		@Override public String toString() 		{ return title; }
+		@Override public String toString() 		{ return title;}
 		public static parityOptions getCorresponding(int mask) {
 			for(var v : parityOptions.values())
 				if((v.SerialPortMask & mask) != 0) return v;
 			return  null;
 		}
+		@Override public Object getValue() { return this.SerialPortMask; }
 	}
 	
-	public enum timeoutOptions{
+	public enum timeoutOptions implements Wrappable{
 			NONBLOCKING			(SerialPort.TIMEOUT_NONBLOCKING),
 			READ_BLOCKING		(SerialPort.TIMEOUT_READ_BLOCKING),
 			READ_SEMI_BLOCKING	(SerialPort.TIMEOUT_READ_SEMI_BLOCKING),
@@ -129,6 +131,9 @@ public enum SPCSetting {
 			for(var v : timeoutOptions.values())
 				if((v.SerialPortMask & mask) != 0) return v;
 			return  null;
+		}
+		@Override public Object getValue() {
+			return this.SerialPortMask;
 		}
 	}
 	

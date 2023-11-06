@@ -49,7 +49,12 @@ import audinc.gui.WrapLayout;
 import presentables.Presentable;
 import presentables.presents.SerialPoke;
 
-public class SerialPokeCommConnection{	
+/**
+ * a GUI port manager for serial ports. extends JPanel
+ * <p>
+ * slow initialization is from file IO.
+ */
+public class SerialPokeCommConnection extends JPanel{		
 	public String title;
 	public SerialPort sp;
 	public int logSettings 			= Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
@@ -58,7 +63,6 @@ public class SerialPokeCommConnection{
 	public SPCParser settingsParser;
 	
 	//GUI
-	public JPanel content 			= null;
 	public JTabbedPane content_tabb = new JTabbedPane();
 	
 	//private
@@ -70,6 +74,7 @@ public class SerialPokeCommConnection{
 	private JLabel noticeDisplay;
 	
 	public SerialPokeCommConnection(SerialPort sp, String title) {
+		super();
 		this.title = title;
 		this.sp = sp;
 		this.viewer = new FileViewer(null);
@@ -86,7 +91,7 @@ public class SerialPokeCommConnection{
 				_scroll.setMinimumSize(new Dimension((int)(MainWin.stdDimension.getWidth()*1/8), (int)MainWin.stdDimension.getHeight()));
 				_scroll.setAutoscrolls(true);
 			
-			JOptionPane.showMessageDialog(content, _scroll);
+			JOptionPane.showMessageDialog(this, _scroll);
 			return; 
 		}
 		
@@ -203,13 +208,18 @@ public class SerialPokeCommConnection{
 //UI
 //////////////////////
 	private void genGUI() {
-		content = new JPanel(new BorderLayout());
-			content.setLayout(new BorderLayout());
-			content.setBackground(MainWin.randColor());
+		setLayout(new BorderLayout());
 			
-			noticeDisplay = new JLabel("notices");
-		
-		content.add(noticeDisplay, BorderLayout.PAGE_END);
+		//brute force (easiest) way to generate a color that is brighter than %50 of all possible colors 
+		Color color;
+		do{
+			color = MainWin.randColor();
+//				System.out.println(Math.random() > .5 ? "lol" : "lmao");
+		} while(Math.pow(color.getRed(), 2) + Math.pow(color.getGreen(), 2) + Math.pow(color.getBlue(), 2) > 195075.0 * .5); //195075= (255^2) * 3
+		setBackground(color);
+			
+		noticeDisplay = new JLabel("notices");
+		add(noticeDisplay, BorderLayout.PAGE_END);
 		
 		genUI_tab_editor();
 		genUI_tab_settings();
@@ -228,11 +238,10 @@ public class SerialPokeCommConnection{
 				
 			});
 		
-		content.add(content_tabb, BorderLayout.CENTER);
+		add(content_tabb, BorderLayout.CENTER);
 	}
 	public void onSaveSettingsClick(boolean forceSave) {
 		if(forceSave || settingsParser.isModified()) {
-			System.out.println(System.nanoTime() + "\tsaving");
 			settingsParser.SaveToFile(settingsParser.srcFile);
 		}
 	}
@@ -405,7 +414,7 @@ public class SerialPokeCommConnection{
         
 	}
 	public void openInfoDialoug() {
-		JOptionPane.showMessageDialog(content, new Object[] {this.getInfoScrollFrame()}, "info: " +title, JOptionPane.PLAIN_MESSAGE);
+		JOptionPane.showMessageDialog(this, new Object[] {this.getInfoScrollFrame()}, "info: " +title, JOptionPane.PLAIN_MESSAGE);
 	}	
 	
 	private JComponent getInfoScrollFrame() {
@@ -608,6 +617,7 @@ public class SerialPokeCommConnection{
 //					if(jcb_toggleport.isSelected())	jcb_toggleport.setSelected(false);
 					settingsParser.settings.applyAll(sp);
 					if(sp.isOpen()) sp.openPort(); //resets port parameters
+					setNoticeText("settings applied " + System.currentTimeMillis());
 				});
 		
 		var saveSettingButton = new JButton("save settings to file");
@@ -628,4 +638,6 @@ public class SerialPokeCommConnection{
 	private Path getDefaultSettingsPath() {
 		return Presentable.makeRoot(SerialPoke.class, Path.of(title + "." + SPCSettings.FileExtension_Settings));
 	}
+	
+	private static final long serialVersionUID = -8147828337214712162L;
 }

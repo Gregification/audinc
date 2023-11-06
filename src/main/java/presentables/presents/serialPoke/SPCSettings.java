@@ -14,7 +14,9 @@ import presentables.presents.serialPoke.SPCSetting.stopbitOptions;
 import presentables.presents.serialPoke.SPCSetting.timeoutOptions;
 
 /**
- * acts as abstraction API for what ever might be considered a value of the class [com.fazecast.jSerialComm.SerialPort] 
+ * acts as abstraction API for what ever might be considered a value of the class <code>com.fazecast.jSerialComm.SerialPort</code>
+ * <p> 
+ * Because this is intended for GUI use, there is a bit more overhead for many instances.
  */
 
 //var set = Set.of(setting.StopBitOptions.getEnumConstants());
@@ -24,7 +26,7 @@ public class SPCSettings {
 	public final static List<SPCSetting> 	AvaliableSettings 		= List.of(SPCSetting.values());
 	
 	public ConcurrentHashMap<SPCSetting, Object> settings			= new ConcurrentHashMap<>(SPCSetting.values().length);
-	protected EnumSet<SPCSetting>			modifiedSettings		= EnumSet.noneOf(SPCSetting.class);	//from either file or port, whichever was last updated
+	protected volatile EnumSet<SPCSetting>			modifiedSettings		= EnumSet.noneOf(SPCSetting.class);	//from either file or port, whichever was last updated
 	
 	public static SPCSettings getSettings(SerialPort sp) 	{
 		var s = new SPCSettings();
@@ -56,7 +58,7 @@ public class SPCSettings {
 			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_RTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 		return (SerialPort.FLOW_CONTROL_CTS_ENABLED 		& sp.getFlowControlSettings()) == 1;
 			case PROTOCALL :								return SPCSetting.defaultProtocol;
-			case TIMEOUT_MODE :								return timeoutOptions.defaultTimeout;
+			case TIMEOUT_MODE :								return timeoutOptions.defaultTimeout.getValue();
 			
 			default:
 				throw new UnsupportedOperationException("failed to match setting: " + setting.name());
@@ -72,47 +74,34 @@ public class SPCSettings {
 	 * @return TRUE if the value has been successfully changed. FLASE if the given setting is not allowed to be changed, either because - its not a editable setting - or - it is not a hot-swappable setting and the port is open -. 
 	 * @throws ClassCastException if the given value does not match the class in [SPCSetting.clas]
 	 */
-	public static boolean ApplySetting(SPCSetting setting, SerialPort sp, Object value) throws ClassCastException {
-		System.out.println("applying setting changes");
-		
+	public static boolean ApplySetting(SPCSetting setting, SerialPort sp, Object value) throws ClassCastException {		
 		assert value.getClass().isInstance(setting.clas) : "trying to assign mismatched objects"; //is assert because only in development does the input to this differ.
 		
-		if(!setting.isEditable() || (sp.isOpen() && !SPCSettings.HotSwappableSettings.contains(setting)))
+		if(!setting.isEditable() || (sp.isOpen() && !SPCSettings.HotSwappableSettings.contains(setting)))	//if it is not editable
 			return false;
 		
+		if(value instanceof Wrappable) {
+			value = ((Wrappable) value).getValue();
+		}
+		
 		switch(setting) {
-			case SYSTEM_PORT_PATH : 					break;
-			case SYSTEM_PORT_LOCATION : 				break;
-			case DESCRIPTIVE_PORT_NAME :				break;
-			case PORT_DESCRIPTION :						break;
-			case PORT_LOCATION : 						break;
-			case BAUD_RATE : 							sp.setBaudRate((int)value); 			
-				break;
-			case DEVICE_WRITE_BUFFER_SIZE :				break;
-			case DEVICE_READ_BUFFER_SIZE : 				break;
-			case VENDOR_ID : 							break;
-			case DATA_BITS_PER_WORD :					sp.setNumDataBits((int)value);
-				break;
-			case NUM_STOP_BITS :						sp.setNumStopBits((int)value); 						
-				break;
-			case PARITY :								sp.setParity((int)value); 								
-				break;
-			case TIMEOUT_READ :							sp.setComPortTimeouts((int)fetchSetting(SPCSetting.TIMEOUT_MODE, sp), (int)value, sp.getWriteTimeout());			
-				break;
-			case TIMEOUT_MODE :							sp.setComPortTimeouts((int)value, sp.getReadTimeout(), sp.getWriteTimeout());							
-				break;
-			case TIMEOUT_WRITE :						sp.setComPortTimeouts((int)fetchSetting(SPCSetting.TIMEOUT_MODE, sp), sp.getReadTimeout(), (int)value); 						
-				break;
-			case FLOWCONTROL_DATA_SET_READY_ENABLED :	sp.setFlowControl((boolean)value ? sp.getFlowControlSettings() & SerialPort.FLOW_CONTROL_DSR_ENABLED : 0);	
-				break;
-			case FLOWCONTROL_DATA_TERMINAL_READY_ENABLED :		break;
-			case FLOWCONTROL_XIN_ONOFF_ENABLED : 		break;
-			case FLOWCONTROL_XOUT_ONOFF_ENABLED :		break;
-			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED :	break;
-			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 	break;
+			case BAUD_RATE : 							sp.setBaudRate((int)value); 		break;
+			case DATA_BITS_PER_WORD :					sp.setNumDataBits((int)value);		break;
+			case NUM_STOP_BITS :						sp.setNumStopBits((int)value); 		break;
+			case PARITY :								sp.setParity((int)value); 			break;
+			case TIMEOUT_READ :							sp.setComPortTimeouts((int)fetchSetting(SPCSetting.TIMEOUT_MODE, sp), (int)value, sp.getWriteTimeout()); 	break;
+			case TIMEOUT_MODE :							sp.setComPortTimeouts((int)value, sp.getReadTimeout(), sp.getWriteTimeout());								break;
+			case TIMEOUT_WRITE :						sp.setComPortTimeouts((int)fetchSetting(SPCSetting.TIMEOUT_MODE, sp), sp.getReadTimeout(), (int)value); 	break;
+			case FLOWCONTROL_DATA_SET_READY_ENABLED :		setFLowControl((boolean)value, SerialPort.FLOW_CONTROL_DSR_ENABLED, sp); 		break;	
+			case FLOWCONTROL_DATA_TERMINAL_READY_ENABLED:	setFLowControl((boolean)value, SerialPort.FLOW_CONTROL_DTR_ENABLED, sp); 		break;
+			case FLOWCONTROL_XIN_ONOFF_ENABLED : 			setFLowControl((boolean)value, SerialPort.FLOW_CONTROL_XONXOFF_IN_ENABLED, sp); break;
+			case FLOWCONTROL_XOUT_ONOFF_ENABLED :			setFLowControl((boolean)value, SerialPort.FLOW_CONTROL_XONXOFF_OUT_ENABLED, sp);break;
+			case FLOWCONTROL_REQUEST_TO_SEND_ENABLED :		setFLowControl((boolean)value, SerialPort.FLOW_CONTROL_RTS_ENABLED, sp); 		break;
+			case FLOWCONTROL_CLEAR_TO_SEND_ENABLED : 		setFLowControl((boolean)value, SerialPort.FLOW_CONTROL_CTS_ENABLED, sp); 		break;
+			case PROTOCALL :							break;
 	
 			default:
-				throw new RuntimeException("failed to match setting: " + setting.name());
+				throw new UnsupportedOperationException("SPCSetting failed to match setting: " + setting.name());
 		}
 		
 		return true;
@@ -137,18 +126,25 @@ public class SPCSettings {
 		modifiedSettings.clear();
 	}
 	
-	public void applyModified(SerialPort sp) {
-		modifiedSettings.parallelStream()
-			.forEach(setting -> {
-				if(SPCSetting.isEditable(setting) && settings.get(setting) != null)
-					SPCSettings.ApplySetting(setting, sp, this.settings.get(setting));
-			});
+	public void applyModified(SerialPort sp) throws Exception {
+		for(var setting : modifiedSettings) {
+			try {
+				Object value;
+				if(SPCSetting.isEditable(setting) && (value = settings.get(setting)) != null) {
+					SPCSettings.ApplySetting(setting, sp, value);
+				}
+			}catch(ClassCastException e) {
+				throw new Exception("setting:" + setting.toString() + "\t value:" + this.settings.get(setting), e);  
+			}
+		};
 		modifiedSettings.clear();
 	}
 	
 	public void applyAll(SerialPort sp) {
 		modifiedSettings = EnumSet.allOf(SPCSetting.class);
-		applyModified(sp);
+		try { 
+			applyModified(sp);
+		} catch (Exception e) { e.printStackTrace(); }
 	}
 	
 	public boolean setSetting(SPCSetting setting, Object value) {		
@@ -250,6 +246,17 @@ public class SPCSettings {
 				System.err.println("SPCSettings > rebase : bad parse, either bad source file or the parser itself. fix in DOMParser or SPCSetting.\n  Given setting: " + loadedSetting + "\n  attempted parse by: " + clas);
 			}
 		}
+	}
+	
+	private static void setFLowControl(boolean enabled, int mask, SerialPort sp) {
+		int fcs = sp.getFlowControlSettings();
+		
+		if(enabled) 
+			fcs |= mask;
+		else
+			fcs &= ~mask;
+		
+		sp.setFlowControl(fcs);
 	}
 }
 
