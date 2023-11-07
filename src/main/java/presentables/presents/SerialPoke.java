@@ -261,7 +261,6 @@ public class SerialPoke extends Presentable{
 			+ "<b>intended for RS232</b><br>"
 			+ "A way to jimmy seral connections into working. please use something like PuTTY for actual communicaitons.<br>"
 			+ "possiable use cases<br>"
-			+ "<ul><li>force send signal</li>"
 			+ "<li>see live port events</li>"
 			+ "<li>reroute ports(wip)</li>"
 			+ "</ul>"

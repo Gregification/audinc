@@ -11,6 +11,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -54,7 +56,11 @@ import presentables.presents.SerialPoke;
  * <p>
  * slow initialization is from file IO.
  */
-public class SerialPokeCommConnection extends JPanel{		
+public class SerialPokeCommConnection extends JPanel{	
+	
+	public Thread DELETETHISVARIABLE_TEST_TEST_TEST; 
+	
+	
 	public String title;
 	public SerialPort sp;
 	public int logSettings 			= Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
@@ -116,6 +122,11 @@ public class SerialPokeCommConnection extends JPanel{
 			@Override public int getListeningEvents() { return 0; }
 				
 			@Override public void serialEvent(SerialPortEvent spe) {
+				var s = new StringBuilder();
+				s.append(spe.toString());
+				System.out.println(s.toString());
+				
+				
 				//if event is to be logged
 				if(loggingEnabled && ((logSettings & spe.getEventType()) != 0)) {
 					long time_mil = (int)(System.nanoTime()/Math.pow(10,6)); 
@@ -593,6 +604,25 @@ public class SerialPokeCommConnection extends JPanel{
 				 		int delay = 200;
 	        			setNoticeText((sp.openPort(delay) ? "port is open" : "failed to open port" ), Color.black);
 	        			jcb_toggleport.setSelected(sp.isOpen());
+	        			
+	        			
+	        			//test test test
+	        			if(sp.isOpen()) {
+	        				DELETETHISVARIABLE_TEST_TEST_TEST = new Thread(() -> {
+	        					while(sp.isOpen())
+		        					try {
+		        						Thread.currentThread().sleep(1);
+										sp.getOutputStream().write(new byte[] {1,0,1,0,1,0});
+									} catch (IOException | InterruptedException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+	        				});
+	        				DELETETHISVARIABLE_TEST_TEST_TEST.start();
+	        			}
+	        			
+	        			
+	        			
 	        		}else if(il.getStateChange() == ItemEvent.DESELECTED) { 
 	        			if(sp.isOpen())
 	        				setNoticeText((sp.closePort() ? "closed port " : "failed to close port" ), Color.black);
