@@ -3,6 +3,7 @@ package presentables.presents.serialPoke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridBagLayout;
 import java.awt.event.ItemEvent;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -11,8 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -25,17 +24,24 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.JToolBar;
+import javax.swing.ListSelectionModel;
 import javax.swing.SpringLayout;
+import javax.swing.SwingConstants;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyledDocument;
@@ -56,11 +62,8 @@ import presentables.presents.SerialPoke;
  * <p>
  * slow initialization is from file IO.
  */
-public class SerialPokeCommConnection extends JPanel{	
-	
-	public Thread DELETETHISVARIABLE_TEST_TEST_TEST; 
-	
-	
+//see top up voted answer for info on reading -> https://stackoverflow.com/questions/309424/how-do-i-read-convert-an-inputstream-into-a-string-in-java
+public class SerialPokeCommConnection extends JPanel{		
 	public String title;
 	public SerialPort sp;
 	public int logSettings 			= Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
@@ -103,6 +106,8 @@ public class SerialPokeCommConnection extends JPanel{
 		
 		genGUI();
 		
+		sp.addDataListener(this.getDataListener());
+		
 		setNoticeText("connection is not opened untill explicetely told to open", Color.black);
 	}
 	
@@ -117,15 +122,12 @@ public class SerialPokeCommConnection extends JPanel{
 			} catch (IOException e) { e.printStackTrace(); }
 	}
 
-	protected SerialPortDataListener setDataListener() {
+	protected SerialPortDataListener getDataListener() {
 		return new SerialPortDataListener() {			
-			@Override public int getListeningEvents() { return 0; }
+			@Override public int getListeningEvents() { return Integer.MAX_VALUE;}
 				
 			@Override public void serialEvent(SerialPortEvent spe) {
-				var s = new StringBuilder();
-				s.append(spe.toString());
-				System.out.println(s.toString());
-				
+				System.out.println( this.hashCode() + "@" + System.currentTimeMillis() + " received:" + Arrays.toString(spe.getReceivedData()));
 				
 				//if event is to be logged
 				if(loggingEnabled && ((logSettings & spe.getEventType()) != 0)) {
@@ -221,12 +223,14 @@ public class SerialPokeCommConnection extends JPanel{
 	private void genGUI() {
 		setLayout(new BorderLayout());
 			
-		//brute force (easiest) way to generate a color that is brighter than %50 of all possible colors 
+		//brute force (easiest) way to generate a color that is brighter than so-and-so% of all possible colors 
 		Color color;
+		int maxTries = 5;
 		do{
 			color = MainWin.randColor();
+			maxTries--;
 //				System.out.println(Math.random() > .5 ? "lol" : "lmao");
-		} while(Math.pow(color.getRed(), 2) + Math.pow(color.getGreen(), 2) + Math.pow(color.getBlue(), 2) > 195075.0 * .5); //195075= (255^2) * 3
+		} while(maxTries > 0 && Math.pow(color.getRed(), 2) + Math.pow(color.getGreen(), 2) + Math.pow(color.getBlue(), 2) > 195075.0 * .6); //195075= (255^2) * 3
 		setBackground(color);
 			
 		noticeDisplay = new JLabel("notices");
@@ -235,6 +239,7 @@ public class SerialPokeCommConnection extends JPanel{
 		genUI_tab_editor();
 		genUI_tab_settings();
 		genUI_tab_liveInfo();
+		genUI_tab_input();
 		
 		content_tabb.addChangeListener(new ChangeListener() {
 				@Override public void stateChanged(ChangeEvent e) {
@@ -603,32 +608,12 @@ public class SerialPokeCommConnection extends JPanel{
 				 	if(il.getStateChange() == ItemEvent.SELECTED) {
 				 		int delay = 200;
 	        			setNoticeText((sp.openPort(delay) ? "port is open" : "failed to open port" ), Color.black);
-	        			jcb_toggleport.setSelected(sp.isOpen());
-	        			
-	        			
-	        			//test test test
-	        			if(sp.isOpen()) {
-	        				DELETETHISVARIABLE_TEST_TEST_TEST = new Thread(() -> {
-	        					while(sp.isOpen())
-		        					try {
-		        						Thread.currentThread().sleep(1);
-										sp.getOutputStream().write(new byte[] {1,0,1,0,1,0});
-									} catch (IOException | InterruptedException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
-	        				});
-	        				DELETETHISVARIABLE_TEST_TEST_TEST.start();
-	        			}
-	        			
-	        			
+	        			jcb_toggleport.setSelected(sp.isOpen());	        			
 	        			
 	        		}else if(il.getStateChange() == ItemEvent.DESELECTED) { 
 	        			if(sp.isOpen())
 	        				setNoticeText((sp.closePort() ? "closed port " : "failed to close port" ), Color.black);
 	        		}
-				 	
-//				 	applySettingButton.setEnabled(!sp.isOpen());
 			 	});
 		
 		var selectSettingButton = new JButton("choose settings file");
@@ -662,7 +647,31 @@ public class SerialPokeCommConnection extends JPanel{
 		tab_cont.add(refreshSettingButton);
 		tab_cont.add(applySettingButton);
 		
-		content_tabb.addTab("editor", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize), tab_cont, "general manager");
+		content_tabb.addTab("general", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize), tab_cont, "general manager");
+	}
+	
+	private void genUI_tab_input() {
+		var content = new JPanel(new GridBagLayout());
+		
+		var table = new JTable(null, new String[] {"column1", "column2"}) {
+			private static final long serialVersionUID = 1L;	//eclipse complains
+			public boolean isCellEditable(int row, int column) { return false; }; //disables user editing of table
+		};
+		table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		table.setCellEditor(null);
+		table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+				@Override public void valueChanged(ListSelectionEvent e) {
+					//onRowSelect(e);
+				}
+			});
+		
+//		var sp = new JSplitPane(SwingConstants.VERTICAL, leftPane, rightPane);
+		
+//		var scrollFrame = new JScrollPane(srcPanel,	
+//				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+//				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		
+		content_tabb.addTab("input editor", MainWin.getImageIcon("res/clear.png", MainWin.stdtabIconSize), content, "let me be clear");
 	}
 	
 	private Path getDefaultSettingsPath() {

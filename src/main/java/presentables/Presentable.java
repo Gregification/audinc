@@ -293,4 +293,29 @@ public abstract class Presentable {
 		lamda.doTheThing(o);
 		return true;
 	}
+	
+	
+	
+	
+	
+	
+	//quick c&p
+	
+//	var table = new JTable(null, new String[] {"column1", "column2"}) {
+//	private static final long serialVersionUID = 1L;	//eclipse complains
+//	public boolean isCellEditable(int row, int column) { return false; }; //disables user editing of table
+//};
+//table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+//table.setCellEditor(null);
+//table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+//		@Override public void valueChanged(ListSelectionEvent e) {
+//			onRowSelect(e);
+//		}
+//	});
+
+//var sp = new JSplitPane(SwingConstants.VERTICAL, leftPane, rightPane);
+
+//var scrollFrame = new JScrollPane(srcPanel,	
+//		JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+//		JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 }
