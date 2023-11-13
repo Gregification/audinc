@@ -12,6 +12,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -56,6 +61,7 @@ import audinc.gui.MainWin;
 import audinc.gui.WrapLayout;
 import presentables.Presentable;
 import presentables.presents.SerialPoke;
+import presentables.presents.draggableNodeEditor.DraggableNodeEditor;
 
 /**
  * a GUI port manager for serial ports. extends JPanel
@@ -68,10 +74,11 @@ public class SerialPokeCommConnection extends JPanel{
 	public SerialPort sp;
 	public int logSettings 			= Integer.MAX_VALUE;//see line ~86 of https://github.com/Fazecast/jSerialComm/blob/master/src/main/java/com/fazecast/jSerialComm/SerialPort.java
 	
-	public FileViewer viewer;
+	public FileViewer viewer		= new FileViewer(null);
 	public SPCParser settingsParser;
 	
-	//GUI
+	public DraggableNodeEditor inputEditor	= new DraggableNodeEditor();
+	
 	public JTabbedPane content_tabb = new JTabbedPane();
 	
 	//private
@@ -86,7 +93,6 @@ public class SerialPokeCommConnection extends JPanel{
 		super();
 		this.title = title;
 		this.sp = sp;
-		this.viewer = new FileViewer(null);
 		
 		setSettingsTo(getDefaultSettingsPath());
 		
@@ -236,10 +242,31 @@ public class SerialPokeCommConnection extends JPanel{
 		noticeDisplay = new JLabel("notices");
 		add(noticeDisplay, BorderLayout.PAGE_END);
 		
-		genUI_tab_editor();
-		genUI_tab_settings();
-		genUI_tab_liveInfo();
-		genUI_tab_input();
+		
+		JPanel 
+			inputTabb 		= new JPanel(),
+			liveInfoTabb 	= new JPanel(),
+			generalTabb 	= new JPanel();
+		
+		//general tab
+		content_tabb.addTab("general", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize),
+				generalTabb, "general manager");
+		//settings tab
+		content_tabb.addTab("settings", MainWin.getImageIcon("res/note.png", MainWin.stdtabIconSize), 
+				viewer, "seral port settings and info");
+		//live info tab
+		content_tabb.addTab("live info", MainWin.getImageIcon("res/info1.png", MainWin.stdtabIconSize), 
+				liveInfoTabb, "event driven info about the connection. read only");
+		//input tab
+		content_tabb.addTab("input editor", MainWin.getImageIcon("res/clear.png", MainWin.stdtabIconSize), 
+				inputTabb, "let me be clear");
+		
+		//not sure if this is actually helping. doesn't seem to be but I don't see why not so it gets to stay
+		ExecutorService threadpool = Executors.newCachedThreadPool();
+			threadpool.execute(() -> genUI_tab_general(generalTabb));
+			threadpool.execute(() -> genUI_tab_liveInfo(liveInfoTabb));
+			threadpool.execute(() -> genUI_tab_input(inputTabb));
+		threadpool.shutdown();
 		
 		content_tabb.addChangeListener(new ChangeListener() {
 				@Override public void stateChanged(ChangeEvent e) {
@@ -508,16 +535,8 @@ public class SerialPokeCommConnection extends JPanel{
 		} catch (IOException e) { e.printStackTrace(); }
 	}
 	
-	private void genUI_tab_settings(){
-		content_tabb.addTab(
-				"settings",
-				MainWin.getImageIcon("res/note.png", MainWin.stdtabIconSize),
-				viewer,
-				"seral port settings and info");
-	}
-	
-	private void genUI_tab_liveInfo() {
-		JPanel tab_cont = new JPanel(new BorderLayout());
+	private void genUI_tab_liveInfo(JPanel tab_cont) {
+		tab_cont.setLayout(new BorderLayout());
 		
 		var emptyBorder = BorderFactory.createEmptyBorder();
 		
@@ -552,8 +571,6 @@ public class SerialPokeCommConnection extends JPanel{
 					JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 					JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		tab_cont.add(logout_scroll, BorderLayout.CENTER);
-		
-		content_tabb.addTab("live info", MainWin.getImageIcon("res/info1.png", MainWin.stdtabIconSize), tab_cont, "event driven info about the connection. read only");
 		
 		sp.addDataListener(new SerialPortDataListener() {
 			StyledDocument logout_doc = logout.getStyledDocument();
@@ -596,8 +613,8 @@ public class SerialPokeCommConnection extends JPanel{
 		});
 	}
 	
-	private void genUI_tab_editor() {
-		JPanel tab_cont = new JPanel(new WrapLayout());
+	private void genUI_tab_general(JPanel tab_cont) {
+		tab_cont.setLayout(new WrapLayout());
 		
 		var applySettingButton = new JButton("apply settings");
 		
@@ -646,32 +663,35 @@ public class SerialPokeCommConnection extends JPanel{
 		tab_cont.add(selectSettingButton);
 		tab_cont.add(refreshSettingButton);
 		tab_cont.add(applySettingButton);
-		
-		content_tabb.addTab("general", MainWin.getImageIcon("res/playbtn.png", MainWin.stdtabIconSize), tab_cont, "general manager");
 	}
 	
-	private void genUI_tab_input() {
-		var content = new JPanel(new GridBagLayout());
+	private void genUI_tab_input(JPanel content) {
+		//everything gets wrapped in a scroll frame
 		
-		var table = new JTable(null, new String[] {"column1", "column2"}) {
-			private static final long serialVersionUID = 1L;	//eclipse complains
-			public boolean isCellEditable(int row, int column) { return false; }; //disables user editing of table
-		};
-		table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		table.setCellEditor(null);
-		table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-				@Override public void valueChanged(ListSelectionEvent e) {
-					//onRowSelect(e);
-				}
-			});
+		var contentAndEditor = new JSplitPane(SwingConstants.VERTICAL,
+				new JScrollPane(inputEditor,	//left
+						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED),
+				new JScrollPane(inputEditor.getEditorPanel(),	//right	
+						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+			);
 		
-//		var sp = new JSplitPane(SwingConstants.VERTICAL, leftPane, rightPane);
+		content.setLayout(new GridBagLayout());
+		var actualContent = new JSplitPane(SwingConstants.VERTICAL, 
+				new JScrollPane(inputEditor.getIndexPanel(),	//left
+						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED),
+				contentAndEditor 		//right
+			);
 		
-//		var scrollFrame = new JScrollPane(srcPanel,	
-//				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-//				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		contentAndEditor.setResizeWeight(0);
+		actualContent.setResizeWeight(0);
 		
-		content_tabb.addTab("input editor", MainWin.getImageIcon("res/clear.png", MainWin.stdtabIconSize), content, "let me be clear");
+		inputEditor.getIndexPanel().setPreferredSize(new Dimension(MainWin.stdDimension.width / 2, MainWin.stdDimension.height));
+//		inputEditor.getEditorPanel().setPreferredSize(new Dimension(MainWin.stdDimension.width / 2, MainWin.stdDimension.height));
+		
+		content.add(actualContent, Presentable.createGbc(0,0));
 	}
 	
 	private Path getDefaultSettingsPath() {
