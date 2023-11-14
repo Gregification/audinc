@@ -9,16 +9,15 @@ import javax.swing.JComponent;
 
 /**
  * a node object meant to be used by the {@code DraggableNodeEditor} class
- * @implNote Serializable, ActionListener
+ * @implNote Serializable
  */	
-public class DraggableNode extends JComponent implements Serializable, ActionListener{
+public class DraggableNode extends JComponent implements Serializable{
 	public Point startPoint;
-	private boolean isBeingDragged = false;
+	public String title;
 	
-	public void Input(Object[] data) {
-		
+	@Override public String toString() {
+		return title;
 	}
-	
 ////////////////////////////////
 //	getters / setters
 ////////////////////////////////
@@ -27,9 +26,4 @@ public class DraggableNode extends JComponent implements Serializable, ActionLis
 	}
 	
 	private static final long serialVersionUID = 1L;
-
-	@Override public void actionPerformed(ActionEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
 }

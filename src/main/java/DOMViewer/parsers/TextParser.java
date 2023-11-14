@@ -67,7 +67,7 @@ public class TextParser extends DOMParser<DOMViewer.parsers.TextParser.Variation
 		var content = new JPanel(new GridBagLayout());
 			textContent = new JTextArea();
 				textContent.setLineWrap(false);
-				textContent.setBackground(new Color(150, 200,200));//color.teal. DO NOT CHANGE ALPHA else swing goes full R. 
+				textContent.setBackground(new Color(200, 250,250));//color.teal. DO NOT CHANGE ALPHA else swing goes full R. 
 		
 		content.add(textContent, Presentable.createGbc(0, 0));		
 		

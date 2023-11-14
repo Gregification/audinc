@@ -1,6 +1,7 @@
 package presentables.presents;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout
@@ -50,7 +51,7 @@ public class SerialPoke extends Presentable{
 	
 	@Override protected void init(MainWin mw) 	{
 		initGUI(mw);
-		onEditorTabSelect();
+		updatePortTable();
 	}	
 	@Override protected void initGUI(MainWin mw){ //good luck trying to figure this out in a timely manner. functions? what are those? 
 		JPanel container = new JPanel(new BorderLayout());
@@ -65,6 +66,12 @@ public class SerialPoke extends Presentable{
 						editorTab_portDescriptor.setLayout(editorTab_portDescriptor_layout);{
 							SpringLayout layout = editorTab_portDescriptor_layout;
 							
+							var refreshTableBtn = new JButton(MainWin.getImageIcon("res/refresh.png", MainWin.stdtabIconSize));
+								refreshTableBtn.addActionListener(e -> updatePortTable());
+								refreshTableBtn.setToolTipText("refresh the connections table bellow");
+								refreshTableBtn.setBorder(null);
+								refreshTableBtn.setBackground(new Color(0,0,0,0));
+								
 							JLabel label = new JLabel("Port Descriptor : ");
 							editorTab_portDescriptor_txt = new JTextField("COM3", 15);
 							editorTab_portDescriptor_txt.getDocument().addDocumentListener(new DocumentListener() {
@@ -87,12 +94,19 @@ public class SerialPoke extends Presentable{
 								});
 							editorTab_newEditor_btn.setEnabled(editorTab_portDescriptor_txt.getText().length() != 0);
 							
+							editorTab_portDescriptor.add(refreshTableBtn);
 					        editorTab_portDescriptor.add(label);
 					        editorTab_portDescriptor.add(editorTab_portDescriptor_txt);
 					 
+					        //refresh button at top left
+					        layout.putConstraint(SpringLayout.WEST, refreshTableBtn,
+				        			3, SpringLayout.WEST, editorTab_portDescriptor);
+					        layout.putConstraint(SpringLayout.NORTH, refreshTableBtn,
+				        			5, SpringLayout.NORTH, editorTab_portDescriptor);
+					        
 					        //label at (5,5).
 					        layout.putConstraint(SpringLayout.WEST, label,
-					        			5, SpringLayout.WEST, editorTab_portDescriptor);
+					        			5, SpringLayout.EAST, refreshTableBtn);
 					        layout.putConstraint(SpringLayout.NORTH, label,
 					        			5, SpringLayout.NORTH, editorTab_portDescriptor);
 					 
@@ -102,14 +116,16 @@ public class SerialPoke extends Presentable{
 					        layout.putConstraint(SpringLayout.NORTH, editorTab_portDescriptor_txt,
 					        			5, SpringLayout.NORTH, editorTab_portDescriptor);
 					 
-					        //Adjust constraints for the content pane. text field assumed to be bottom most component
+					        //Adjust constraints for the content pane. text field assumed to be bottom-most component
 					        layout.putConstraint(SpringLayout.EAST, editorTab_portDescriptor,
 					        			1, SpringLayout.EAST, editorTab_portDescriptor_txt);
 					        layout.putConstraint(SpringLayout.SOUTH, editorTab_portDescriptor,
 					                    5, SpringLayout.SOUTH, editorTab_portDescriptor_txt);
 						}
+						
 					editorTab.add(editorTab_portDescriptor, BorderLayout.PAGE_START);
 					editorTab.add(editorTab_newEditor_btn, BorderLayout.PAGE_END);
+					
 					commTable = new JTable() {
 						private static final long serialVersionUID = 1L;//eclipse complains
 						public boolean isCellEditable(int row, int column) { return false; }; //disables user editing of table
@@ -135,17 +151,7 @@ public class SerialPoke extends Presentable{
 					editorTab.add(commTable_scrollFrame, BorderLayout.CENTER);
 					
 						
-			mainTp.addTab("editor", MainWin.getImageIcon("res/build.png", MainWin.stdtabIconSize), editorTab, "");
-			mainTp.addChangeListener(new ChangeListener() {
-				public void stateChanged(ChangeEvent changeEvent) {
-					JTabbedPane pane = (JTabbedPane) changeEvent.getSource();
-					switch(pane.getTitleAt(pane.getSelectedIndex())) {
-						case "editor" : onEditorTabSelect(); 
-							break;
-					}
-				}
-			});
-			
+			mainTp.addTab("editor", MainWin.getImageIcon("res/build.png", MainWin.stdtabIconSize), editorTab, "");		
 			
 			//save/load tab
 			
@@ -162,7 +168,7 @@ public class SerialPoke extends Presentable{
 ///////////////////
 //gui
 ///////////////////
-	private void onEditorTabSelect() {
+	private void updatePortTable() {
 		//clear table
 		commTable_model.setRowCount(0);
 		
@@ -258,14 +264,14 @@ public class SerialPoke extends Presentable{
 	public static ImageIcon getImgIcon()		{	return MainWin.getImageIcon("res/presentIcons/cerealpike.png", new Dimension((int)(MainWin.stbPresentIconSize.width * 1.2),(int)(MainWin.stbPresentIconSize.height * 1.2))); }
 	public static String 	getDescription()	{	return "<html>"
 			+ "<body> "
-			+ "<b>intended for RS232</b><br>"
-			+ "A way to jimmy seral connections into working. please use something like PuTTY for actual communicaitons."
-			+ "<br>Consider using VSPE along side this program if it's interfering with the connections<br>"
-			+ "possiable use cases<br>"
-			+ "<li>see live port events</li>"
-			+ "<li>reroute ports(wip)</li>"
+			+ "A general purpose fiddler for serial connections, for uses such as jimmying seral connections into working. please use something like PuTTY for actual communicaitons."
+			+ "<br>Consider using VSPE(check VSPE's licenseing first) along side this program, to manage connection routing<br>"
+			+ "<b>noteable features!</b>"
+			+ "<ul>"
+			+ "<li>UI based input customization</li>"
+			+ "<li>defaults on non-disruptive monitoring (no data will be sent at any point, even during connection)</li>"
 			+ "</ul>"
-			+ "<b>disclaimers!</b>"
+			+ "<b>disclaimers</b>"
 			+ "<ul>"
 			+ "<li>the ability to multiplex ports is dependent on host machine</li>"
 			+ "<li>the com port detector is terriable, some ports may appear under a different name, example: a vitrual COM3 connection may appear as \"vitural port\" but the connection name would be \"COM3\". you have to figure that out yourself</li>"
