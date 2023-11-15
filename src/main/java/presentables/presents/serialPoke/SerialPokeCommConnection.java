@@ -668,11 +668,11 @@ public class SerialPokeCommConnection extends JPanel{
 	private void genUI_tab_input(JPanel content) {
 		//everything gets wrapped in a scroll frame
 		
-		var contentAndEditor = new JSplitPane(SwingConstants.VERTICAL,
+		var editorAndInspector = new JSplitPane(SwingConstants.VERTICAL,
 				new JScrollPane(inputEditor,	//left
 						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED),
-				new JScrollPane(inputEditor.getEditorPanel(),	//right	
+				new JScrollPane(inputEditor.getInspectorPanel(),	//right	
 						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 			);
@@ -682,13 +682,13 @@ public class SerialPokeCommConnection extends JPanel{
 				new JScrollPane(inputEditor.getIndexPanel(),	//left
 						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED),
-				contentAndEditor 		//right
+				editorAndInspector 		//right
 			);
 		
-		contentAndEditor.setResizeWeight(0);
+		editorAndInspector.setResizeWeight(.75);
 		actualContent.setResizeWeight(0);
 		
-		inputEditor.getIndexPanel().setPreferredSize(new Dimension(MainWin.stdDimension.width / 2, MainWin.stdDimension.height));
+//		inputEditor.getIndexPanel().setPreferredSize(new Dimension(MainWin.stdDimension.width / 2, MainWin.stdDimension.height));
 //		inputEditor.getEditorPanel().setPreferredSize(new Dimension(MainWin.stdDimension.width / 2, MainWin.stdDimension.height));
 		
 		content.add(actualContent, Presentable.createGbc(0,0));
