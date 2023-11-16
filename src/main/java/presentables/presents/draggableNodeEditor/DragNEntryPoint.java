@@ -3,7 +3,7 @@ package presentables.presents.draggableNodeEditor;
 /**
  * the standard entry point for what ever draggable-node thing your trying to do
  */
-public class DragNEntryPoint extends DraggableNode {
+public abstract class DragNEntryPoint extends DraggableNode {
 	private static final long serialVersionUID = 1L;
 	
 	public DragNEntryPoint() {

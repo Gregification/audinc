@@ -11,19 +11,16 @@ import javax.swing.border.Border;
 
 /**
  * a node object meant to be used by the {@code DraggableNodeEditor} class
- * @implNote Serializable
  */	
-public class DraggableNode extends JPanel implements Serializable {
-	
-	
+public abstract class DraggableNode extends JPanel implements Serializable, Runnable{
 	public volatile String 
 		title 		= "default title",
 		description = "default descrpition";
 	public volatile boolean isDraggable = true;
 	
 	protected final static Border 
-		stdBorder = BorderFactory.createLineBorder(Color.black),
-		stdBorderEmphasis1 = BorderFactory.createBevelBorder(BevelBorder.RAISED);
+		stdBorder 			= BorderFactory.createLineBorder(Color.black),
+		stdBorderEmphasis1 	= BorderFactory.createBevelBorder(BevelBorder.RAISED);
 	
 	protected final static Color
 		stdBackgroundColor 			= Color.LIGHT_GRAY,
@@ -35,16 +32,12 @@ public class DraggableNode extends JPanel implements Serializable {
 		this.setBackground(stdBackgroundColor);
 	}
 	
+	public abstract void init();
+	
 	@Override public String toString() {
 		return title;
 	}
 	
-////////////////////////////////
-//	getters / setters
-////////////////////////////////
-	public boolean isBeingDragged() {
-		return false;
-	}
-	
 	private static final long serialVersionUID = 1L;
+
 }

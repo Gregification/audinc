@@ -10,7 +10,6 @@ import java.io.Serializable;
 
 import javax.swing.Box;
 import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -133,9 +132,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //gui
 ////////////////////////////////
 	protected void openNewNodeDialog() {
-		var node = new DraggableNode();
-		node.add(new JLabel("wee woooadasd"));
-		node.setVisible(true);
+		DraggableNode node = null;
+//		node.add(new JLabel("wee woooadasd"));
+//		node.setVisible(true);
 	
 		addNode(null, node);
 	}

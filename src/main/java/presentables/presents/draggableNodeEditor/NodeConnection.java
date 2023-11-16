@@ -4,17 +4,17 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class NodeConnection<T> implements Consumer<T>{
-	protected List<NodeComponent> terminals = List.of();
-	
 	public NodeConnection() {
 		
 	}
 	
-	public void addTerminal(NodeComponent nodeComp) {
-		terminals.add(nodeComp);
+	public T pollValue() {
+		return null;
 	}
 
-	@Override public void accept(T t) {
+	@Override
+	public void accept(T t) {
+		// TODO Auto-generated method stub
 		
 	}
 }
