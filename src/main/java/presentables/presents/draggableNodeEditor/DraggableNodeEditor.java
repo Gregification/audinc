@@ -1,25 +1,15 @@
 package presentables.presents.draggableNodeEditor;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridBagLayout;
 import java.awt.Point;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 import javax.swing.Box;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
@@ -28,7 +18,6 @@ import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 
 import audinc.gui.MainWin;
-import presentables.Presentable;
 /**
  * GUI editor for draggable and linkable nodes. encouraged to inherit this class for more specialized uses
  * <p>
@@ -155,7 +144,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public DraggableNode addNode(int layer, Point position, DraggableNode node) {
 		if(position == null)
 			position = new Point(
-					(int)editorScrollPane.getVisibleRect().getCenterX(),
+					(int)editorScrollPane.getVisibleRect().getCenterX(),		//with null layout this dosnet actually do anyhting
 					(int)editorScrollPane.getVisibleRect().getCenterY()
 				);
 		

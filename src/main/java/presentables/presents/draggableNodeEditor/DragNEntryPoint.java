@@ -11,5 +11,8 @@ public class DragNEntryPoint extends DraggableNode {
 		
 		this.title = "entry point";
 		this.setBorder(DraggableNode.stdBorderEmphasis1);
+		this.setBackground(DraggableNode.stdBackgroundColorEmphasis1);
 	}
+	
+	
 }
