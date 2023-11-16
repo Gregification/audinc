@@ -2,9 +2,13 @@ package presentables.presents.draggableNodeEditor;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
 import java.awt.Point;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -13,12 +17,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JToolBar;
+import javax.swing.SwingUtilities;
 
 import audinc.gui.MainWin;
 import presentables.Presentable;
@@ -30,48 +37,36 @@ import presentables.Presentable;
  * @implNote Serializable
  */
 public class DraggableNodeEditor extends JLayeredPane implements MouseListener, MouseMotionListener, Serializable {
+	public static final int 
+		topLayer = 5,
+		defaultLayer = 2;
+	public JToolBar editorToolBar;
+	
 	protected JScrollPane editorScrollPane;
 	protected final int canvasLayer = 0;
-	protected JPanel 
-		indexPanel,		//options related to the entire content panel. add nodes, define nodes, ect.
-		inspectorPanel;	//options related to a single node. view & edit details about a selected node
-	protected List<DraggableNode> nodes = new ArrayList<>(5);
+	protected JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
 	
 	//mouse events
-	protected Point dragStartPoint;
+	protected Point dragOffSet;
+	protected DraggableNode dragN;		//the current node being dragged. "dragN":pronounced like drag-N-dez-... 
 	
 	private static final long serialVersionUID = 1L;
 	
-	public DraggableNodeEditor(JPanel inspector, JPanel index) {
-		this.indexPanel = index;
+	public DraggableNodeEditor(JPanel inspector, JToolBar index) {
+		this.editorToolBar = index;
 		this.inspectorPanel = inspector;
 	}
 	public DraggableNodeEditor() {
-		this(new JPanel(), new JPanel());
+		this(new JPanel(), new JToolBar());
+		
 		this.addMouseListener(this);
+		this.addMouseMotionListener(this);
 		
 		editorScrollPane = new JScrollPane(this,	
-			JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-			JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+			JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+			JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		
 		genGUI();
-	}
-	
-	public DraggableNode addNode(Point position, DraggableNode node) {
-		this.add(node, 1, 0);
-		
-		if(position != null)
-			node.setLocation(position);
-		else 
-			node.setLocation(
-					(int)editorScrollPane.getVisibleRect().getCenterX(),
-					(int)editorScrollPane.getVisibleRect().getCenterY()
-				);
-		
-		this.revalidate();
-		this.repaint();
-		
-		return node;
 	}
 	
 	/**
@@ -79,7 +74,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	 */
 	public void genGUI() {		
 		genGUI_inspector(inspectorPanel);
-		genGUI_index(indexPanel);
 		genGUI_editor();
 	}
 	
@@ -87,59 +81,136 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //mouse events
 ////////////////////////////////
 	@Override public void mouseDragged(MouseEvent e) {
-	// TODO Auto-generated method stub
+		if(dragN == null) return;
+		
+		assert dragOffSet != null 
+				: "failed to be initialized";
+		
+		if(this.getBounds().contains(e.getPoint())) {
+			Point newLocation = e.getPoint();
+				newLocation.x -= dragOffSet.x;
+				newLocation.y -= dragOffSet.y;
+			newLocation.x = Math.max(newLocation.x, 0);	//lower	bound
+			newLocation.y = Math.max(newLocation.y, 0);	//upper bound
+			newLocation.x = Math.min(newLocation.x, this.getWidth() - dragN.getWidth());	//right bound	
+			newLocation.y = Math.min(newLocation.y, this.getHeight() - dragN.getHeight());	//bottom bound
+			
+			dragN.setLocation(newLocation);
+		}
 	}
 	
 	@Override public void mouseMoved(MouseEvent e) {
-	// TODO Auto-generated method stub
+	// 	TODO Auto-generated method stub
 	}
 	
 	@Override public void mouseClicked(MouseEvent e) {
-	// TODO Auto-generated method stub
+		
 	}
 	
-	@Override public void mousePressed(MouseEvent e) {	
+	@Override public void mousePressed(MouseEvent e) {
+		this.dragN = getNodeAt(e);
+		this.dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
 	}
 	
 	@Override public void mouseReleased(MouseEvent e) {
-	// TODO Auto-generated method stub
+		
 	}
 	
 	@Override public void mouseEntered(MouseEvent e) {
-		// TODO Auto-generated method stub
+		
 	}
 	
 	@Override public void mouseExited(MouseEvent e) {
-	// TODO Auto-generated method stub
+		
 	}
 	
-	public JPanel getIndexPanel() {
-		return indexPanel;
+	protected DraggableNode getNodeAt(MouseEvent e) {
+		Component comp = getComponentAt(e.getPoint());
+		
+//		System.out.println(comp.hashCode() + " : is "+ ((comp instanceof DraggableNode) ? "" : "NOT ") + "a draggable node");
+		
+		if(comp instanceof DraggableNode) 	return (DraggableNode) comp;
+		else 								return null;
+	}
+	
+	public JToolBar geteditorToolBar() {
+		return this.editorToolBar;
 	}
 	public JPanel getInspectorPanel() {
 		return inspectorPanel;
 	}
 	
 ////////////////////////////////
+//gui
+////////////////////////////////
+	protected void openNewNodeDialog() {
+		var node = new DraggableNode();
+		node.add(new JLabel("wee woooadasd"));
+		node.setVisible(true);
+	
+		addNode(null, node);
+	}
+	
+	public DraggableNode addNode(Point position, DraggableNode node) { return addNode(defaultLayer, position, node); }
+	public DraggableNode addNode(int layer, Point position, DraggableNode node) {
+		if(position == null)
+			position = new Point(
+					(int)editorScrollPane.getVisibleRect().getCenterX(),
+					(int)editorScrollPane.getVisibleRect().getCenterY()
+				);
+		
+		this.add(node, layer, 0);
+		var insets = this.getInsets();
+		var size = node.getPreferredSize();
+		node.setBounds(
+				position.x + insets.left,
+				position.y + insets.top,
+		        size.width,
+		        size.height);
+		
+		this.revalidate();
+		this.repaint(node.getBounds());
+		
+		return node;
+	}
+	
+////////////////////////////////
 //gen gui
 ////////////////////////////////
 	private void genGUI_editor() {
-		this.setLayout(new FlowLayout());
-	}
-	private void genGUI_index(JPanel panel) {
-		panel.setLayout(new GridBagLayout());
-		int x = 0, y = 1;
+		this.setLayout(null);
 		
-		var newNodeBtn = new JButton("new node");
-			newNodeBtn.addActionListener(e -> {
-				var node = new DraggableNode();
-					node.add(new JLabel("wee woooadasd"));
-					node.setVisible(true);
-				
-				addNode(null, node);
-			});
+		//dynamic resizing
+//		final DraggableNodeEditor self = this;
+//		this.addComponentListener(new ComponentAdapter() {
+//            public void componentResized(ComponentEvent e) {
+//            	Dimension 
+//            		spd = editorScrollPane.getSize(),
+//            		ed	= new Dimension();
+//                
+//            	System.out.println("ed : " + self.getSize());
+//            	System.out.println("sp : " + spd);
+//            	
+//            	ed.width = Math.max(spd.width, self.getWidth());
+//            	ed.height= Math.max(spd.height, self.getHeight());
+//            	
+//            	if(self.getWidth() < spd.getWidth() || self.getHeight() < spd.getHeight()) {
+//            		System.out.println("------current size:" + self.getSize());
+//            		System.out.println("------new size:" + ed);
+//            		
+//            	}
+//            }
+//        });
+		
+		System.out.println();
+		var newNodeBtn = new JButton("+");
+			newNodeBtn.addActionListener(e -> openNewNodeDialog());
+		
+		editorToolBar = new JToolBar("editor tool bar",JToolBar.VERTICAL);
+			editorToolBar.setRollover(true);
 			
-		panel.add(newNodeBtn, Presentable.createGbc(x, y++));
+		editorToolBar.add(newNodeBtn);
+		editorToolBar.add(Box.createVerticalStrut(MainWin.stdStructSpace / 2));
 	}
 	
 	private void genGUI_inspector(JPanel panel) {

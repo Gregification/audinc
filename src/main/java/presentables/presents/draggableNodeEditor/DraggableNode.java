@@ -6,6 +6,7 @@ import java.io.Serializable;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
 
 /**
@@ -13,9 +14,15 @@ import javax.swing.border.Border;
  * @implNote Serializable
  */	
 public class DraggableNode extends JPanel implements Serializable {
-	public String title = "default title";
+	public volatile String 
+		title 		= "default title",
+		description = "default descrpition";
+	public volatile boolean isDraggable = true;
 	
-	private final static Border stdBorder = BorderFactory.createLineBorder(Color.black);
+	protected final static Border 
+		stdBorder = BorderFactory.createLineBorder(Color.black),
+		stdBorderEmphasis1 = BorderFactory.createBevelBorder(BevelBorder.RAISED);
+	
 	private final static Color
 		stdBackgroundColor 	= Color.LIGHT_GRAY;
 	
