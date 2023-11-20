@@ -1,5 +1,7 @@
 package draggableNodeEditor;
 
+import java.awt.GridBagLayout;
+import java.awt.Rectangle;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -13,6 +15,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
+import audinc.gui.MainWin;
 import draggableNodeEditor.suppliers.NspSpinner;
 import presentables.Presentable;
 
@@ -20,28 +23,39 @@ public class NConstant extends DraggableNode {
 	private static final long serialVersionUID = 1L;
 	
 	//GUI
-	private static final JScrollPane constantsTableWrapper;
-	private static final JTable constantsTable;
+	private JScrollPane constantsTableWrapper;
+	private JTable constantsTable;
 	private static final Map<Class, Function<Void, NodeSupplier>> supportedConstants = Map.of(
 				Integer.class, v -> new NspSpinner<Integer>(
 							new SpinnerNumberModel(0, Integer.MIN_VALUE, Integer.MAX_VALUE, 1),
 							(s,e) -> (int)s.getModel().getValue()
 						),
 				Double.class, v -> new NspSpinner<Double>(
-							new SpinnerNumberModel(0, Double.MIN_VALUE, Double.MAX_VALUE, .1),
+							new SpinnerNumberModel(0.0, Double.MIN_VALUE, Double.MAX_VALUE, .1),
 							(s,e) -> (Double)s.getModel().getValue()
 						),
 				Float.class, v -> new NspSpinner<Float>(
-							new SpinnerNumberModel(0, Float.MIN_VALUE, Float.MAX_VALUE, .1),
+							new SpinnerNumberModel(0f, Float.MIN_VALUE, Float.MAX_VALUE, .1),
 							(s,e) -> (Float)s.getModel().getValue()
 						)
 			);
-	private int tableIndex = -1;
 	
 	//node
 	protected NodeSupplier supplier;
 	
-	static {
+	public NConstant() {
+		this(null);
+	}
+	public NConstant(NodeSupplier supplier) {
+		super();
+		this.supplier = supplier;
+		this.setLayout(new GridBagLayout());
+		this.setPreferredSize(MainWin.stdtabIconSize);
+		
+		initGUI();
+	}
+	
+	@Override public void initGUI() {
 		var constantsKeys = supportedConstants.keySet().stream()
 				.map(e -> new Object[] {e})
 				.toArray(Object[][]::new);
@@ -58,23 +72,26 @@ public class NConstant extends DraggableNode {
 		constantsTableWrapper = new JScrollPane(constantsTable,	
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-	}
-	
-	public NConstant() {
-		this(null);
-	}
-	public NConstant(NodeSupplier supplier) {
-		super();
-		this.supplier = supplier;
 		
-		initGUI();
-	}
-	
-	@Override public void initGUI() {
-		this.removeAll();
+		var model = constantsTable.getSelectionModel();
 		
-		if(this.supplier != null)
-			this.add(supplier);
+		final var self = this;
+		model.addListSelectionListener(new ListSelectionListener() {
+			@Override public void valueChanged(ListSelectionEvent e) {
+				int selectedRow = constantsTable.getSelectedRow();
+				
+				if(selectedRow < 0) return;
+				
+				Object key = (constantsTable.getModel().getValueAt(selectedRow, 0));
+				setSupplier(supportedConstants.get(key).apply(null));
+				
+				self.revalidate();
+			}
+		});
+		
+		
+		
+		this.setSupplier(supplier);
 	}
 
 	@Override public void initNode() {
@@ -90,38 +107,29 @@ public class NConstant extends DraggableNode {
 	}
 
 	public void setSupplier(NodeSupplier supplier) {
-		if(this.supplier != null)
+		boolean isnotnull = this.supplier != null;
+		
+		if(isnotnull)
 			this.remove(this.supplier);
 		
 		this.supplier = supplier;
-		this.add(supplier, Presentable.createGbc(0, 0));
+		
+		if(isnotnull)
+			this.add(supplier, Presentable.createGbc(0, 0));
+		
+		System.out.println(""
+				+ "NConstant size:" + this.getSize()
+				+ "\nsupplier size:" + (supplier==null?"null":supplier.getSize()));
+		
+		int padding = 5;
+//		this.setBounds(new Rectangle(supplier.getBounds().x + padding, supplier.getBounds().y + padding));
+//		this.setSize(new Dimension(supplier.getSize().width + padding, supplier.getSize().height + padding));
 	}
 
 	@Override public String getTitle() {
 		return "Supplier of a constant";
 	}
-	@Override public JComponent getInspector() {
-		var model = constantsTable.getSelectionModel();
-		
-		model.clearSelection();
-				
-		model.removeListSelectionListener(constantsTable);
-		
-		final var self = this;
-		model.addListSelectionListener(new ListSelectionListener() {
-			@Override public void valueChanged(ListSelectionEvent e) {
-				int selectedRow = constantsTable.getSelectedRow();
-				
-				if(selectedRow < 0) return;
-				
-				tableIndex = selectedRow;
-				Object key = (constantsTable.getModel().getValueAt(selectedRow, 0));
-				supplier = supportedConstants.get(key).apply(null);
-				
-				self.revalidate();
-			}
-		});
-		
+	@Override public JComponent getInspector() {		
 		return constantsTableWrapper;
 	}
 }

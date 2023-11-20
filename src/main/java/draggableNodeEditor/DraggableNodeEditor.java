@@ -179,12 +179,15 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			
 			try {
 				Object dragN = NewNodeDialogNodeTable.getValueAt(NewNodeDialogNodeTable.getSelectedRow(), 0);
-				DraggableNode node = (DraggableNode) ((Class)dragN).getConstructor().newInstance();
-				
-				addNode(null, node);
+				if(dragN != null) {
+					DraggableNode node = (DraggableNode) ((Class)dragN).getConstructor().newInstance();
+					
+					addNode(null, node);
+				}
 			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException | NoSuchMethodException | SecurityException e1) {
 				//yeah :(
+				System.out.println("dragN:" + dragN);
 				e1.printStackTrace();
 			}
 	    }
@@ -256,6 +259,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		System.out.println();
 		var newNodeBtn = new JButton("+");
 			newNodeBtn.addActionListener(e -> openNewNodeDialog());
+			newNodeBtn.setMnemonic('n');
 		
 		editorToolBar = new JToolBar("editor tool bar",JToolBar.VERTICAL);
 			editorToolBar.setRollover(true);

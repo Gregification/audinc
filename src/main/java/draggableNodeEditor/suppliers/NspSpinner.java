@@ -1,5 +1,6 @@
 package draggableNodeEditor.suppliers;
 
+import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.util.function.BiFunction;
 
@@ -31,6 +32,7 @@ public class NspSpinner<T> extends NodeSupplier<T>{
 		  		});
 		
 		this.setLayout(new GridBagLayout());
+		this.setPreferredSize(spinner.getSize());
 		this.add(spinner, Presentable.createGbc(0, 0));
 	}
 
