@@ -59,9 +59,10 @@ import DOMViewer.FileViewer;
 import DOMViewer.parsers.SPCParser;
 import audinc.gui.MainWin;
 import audinc.gui.WrapLayout;
+import draggableNodeEditor.DraggableNodeEditor;
+import draggableNodeEditor.DraggableNodeGroup;
 import presentables.Presentable;
 import presentables.presents.SerialPoke;
-import presentables.presents.draggableNodeEditor.DraggableNodeEditor;
 
 /**
  * a GUI port manager for serial ports. extends JPanel
@@ -77,7 +78,9 @@ public class SerialPokeCommConnection extends JPanel{
 	public FileViewer viewer		= new FileViewer(null);
 	public SPCParser settingsParser;
 	
-	public DraggableNodeEditor inputEditor	= new DraggableNodeEditor();
+	public DraggableNodeEditor inputEditor	= new DraggableNodeEditor(
+				DraggableNodeGroup.GENERAL,
+				DraggableNodeGroup.SERIAL_PIKE);
 	
 	public JTabbedPane content_tabb = new JTabbedPane();
 	

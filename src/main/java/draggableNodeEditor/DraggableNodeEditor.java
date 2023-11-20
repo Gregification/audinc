@@ -1,22 +1,30 @@
-package presentables.presents.draggableNodeEditor;
+package draggableNodeEditor;
 
 import java.awt.Component;
+import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-
+import java.io.File;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JLayeredPane;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JToolBar;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
 
 import audinc.gui.MainWin;
+import presentables.Presentable;
 /**
  * GUI editor for draggable and linkable nodes. encouraged to inherit this class for more specialized uses
  * <p>
@@ -28,6 +36,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public static final int 
 		topLayer = 5,
 		defaultLayer = 2;
+	
+	public List<DraggableNodeGroup> allowedNodeGroups;
+	
 	public JToolBar editorToolBar;
 	
 	protected JScrollPane editorScrollPane;
@@ -40,12 +51,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	private static final long serialVersionUID = 1L;
 	
-	public DraggableNodeEditor(JPanel inspector, JToolBar index) {
+	public DraggableNodeEditor(JPanel inspector, JToolBar index, DraggableNodeGroup... allowedNodeGroups) {
 		this.editorToolBar = index;
 		this.inspectorPanel = inspector;
-	}
-	public DraggableNodeEditor() {
-		this(new JPanel(), new JToolBar());
 		
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);
@@ -54,7 +62,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 			JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		
+		this.allowedNodeGroups = List.of(allowedNodeGroups);
+		
 		genGUI();
+	}
+	public DraggableNodeEditor(DraggableNodeGroup... allowedNodeGroups) {
+		this(new JPanel(), new JToolBar(), allowedNodeGroups);
 	}
 	
 	/**
@@ -96,7 +109,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 	@Override public void mousePressed(MouseEvent e) {
-		this.dragN = getNodeAt(e);
+		selectNode(this.dragN = getNodeAt(e));
 		this.dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
 	}
 	
@@ -131,16 +144,57 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 ////////////////////////////////
 //gui
 ////////////////////////////////
-	protected void openNewNodeDialog() {
-		DraggableNode node = null;
-//		node.add(new JLabel("wee woooadasd"));
-//		node.setVisible(true);
 	
-		addNode(null, node);
+	private JTable NewNodeDialogNodeTable = null;
+	protected void openNewNodeDialog() {
+		if(NewNodeDialogNodeTable == null) {
+			var nodeClasses = allowedNodeGroups.stream()
+					.flatMap(e -> e.allowedNodes.stream())
+					.map(e -> new Object[] {e})
+					.toArray(Object[][]::new);
+			
+			NewNodeDialogNodeTable = new JTable(new DefaultTableModel(nodeClasses, new Object[]{"nodes ("+ nodeClasses.length +")"})) {
+					private static final long serialVersionUID = 2L;
+		
+					public boolean isCellEditable(int row, int column) {                
+		                return false;               
+					};
+				};
+				NewNodeDialogNodeTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+				NewNodeDialogNodeTable.setCellEditor(null);
+		}	
+		
+		var content = new JPanel(new GridBagLayout());
+		content.add(
+			new JScrollPane(NewNodeDialogNodeTable,	
+				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED),
+			Presentable.createGbc(0, 0));
+		
+		int result = JOptionPane.showConfirmDialog(null, content, 
+	    		"Node selector", JOptionPane.OK_CANCEL_OPTION);
+		if (result == JOptionPane.OK_OPTION) {
+			if(NewNodeDialogNodeTable.getSelectedRow() < 0) 
+				return;
+			
+			try {
+				Object dragN = NewNodeDialogNodeTable.getValueAt(NewNodeDialogNodeTable.getSelectedRow(), 0);
+				DraggableNode node = (DraggableNode) ((Class)dragN).getConstructor().newInstance();
+				
+				addNode(null, node);
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException | NoSuchMethodException | SecurityException e1) {
+				//yeah :(
+				e1.printStackTrace();
+			}
+	    }
 	}
 	
 	public DraggableNode addNode(Point position, DraggableNode node) { return addNode(defaultLayer, position, node); }
 	public DraggableNode addNode(int layer, Point position, DraggableNode node) {
+		assert node != null
+			: "cannot add a null node";
+		
 		if(position == null)
 			position = new Point(
 					(int)editorScrollPane.getVisibleRect().getCenterX(),		//with null layout this dosnet actually do anyhting
@@ -160,6 +214,15 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		this.repaint(node.getBounds());
 		
 		return node;
+	}
+	
+	public void selectNode(DraggableNode node) {
+		this.inspectorPanel.removeAll();
+		
+		if(node != null && node.getInspector() != null)
+			this.inspectorPanel.add(node.getInspector(), Presentable.createGbc(0, 0));
+		
+		inspectorPanel.revalidate();
 	}
 	
 ////////////////////////////////
@@ -202,7 +265,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 	private void genGUI_inspector(JPanel panel) {
-		
+		panel.setLayout(new GridBagLayout());
 	}
 	
 }

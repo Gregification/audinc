@@ -1,4 +1,4 @@
-package presentables.presents.draggableNodeEditor;
+package draggableNodeEditor;
 
 import java.awt.Color;
 

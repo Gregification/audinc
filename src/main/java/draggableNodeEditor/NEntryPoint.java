@@ -1,15 +1,14 @@
-package presentables.presents.draggableNodeEditor;
+package draggableNodeEditor;
 
 /**
  * the standard entry point for what ever draggable-node thing your trying to do
  */
-public abstract class DragNEntryPoint extends DraggableNode {
+public abstract class NEntryPoint extends DraggableNode {
 	private static final long serialVersionUID = 1L;
 	
-	public DragNEntryPoint() {
+	public NEntryPoint() {
 		super();
 		
-		this.title = "entry point";
 		this.setBorder(DraggableNode.stdBorderEmphasis1);
 		this.setBackground(DraggableNode.stdBackgroundColorEmphasis1);
 	}
