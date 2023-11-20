@@ -118,8 +118,8 @@ public class NConstant extends DraggableNode {
 			this.add(supplier, Presentable.createGbc(0, 0));
 		
 		System.out.println(""
-				+ "NConstant size:" + this.getSize()
-				+ "\nsupplier size:" + (supplier==null?"null":supplier.getSize()));
+				+ "NConstant prefered/actual size:" + this.getPreferredSize() + "\t / \t" + this.getSize()
+				+ "\nsupplier prefered/actual  size:" + (supplier==null?"null": (supplier.getPreferredSize() + "\t / \t" + supplier.getSize())));
 		
 		int padding = 5;
 //		this.setBounds(new Rectangle(supplier.getBounds().x + padding, supplier.getBounds().y + padding));

@@ -23,6 +23,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
+import audinc.gui.AbsoluteLayout;
 import audinc.gui.MainWin;
 import presentables.Presentable;
 /**
@@ -182,18 +183,20 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				if(dragN != null) {
 					DraggableNode node = (DraggableNode) ((Class)dragN).getConstructor().newInstance();
 					
-					addNode(null, node);
+					addNode(node);
 				}
 			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException | NoSuchMethodException | SecurityException e1) {
 				//yeah :(
-				System.out.println("dragN:" + dragN);
-				e1.printStackTrace();
+				if(!(e1 instanceof NoSuchMethodException)) {
+					System.out.println("dragN:" + dragN);
+					e1.printStackTrace();
+				}
 			}
 	    }
 	}
 	
-	public DraggableNode addNode(Point position, DraggableNode node) { return addNode(defaultLayer, position, node); }
+	public DraggableNode addNode(DraggableNode node) { return addNode(defaultLayer, null, node); }
 	public DraggableNode addNode(int layer, Point position, DraggableNode node) {
 		assert node != null
 			: "cannot add a null node";
@@ -232,7 +235,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //gen gui
 ////////////////////////////////
 	private void genGUI_editor() {
-		this.setLayout(null);
+		this.setLayout(new AbsoluteLayout());
 		
 		//dynamic resizing
 //		final DraggableNodeEditor self = this;

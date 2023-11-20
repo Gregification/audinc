@@ -8,6 +8,7 @@ import javax.swing.AbstractSpinnerModel;
 import javax.swing.JSpinner;
 import javax.swing.event.ChangeEvent;
 
+import audinc.gui.MainWin;
 import draggableNodeEditor.NodeSupplier;
 import presentables.Presentable;
 
@@ -31,9 +32,12 @@ public class NspSpinner<T> extends NodeSupplier<T>{
 		  			setValue(onSpinnerChange.apply(spinner, e));
 		  		});
 		
+		System.out.println("NspSpinner: spinner size:" + spinner.getSize());
+		
 		this.setLayout(new GridBagLayout());
 		this.setPreferredSize(spinner.getSize());
 		this.add(spinner, Presentable.createGbc(0, 0));
+		this.setSize(spinner.getWidth() + 100, spinner.getHeight());
 	}
 
 	@Override public T get() {
