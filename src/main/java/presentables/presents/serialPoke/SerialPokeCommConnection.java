@@ -406,11 +406,6 @@ public class SerialPokeCommConnection extends JPanel{
 		    			});
 		    		
 				JTextField input = new JTextField(logTranscriptPath.toAbsolutePath().toString());
-//				input.getDocument().addDocumentListener(new DocumentListener() {
-//					  public void changedUpdate(DocumentEvent e) 	{}
-//					  public void removeUpdate(DocumentEvent e) 	{}
-//					  public void insertUpdate(DocumentEvent e) 	{}
-//					});
 				
 				logTranscript_panel.add(savetoggler);
 				logTranscript_panel.add(input);
@@ -691,7 +686,7 @@ public class SerialPokeCommConnection extends JPanel{
 						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
 			);
-			editorAndInspector.setResizeWeight(.75);
+			editorAndInspector.setResizeWeight(.8);
 			
 		content.setLayout(new GridBagLayout());
 		content.add(editorAndInspector, Presentable.createGbc(0,0));

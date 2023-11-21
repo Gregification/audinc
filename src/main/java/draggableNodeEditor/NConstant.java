@@ -24,19 +24,12 @@ public class NConstant extends DraggableNode {
 	
 	//GUI
 	private JScrollPane constantsTableWrapper;
-	private JTable constantsTable;
+	private JTable constantsTable;	//could be mem optimized 
 	private static final Map<Class, Function<Void, NodeSupplier>> supportedConstants = Map.of(
-				Integer.class, v -> new NspSpinner<Integer>(
-							new SpinnerNumberModel(0, Integer.MIN_VALUE, Integer.MAX_VALUE, 1),
-							(s,e) -> (int)s.getModel().getValue()
-						),
-				Double.class, v -> new NspSpinner<Double>(
-							new SpinnerNumberModel(0.0, Double.MIN_VALUE, Double.MAX_VALUE, .1),
-							(s,e) -> (Double)s.getModel().getValue()
-						),
-				Float.class, v -> new NspSpinner<Float>(
-							new SpinnerNumberModel(0f, Float.MIN_VALUE, Float.MAX_VALUE, .1),
-							(s,e) -> (Float)s.getModel().getValue()
+				Number.class, v -> new NspSpinner<Number>(
+							"number spinner",
+							new SpinnerNumberModel(0, null, null, 1),
+							(s,e) -> (Number)s.getModel().getValue()
 						)
 			);
 	
@@ -68,7 +61,8 @@ public class NConstant extends DraggableNode {
 			};
 			constantsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 			constantsTable.setCellEditor(null);
-		
+			constantsTable.setAlignmentX(JTable.LEFT_ALIGNMENT);;
+			
 		constantsTableWrapper = new JScrollPane(constantsTable,	
 				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -88,6 +82,8 @@ public class NConstant extends DraggableNode {
 				self.revalidate();
 			}
 		});
+		
+		constantsTable.getSelectionModel().setSelectionInterval(0, 0);
 		
 		
 		
@@ -118,10 +114,6 @@ public class NConstant extends DraggableNode {
 			this.add(supplier, Presentable.createGbc(0, 0));
 			this.setPreferredSize(supplier.getPreferredSize());
 		}
-		
-//		System.out.println(""
-//				+ "NConstant prefered/actual size:" + this.getPreferredSize() + "\t / \t" + this.getSize()
-//				+ "\nsupplier prefered/actual  size:" + (supplier==null?"null": (supplier.getPreferredSize() + "\t / \t" + supplier.getSize())));
 		
 	}
 

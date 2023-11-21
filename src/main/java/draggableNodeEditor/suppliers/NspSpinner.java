@@ -7,6 +7,7 @@ import javax.swing.AbstractSpinnerModel;
 import javax.swing.JSpinner;
 import javax.swing.event.ChangeEvent;
 
+import audinc.gui.MainWin;
 import draggableNodeEditor.NodeSupplier;
 import presentables.Presentable;
 
@@ -14,12 +15,15 @@ import presentables.Presentable;
  * a simple wrapper class for node-components that use a JSpinner. 
  * @param <T>
  */
-public class NspSpinner<T> extends NodeSupplier<T>{
+public class NspSpinner<T> extends NodeSupplier<T> {
+	private static final long serialVersionUID = 1L;
+	private static final int minWidth = MainWin.stdTextSpace * 3;
+	
 	public JSpinner spinner;
 	
 	public NspSpinner(AbstractSpinnerModel spinnerModel, BiFunction<JSpinner, ChangeEvent,T> onSpinnerChange) {
 		this("", spinnerModel, onSpinnerChange);
-		this.name = value.getClass().toString();
+		this.setName(value.getClass().toString());
 	}
 	@SuppressWarnings("unchecked")//death
 	public NspSpinner(String name, AbstractSpinnerModel spinnerModel, BiFunction<JSpinner, ChangeEvent,T> onSpinnerChange) {
@@ -30,15 +34,14 @@ public class NspSpinner<T> extends NodeSupplier<T>{
 		  			setValue(onSpinnerChange.apply(spinner, e));
 		  		});
 		
-		System.out.println("NspSpinner: spinner size:" + spinner.getSize());
-		
 		this.setLayout(new GridBagLayout());
 		this.setPreferredSize(spinner.getSize());
 		this.add(spinner, Presentable.createGbc(0, 0));
-		this.setPreferredSize(spinner.getPreferredSize());
-	}
-
-	@Override public T get() {
-		return getValue();
+		
+		var prefSize = spinner.getPreferredSize();
+			prefSize.width = Math.max(prefSize.width, minWidth);
+		spinner.setPreferredSize(prefSize);
+			
+		this.setPreferredSize(prefSize);
 	}
 }

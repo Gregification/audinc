@@ -11,7 +11,6 @@ import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 
 import draggableNodeEditor.DraggableNode;
@@ -23,10 +22,22 @@ public class AbsoluteLayout implements LayoutManager {
 	 * padding for nodes, useful for making sure every node has a suitable amount of drag space
 	 */
 	public volatile int 
-		minPaddingTop = 5,
-		minPaddingBottom= 3,
-		minPaddingLeft	= 3,
-		minPaddingRight	= 3;
+		minNodePaddingTop 	= 5,
+		minNodePaddingBottom= 3,
+		minNodePaddingLeft	= 3,
+		minNodePaddingRight	= 3;
+	
+	/**
+	 * padding for the area this layout is applied to. padding is applied to each side(top,left,bottom,right).
+	 * this does not effect node placement.
+	 */
+	public volatile int
+		areaPaddingTop 		= 30,
+		areaPaddingBottom 	= 30,
+		areaPaddingLeft		= 30,
+		areaPaddingRight 	= 30;
+	
+	
 	public volatile Color
 		paddingHighlightColor 	= Color.DARK_GRAY,
 		paddingShadowColor		= null;
@@ -93,8 +104,8 @@ public class AbsoluteLayout implements LayoutManager {
 		}
 		
 		return new Dimension(
-					(int)(maxX * positionScale) + maxXOffSet,
-					(int)(maxY * positionScale) + maxYOffSet
+					(int)(maxX * positionScale) + maxXOffSet + areaPaddingTop  + areaPaddingBottom,
+					(int)(maxY * positionScale) + maxYOffSet + areaPaddingLeft + areaPaddingRight
 				);
 	}
 
@@ -102,8 +113,8 @@ public class AbsoluteLayout implements LayoutManager {
 		var parentInset = parent.getInsets();
 		
 		int
-			minOffsetX =  minPaddingLeft + minPaddingRight,
-			minOffsetY =  minPaddingTop + minPaddingBottom;
+			minOffsetX =  minNodePaddingLeft + minNodePaddingRight,
+			minOffsetY =  minNodePaddingTop + minNodePaddingBottom;
 		
 		for(Component c : parent.getComponents()) {	
 			int 
@@ -123,10 +134,10 @@ public class AbsoluteLayout implements LayoutManager {
 					else
 						border = BorderFactory.createCompoundBorder(
 										new EmptyBorder(
-												minPaddingTop,
-												minPaddingLeft,
-												minPaddingBottom,
-												minPaddingRight),
+												minNodePaddingTop,
+												minNodePaddingLeft,
+												minNodePaddingBottom,
+												minNodePaddingRight),
 										jc.getBorder()
 									);
 					

@@ -34,23 +34,25 @@ import presentables.Presentable;
  * @implNote Serializable
  */
 public class DraggableNodeEditor extends JLayeredPane implements MouseListener, MouseMotionListener, Serializable {
+	private static final long serialVersionUID = 1L;
+	
 	public static final int 
-		topLayer = 5,
-		defaultLayer = 2;
+		LINE_LAYER 	= 2,
+		NODE_LAYER 	= 3;
 	
-	public List<DraggableNodeGroup> allowedNodeGroups;
+	public static final int
+		stickRadius = 2;
 	
-	public JToolBar editorToolBar;
+	public volatile List<DraggableNodeGroup> allowedNodeGroups;
 	
-	protected JScrollPane editorScrollPane;
-	protected final int canvasLayer = 0;
-	protected JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
+	public volatile JToolBar editorToolBar;
+	
+	protected volatile JScrollPane editorScrollPane;
+	protected volatile JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
 	
 	//mouse events
 	protected Point dragOffSet;
 	protected DraggableNode dragN;		//the current node being dragged. "dragN":pronounced like drag-N-dez-... 
-	
-	private static final long serialVersionUID = 1L;
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, DraggableNodeGroup... allowedNodeGroups) {
 		this.editorToolBar = index;
@@ -196,7 +198,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	    }
 	}
 	
-	public DraggableNode addNode(DraggableNode node) { return addNode(defaultLayer, null, node); }
+	public DraggableNode addNode(DraggableNode node) { return addNode(NODE_LAYER, null, node); }
 	public DraggableNode addNode(int layer, Point position, DraggableNode node) {
 		assert node != null
 			: "cannot add a null node";
@@ -207,14 +209,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					(int)editorScrollPane.getVisibleRect().getCenterY()
 				);
 		
-		this.add(node, layer, 0);
-		var insets = this.getInsets();
-		var size = node.getPreferredSize();
-		node.setBounds(
-				position.x + insets.left,
-				position.y + insets.top,
-		        size.width,
-		        size.height);
+		this.add(node, layer);
 		
 		this.revalidate();
 		this.repaint(node.getBounds());
@@ -225,8 +220,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public void selectNode(DraggableNode node) {
 		this.inspectorPanel.removeAll();
 		
-		if(node != null && node.getInspector() != null)
-			this.inspectorPanel.add(node.getInspector(), Presentable.createGbc(0, 0));
+		if(node != null){
+			this.moveToFront(node);
+			
+			if(node.getInspector() != null)
+				this.inspectorPanel.add(node.getInspector(), Presentable.createGbc(0, 0));
+		}
 		
 		inspectorPanel.revalidate();
 	}

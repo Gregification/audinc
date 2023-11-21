@@ -12,4 +12,8 @@ public abstract class NodeSupplier<T> extends NodeComponent<T> implements Suppli
 	@Override public NodeSupplier<T> getSupplier() {
 		return this;
 	}
+	
+	@Override public T get() {
+		return getValue();
+	}
 }
