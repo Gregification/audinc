@@ -25,10 +25,9 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 
 	public NodeComponent(String name, T value) {
 		this.setName(name);
-		this.value = value;
+		this.setValue(value);
 
 		this.setLayout(new FlowLayout());
-		this.setToolTipText(value.getClass() + "");
 	}
 	
 	public abstract NodeSupplier<T> getSupplier();

@@ -26,7 +26,7 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 
 	public NNoticeUpdater(SerialPokeCommConnection context) {
 		super(context);
-		System.out.println("context?!?! -> " + context);
+//		System.out.println("context?!?! -> " + context);
 	}
 	
 	@Override public String getTitle() { return title; }

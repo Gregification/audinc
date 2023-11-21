@@ -199,9 +199,15 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 										.getConstructor()
 										.newInstance();
 							}else {
+								//life saving if need to debug.
+//								System.out.println("draggable node editor > open new node dialog"
+//										+ "\n\tdraggable node class: \t" + dragClas
+//										+ "\n\tdraggable node group: \t" + dng
+//										+ "\n\texpected class: \t" + dng.expectedContextType
+//										+ "\n\tobject class: \t" + nodeGroups.get(dng));
 								node = dragClas
 									.getConstructor(dng.expectedContextType)
-									.newInstance(this.nodeGroups.get(dng));
+									.newInstance(nodeGroups.get(dng));
 							}
 							
 							addNode(node);
@@ -212,7 +218,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				}
 			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException | NoSuchMethodException | SecurityException e1) {
-				//yeah :(
+				//if your getting a error and traced your back to here, good luck
 				if(!(e1 instanceof NoSuchMethodException)) {
 					System.out.println("dragN:" + dragN);
 					e1.printStackTrace();
