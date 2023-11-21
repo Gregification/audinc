@@ -17,6 +17,12 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	private static final long serialVersionUID = 1L;
 	
 	public static final String title = "Notice Updator";
+	public static final GridBagLayout stdLayout;
+	
+	static {
+		stdLayout = new GridBagLayout();
+	}
+	
 	
 	public NodeConsumer<Object> c_logger 			= new NodeConsumer<>(
 				"logger",
@@ -31,12 +37,18 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	public NNoticeUpdater(SerialPokeCommConnection context) {
 		super(context);
 		
-		this.setLayout(new GridBagLayout());
+		this.setOpaque(true);
+		
+		this.setLayout(stdLayout);
 		int i = 0;
 		for(var v : this.getNodeComponents()) {
-			var c = Presentable.createGbc(0, i++);
-			c.anchor = GridBagConstraints.WEST;	//dosen't seem to do anything?
-			this.add(v, c);
+			var gbc = new GridBagConstraints();
+			    gbc.gridx = 0;
+			    gbc.gridy = i++;
+	
+			    gbc.anchor = GridBagConstraints.WEST;
+			
+			this.add(v, gbc);
 		}
 	}
 	

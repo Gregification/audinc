@@ -23,9 +23,9 @@ public class AbsoluteLayout implements LayoutManager {
 	 */
 	public volatile int 
 		minNodePaddingTop 	= 5,
-		minNodePaddingBottom= 3,
-		minNodePaddingLeft	= 3,
-		minNodePaddingRight	= 3;
+		minNodePaddingBottom= 1,
+		minNodePaddingLeft	= 1,
+		minNodePaddingRight	= 1;
 	
 	/**
 	 * padding for the area this layout is applied to. padding is applied to each side(top,left,bottom,right).

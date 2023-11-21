@@ -8,7 +8,6 @@ import javax.swing.JLabel;
 public class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
 	private static final long serialVersionUID = 1L;
 	
-	
 	protected JLabel nameLabel;
 	
 	/**
@@ -51,6 +50,7 @@ public class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
 		}
 		else if(nameLabel == null) {
 			nameLabel = new JLabel();
+			nameLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
 			this.add(nameLabel);
 		}
 		
