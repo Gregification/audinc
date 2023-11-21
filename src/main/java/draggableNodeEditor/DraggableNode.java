@@ -23,6 +23,9 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 		stdBorder 			= BorderFactory.createLineBorder(Color.black),
 		stdBorderEmphasis1 	= BorderFactory.createBevelBorder(BevelBorder.RAISED);
 	
+	private static int count = 0;
+	protected int index;
+	
 	protected final static Color
 		stdBackgroundColor 			= Color.LIGHT_GRAY,
 		stdBackgroundColorEmphasis1 = Color.LIGHT_GRAY;
@@ -35,6 +38,9 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 	
 	public DraggableNode(T context) {
 		super();
+		
+		index = count;
+		count++;
 		
 		this.setBorder(stdBorder);
 		this.setBackground(stdBackgroundColor);

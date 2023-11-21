@@ -44,6 +44,7 @@ public class NConstant extends DraggableNode<Void> {
 	}
 	public NConstant(NodeSupplier supplier) {
 		super(null);
+		
 		this.supplier = supplier;
 		this.setLayout(new GridBagLayout());
 		this.setPreferredSize(MainWin.stdtabIconSize);
@@ -121,7 +122,7 @@ public class NConstant extends DraggableNode<Void> {
 	}
 
 	@Override public String getTitle() {
-		return "Constant";
+		return "Constant (" + index + ")";
 	}
 	@Override public JComponent getInspector() {		
 		return constantsTableWrapper;

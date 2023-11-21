@@ -12,6 +12,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JLayeredPane;
@@ -22,6 +23,9 @@ import javax.swing.JTable;
 import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 
 import audinc.gui.AbsoluteLayout;
@@ -238,6 +242,15 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					(int)editorScrollPane.getVisibleRect().getCenterX(),		//with null layout this dosnet actually do anyhting
 					(int)editorScrollPane.getVisibleRect().getCenterY()
 				);
+		
+		var border = node.getBorder();
+		if(border == null || !(border instanceof CompoundBorder || border instanceof TitledBorder)) {
+			node.setBorder(new TitledBorder(
+								node.getBorder(),
+								node.getTitle()
+							));
+			System.out.println("draggable node editor> add node | title: " + node.getTitle());
+		}
 		
 		this.add(node, layer);
 		

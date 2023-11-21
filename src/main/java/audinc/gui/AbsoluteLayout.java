@@ -123,28 +123,21 @@ public class AbsoluteLayout implements LayoutManager {
 			
 			if(c instanceof JComponent) {
 				var jc = (JComponent)c;
-				var border = jc.getBorder();
+				var border = jc.getBorder();				
 				
-				if(border == null || !(border instanceof CompoundBorder || border instanceof TitledBorder)) {
-					if(jc instanceof DraggableNode)
-						border = new TitledBorder(
-										jc.getBorder(),
-										((DraggableNode)jc).getTitle()
-									);
-					else
-						border = BorderFactory.createCompoundBorder(
-										new EmptyBorder(
-												minNodePaddingTop,
-												minNodePaddingLeft,
-												minNodePaddingBottom,
-												minNodePaddingRight),
-										jc.getBorder()
-									);
-					
-					jc.setBorder(border);	
-				}
-				
+//				if(jc instanceof DraggableNode) {
+//					var dn = (DraggableNode)jc;
+//					
+//					if(border instanceof TitledBorder) {
+//						var tb = (TitledBorder)border;
+//						tb.setTitle(dn.getTitle());
+//						System.out.println("title: " + dn.getTitle());
+//						dn.revalidate();
+//					}
+//				}
+
 				var borderInset = border.getBorderInsets(c);
+				
 				offsetX += borderInset.left + borderInset.right;
 				offsetY += borderInset.top + borderInset.bottom;
 			}
@@ -153,8 +146,8 @@ public class AbsoluteLayout implements LayoutManager {
 			c.setBounds(
 						(int)(c.getX() * positionScale) + parentInset.left, 	//x
 						(int)(c.getY() * positionScale) + parentInset.right, 	//y
-						pSize.width + 	Math.max(minOffsetX, offsetX),							//width
-						pSize.height + 	Math.max(minOffsetY, offsetY)							//height
+						pSize.width + 	Math.max(minOffsetX, offsetX),			//width
+						pSize.height + 	Math.max(minOffsetY, offsetY)			//height
 					);
 		}
 	}
