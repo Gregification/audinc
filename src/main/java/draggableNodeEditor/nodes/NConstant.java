@@ -1,4 +1,4 @@
-package draggableNodeEditor;
+package draggableNodeEditor.nodes;
 
 import java.awt.GridBagLayout;
 import java.awt.Rectangle;
@@ -16,15 +16,18 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
 import audinc.gui.MainWin;
+import draggableNodeEditor.DraggableNode;
+import draggableNodeEditor.NodeComponent;
+import draggableNodeEditor.NodeSupplier;
 import draggableNodeEditor.suppliers.NspSpinner;
 import presentables.Presentable;
 
-public class NConstant extends DraggableNode {
+public class NConstant extends DraggableNode<Void> {
 	private static final long serialVersionUID = 1L;
 	
 	//GUI
 	private JScrollPane constantsTableWrapper;
-	private JTable constantsTable;	//could be mem optimized 
+	private JTable constantsTable;	//could be better optimized 
 	private static final Map<Class, Function<Void, NodeSupplier>> supportedConstants = Map.of(
 				Number.class, v -> new NspSpinner<Number>(
 							"number spinner",
@@ -40,7 +43,7 @@ public class NConstant extends DraggableNode {
 		this(null);
 	}
 	public NConstant(NodeSupplier supplier) {
-		super();
+		super(null);
 		this.supplier = supplier;
 		this.setLayout(new GridBagLayout());
 		this.setPreferredSize(MainWin.stdtabIconSize);

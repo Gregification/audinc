@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -78,9 +79,10 @@ public class SerialPokeCommConnection extends JPanel{
 	public FileViewer viewer		= new FileViewer(null);
 	public SPCParser settingsParser;
 	
-	public DraggableNodeEditor inputEditor	= new DraggableNodeEditor(
-				DraggableNodeGroup.GENERAL,
-				DraggableNodeGroup.SERIAL_PIKE);
+	public DraggableNodeEditor inputEditor	= new DraggableNodeEditor(Map.of(
+				DraggableNodeGroup.GENERAL, "java.lang.NullPointerException",
+				DraggableNodeGroup.SERIAL_PIKE, this
+			));
 	
 	public JTabbedPane content_tabb = new JTabbedPane();
 	

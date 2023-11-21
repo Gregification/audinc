@@ -8,12 +8,12 @@ import com.fazecast.jSerialComm.SerialPort;
 
 import draggableNodeEditor.DraggableNode;
 import draggableNodeEditor.NodeComponent;
+import presentables.presents.serialPoke.SerialPokeCommConnection;
 
-public class NepSPDataListener extends DraggableNode {
+public class NepSPDataListener extends DraggableNode<SerialPokeCommConnection> {
 
-	
-	public NepSPDataListener(SerialPort sp) {
-		
+	public NepSPDataListener(SerialPokeCommConnection context) {
+		super(context);
 	}
 
 	@Override

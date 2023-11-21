@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -43,7 +44,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public static final int
 		stickRadius = 2;
 	
-	public volatile List<DraggableNodeGroup> allowedNodeGroups;
+	public volatile Map<DraggableNodeGroup, Object> nodeGroups;
 	
 	public volatile JToolBar editorToolBar;
 	
@@ -54,7 +55,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	protected Point dragOffSet;
 	protected DraggableNode dragN;		//the current node being dragged. "dragN":pronounced like drag-N-dez-... 
 	
-	public DraggableNodeEditor(JPanel inspector, JToolBar index, DraggableNodeGroup... allowedNodeGroups) {
+	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		this.editorToolBar = index;
 		this.inspectorPanel = inspector;
 		
@@ -65,11 +66,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 			JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		
-		this.allowedNodeGroups = List.of(allowedNodeGroups);
+		this.nodeGroups = nodeGroups;
+		
 		
 		genGUI();
 	}
-	public DraggableNodeEditor(DraggableNodeGroup... allowedNodeGroups) {
+	public DraggableNodeEditor(Map<DraggableNodeGroup, Object> allowedNodeGroups) {
 		this(new JPanel(), new JToolBar(), allowedNodeGroups);
 	}
 	
@@ -149,11 +151,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 ////////////////////////////////
 	
 	private JTable NewNodeDialogNodeTable = null;
-	protected void openNewNodeDialog() {
+	protected void openNewNodeDialog() {		
 		if(NewNodeDialogNodeTable == null) {
-			var nodeClasses = allowedNodeGroups.stream()
+			var nodeClasses = nodeGroups.keySet().stream()
 					.flatMap(e -> e.allowedNodes.stream())
 					.map(e -> new Object[] {e})
+					.sorted((a,b) -> a.toString().compareTo(b.toString()))
 					.toArray(Object[][]::new);
 			
 			NewNodeDialogNodeTable = new JTable(new DefaultTableModel(nodeClasses, new Object[]{"nodes ("+ nodeClasses.length +")"})) {
@@ -177,15 +180,35 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		int result = JOptionPane.showConfirmDialog(null, content, 
 	    		"Node selector", JOptionPane.OK_CANCEL_OPTION);
 		if (result == JOptionPane.OK_OPTION) {
-			if(NewNodeDialogNodeTable.getSelectedRow() < 0) 
+			if(NewNodeDialogNodeTable.getSelectedRow() < 0)
 				return;
 			
 			try {
 				Object dragN = NewNodeDialogNodeTable.getValueAt(NewNodeDialogNodeTable.getSelectedRow(), 0);
 				if(dragN != null) {
-					DraggableNode node = (DraggableNode) ((Class)dragN).getConstructor().newInstance();
+					//get context
+					var dragClas = (Class<? extends DraggableNode>)dragN;
 					
-					addNode(node);
+					for(DraggableNodeGroup dng : nodeGroups.keySet())
+						if(dng.allowedNodes.contains(dragClas)) {
+							//Instantiate
+							DraggableNode node;
+							
+							if(dng.expectedContextType == Void.class) {
+								node = dragClas
+										.getConstructor()
+										.newInstance();
+							}else {
+								node = dragClas
+									.getConstructor(dng.expectedContextType)
+									.newInstance(this.nodeGroups.get(dng));
+							}
+							
+							addNode(node);
+							return;
+						}
+					
+					throw new RuntimeException("failed to find a matching class by the selected table value. expected type:Class<? extends DraggableNode>, got value:" + dragN==null?"null":dragN.toString());
 				}
 			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException | NoSuchMethodException | SecurityException e1) {
@@ -194,6 +217,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					System.out.println("dragN:" + dragN);
 					e1.printStackTrace();
 				}
+				e1.printStackTrace();
 			}
 	    }
 	}

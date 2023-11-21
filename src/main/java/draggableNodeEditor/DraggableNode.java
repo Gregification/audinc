@@ -18,9 +18,7 @@ import presentables.presents.serialPoke.Wrappable;
  * 
  * <br>a node object meant to be used by the {@code DraggableNodeEditor} class.
  */	
-public abstract class DraggableNode extends JPanel implements Serializable{
-	public volatile boolean isDraggable = true;
-	
+public abstract class DraggableNode<T> extends JPanel implements Serializable{
 	public final static Border 
 		stdBorder 			= BorderFactory.createLineBorder(Color.black),
 		stdBorderEmphasis1 	= BorderFactory.createBevelBorder(BevelBorder.RAISED);
@@ -29,11 +27,18 @@ public abstract class DraggableNode extends JPanel implements Serializable{
 		stdBackgroundColor 			= Color.LIGHT_GRAY,
 		stdBackgroundColorEmphasis1 = Color.LIGHT_GRAY;
 	
-	public DraggableNode() {
+	private static final long serialVersionUID = 1L;
+	
+	public volatile boolean isDraggable = true;
+	
+	protected volatile T context;
+	
+	public DraggableNode(T context) {
 		super();
 		
 		this.setBorder(stdBorder);
 		this.setBackground(stdBackgroundColor);
+		this.setContext(context);
 	}
 	
 	public abstract String getTitle();
@@ -41,6 +46,9 @@ public abstract class DraggableNode extends JPanel implements Serializable{
 	public abstract void initNode();
 	public abstract List<NodeComponent> getNodeComponents();
 	public abstract JComponent getInspector();
+	public void setContext(T newContext) {
+		this.context = newContext;
+	}
 	
-	private static final long serialVersionUID = 1L;
+	public T getContext() { return context; }
 }

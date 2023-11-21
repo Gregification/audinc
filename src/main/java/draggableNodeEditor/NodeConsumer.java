@@ -1,19 +1,36 @@
 package draggableNodeEditor;
 
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import javax.swing.JLabel;
 
 public class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
+	private static final long serialVersionUID = 1L;
+	
+	
+	protected JLabel nameLabel;
+	
+	/**
+	 * BiFunction< old-value , new-value, final-value> 
+	 * defaults to 
+	 * <br><code>(old_v , new_v) -> new_v</code>
+	 */
+	protected BiFunction<T, T, T> onAccept;
+	
 	public NodeConsumer(String name, T value) {
-		super(name, value);
-		this.add(new JLabel(name));
+		this(name, value, null);
 	}
 
+	public NodeConsumer(String name, T value, BiFunction<T, T, T> onAccept) {
+		super(name, value);
+		this.setOnAccept(onAccept);;
+	}
+	
 	protected NodeSupplier<T> supplier;
 	
 	@Override public void accept(T t) {
-		this.value = t;
+		this.setValue(onAccept.apply(value, t));
 	}
 	
 	@Override public NodeSupplier<T> getSupplier() {
@@ -21,6 +38,29 @@ public class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
 	}
 	
 	@Override public boolean hasConnection() {
-		return supplier != null;
+		return this.supplier != null;
+	}
+	
+	@Override public void setName(String newName) {
+		super.setName(newName);
+		
+		if(name.isBlank()) {
+			if(nameLabel != null)
+				this.remove(nameLabel);
+			return;
+		}
+		else if(nameLabel == null) {
+			nameLabel = new JLabel();
+			this.add(nameLabel);
+		}
+		
+		nameLabel.setText(name);
+	}
+	
+	public void setOnAccept(BiFunction<T, T, T> onAccept){
+		if(onAccept == null)
+			this.onAccept = (o,n) -> n;
+		else
+			this.onAccept = onAccept;
 	}
 }
