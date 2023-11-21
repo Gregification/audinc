@@ -1,14 +1,38 @@
 package audinc.gui;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.LayoutManager;
 import java.awt.Point;
 
+import javax.swing.BorderFactory;
+import javax.swing.JComponent;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
+
+import draggableNodeEditor.DraggableNode;
+
 public class AbsoluteLayout implements LayoutManager {
 	public volatile Point defaultPosition;
-	public volatile int padding = 10;
+	
+	/**
+	 * padding for nodes, useful for making sure every node has a suitable amount of drag space
+	 */
+	public volatile int 
+		minPaddingTop = 5,
+		minPaddingBottom= 3,
+		minPaddingLeft	= 3,
+		minPaddingRight	= 3;
+	public volatile Color
+		paddingHighlightColor 	= Color.DARK_GRAY,
+		paddingShadowColor		= null;
+	
+	public volatile Dimension minSize = new Dimension(10,10);
+	
 	public volatile float positionScale = 1f;
 	
 	public AbsoluteLayout() {
@@ -17,7 +41,6 @@ public class AbsoluteLayout implements LayoutManager {
 	
 	public AbsoluteLayout(Point defaultPosition) {
 		this.defaultPosition = defaultPosition;
-		
 	}
 	
 	@Override public void addLayoutComponent(String name, Component comp) {
@@ -36,8 +59,8 @@ public class AbsoluteLayout implements LayoutManager {
 	 */
 	@Override public Dimension preferredLayoutSize(Container parent) {		
 		var ret = this.minimumLayoutSize(parent);
-			ret.width += padding;
-			ret.height += padding;
+			ret.width 	= Math.max(ret.width,	minSize.width);
+			ret.height 	= Math.max(ret.height,	minSize.height);
 			
 		return ret;
 			
@@ -48,7 +71,7 @@ public class AbsoluteLayout implements LayoutManager {
 	}
 
 	/**
-	 * gets the largest X and Y possible from any component, accounting for the positioning scale.
+	 * gets the largest X and Y (independently) possible of the children components, accounting for the positioning scale.
 	 * @param parent
 	 * @return
 	 */
@@ -78,13 +101,49 @@ public class AbsoluteLayout implements LayoutManager {
 	@Override public void layoutContainer(Container parent) {
 		var parentInset = parent.getInsets();
 		
-		for(Component c : parent.getComponents()) {
+		int
+			minOffsetX =  minPaddingLeft + minPaddingRight,
+			minOffsetY =  minPaddingTop + minPaddingBottom;
+		
+		for(Component c : parent.getComponents()) {	
+			int 
+				offsetX = 0,
+				offsetY = 0;
+			
+			if(c instanceof JComponent) {
+				var jc = (JComponent)c;
+				var border = jc.getBorder();
+				
+				if(border == null || !(border instanceof CompoundBorder || border instanceof TitledBorder)) {
+					if(jc instanceof DraggableNode)
+						border = new TitledBorder(
+										jc.getBorder(),
+										((DraggableNode)jc).getTitle()
+									);
+					else
+						border = BorderFactory.createCompoundBorder(
+										new EmptyBorder(
+												minPaddingTop,
+												minPaddingLeft,
+												minPaddingBottom,
+												minPaddingRight),
+										jc.getBorder()
+									);
+					
+					jc.setBorder(border);	
+				}
+				
+				var borderInset = border.getBorderInsets(c);
+				offsetX += borderInset.left + borderInset.right;
+				offsetY += borderInset.top + borderInset.bottom;
+			}
+			
 			var pSize = c.getPreferredSize();
 			c.setBounds(
 						(int)(c.getX() * positionScale) + parentInset.left, 	//x
 						(int)(c.getY() * positionScale) + parentInset.right, 	//y
-						pSize.width,						//width
-						pSize.height						//height
+						pSize.width + 	Math.max(minOffsetX, offsetX),							//width
+						pSize.height + 	Math.max(minOffsetY, offsetY)							//height
 					);
 		}
 	}

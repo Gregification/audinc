@@ -114,20 +114,19 @@ public class NConstant extends DraggableNode {
 		
 		this.supplier = supplier;
 		
-		if(isnotnull)
+		if(isnotnull) {
 			this.add(supplier, Presentable.createGbc(0, 0));
+			this.setPreferredSize(supplier.getPreferredSize());
+		}
 		
-		System.out.println(""
-				+ "NConstant prefered/actual size:" + this.getPreferredSize() + "\t / \t" + this.getSize()
-				+ "\nsupplier prefered/actual  size:" + (supplier==null?"null": (supplier.getPreferredSize() + "\t / \t" + supplier.getSize())));
+//		System.out.println(""
+//				+ "NConstant prefered/actual size:" + this.getPreferredSize() + "\t / \t" + this.getSize()
+//				+ "\nsupplier prefered/actual  size:" + (supplier==null?"null": (supplier.getPreferredSize() + "\t / \t" + supplier.getSize())));
 		
-		int padding = 5;
-//		this.setBounds(new Rectangle(supplier.getBounds().x + padding, supplier.getBounds().y + padding));
-//		this.setSize(new Dimension(supplier.getSize().width + padding, supplier.getSize().height + padding));
 	}
 
 	@Override public String getTitle() {
-		return "Supplier of a constant";
+		return "Constant";
 	}
 	@Override public JComponent getInspector() {		
 		return constantsTableWrapper;

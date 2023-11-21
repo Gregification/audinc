@@ -11,6 +11,8 @@ import javax.swing.JPanel;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
 
+import presentables.presents.serialPoke.Wrappable;
+
 /**
  * <b>ALL CHILDREN OF THIS CLASS MUST HAVE A DEFAULT(ZERO PARAMATER) CONSTRUCTOR!!! (because i cheesed the new-node-dialog)</b>
  * 
