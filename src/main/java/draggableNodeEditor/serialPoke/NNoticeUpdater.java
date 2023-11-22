@@ -10,7 +10,6 @@ import javax.swing.JComponent;
 import draggableNodeEditor.DraggableNode;
 import draggableNodeEditor.NodeComponent;
 import draggableNodeEditor.NodeConsumer;
-import presentables.Presentable;
 import presentables.presents.serialPoke.SerialPokeCommConnection;
 
 public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
