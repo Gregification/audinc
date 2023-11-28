@@ -124,17 +124,6 @@ public class AbsoluteLayout implements LayoutManager {
 			if(c instanceof JComponent) {
 				var jc = (JComponent)c;
 				var border = jc.getBorder();				
-				
-//				if(jc instanceof DraggableNode) {
-//					var dn = (DraggableNode)jc;
-//					
-//					if(border instanceof TitledBorder) {
-//						var tb = (TitledBorder)border;
-//						tb.setTitle(dn.getTitle());
-//						System.out.println("title: " + dn.getTitle());
-//						dn.revalidate();
-//					}
-//				}
 
 				var borderInset = border.getBorderInsets(c);
 				

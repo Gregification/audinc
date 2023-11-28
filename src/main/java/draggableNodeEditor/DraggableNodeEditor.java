@@ -57,7 +57,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	//mouse events
 	protected Point dragOffSet;
-	protected DraggableNode dragN;		//the current node being dragged. "dragN":pronounced like drag-N-dez-... 
+	protected DraggableNode dragN,		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
+		selectedNode;
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		this.editorToolBar = index;
@@ -119,7 +120,14 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	@Override public void mousePressed(MouseEvent e) {
 		selectNode(this.dragN = getNodeAt(e));
-		this.dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
+		
+		//drag node event
+		if(dragN.isDraggable)
+			this.dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
+		
+		//make connection event
+		System.out.println("click count:" + e.getClickCount());
+		if(e.getClickCount() == 2);
 	}
 	
 	@Override public void mouseReleased(MouseEvent e) {
@@ -155,12 +163,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 ////////////////////////////////
 	
 	private JTable NewNodeDialogNodeTable = null;
-	protected void openNewNodeDialog() {		
-		if(NewNodeDialogNodeTable == null) {
+	protected void openNewNodeDialog() {	
+		if(NewNodeDialogNodeTable == null) {	//c++ strikes again
 			var nodeClasses = nodeGroups.keySet().stream()
 					.flatMap(e -> e.allowedNodes.stream())
 					.map(e -> new Object[] {e})
-					.sorted((a,b) -> a.toString().compareTo(b.toString()))
+					.sorted((a,b) -> a[0].toString().compareTo(b[0].toString()))
 					.toArray(Object[][]::new);
 			
 			NewNodeDialogNodeTable = new JTable(new DefaultTableModel(nodeClasses, new Object[]{"nodes ("+ nodeClasses.length +")"})) {
@@ -263,12 +271,20 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public void selectNode(DraggableNode node) {
 		this.inspectorPanel.removeAll();
 		
+		if(selectedNode != null) {
+			//remove visual indicator of node selection
+		}
+		
 		if(node != null){
 			this.moveToFront(node);
 			
 			if(node.getInspector() != null)
 				this.inspectorPanel.add(node.getInspector(), Presentable.createGbc(0, 0));
+			
+			//add visual indicator that the node is selected
 		}
+		
+		selectedNode = node;
 		
 		inspectorPanel.revalidate();
 	}
