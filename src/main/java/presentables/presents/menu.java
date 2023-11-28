@@ -174,7 +174,7 @@ public class menu extends Presentable{
 			//e.printStackTrace();
 		}
 		
-		screenLeft.validate();
+		screenLeft.revalidate();
 	}
 	private JComponent genDisplayCard(Class<? extends Presentable> present) {
 		JButton jp = new JButton();
