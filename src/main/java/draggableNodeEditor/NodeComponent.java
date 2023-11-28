@@ -35,7 +35,7 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 		needsNewValue 	= true;
 	
 	//UI stuff
-	public final static int connectionPointRaduis = 5;
+	public final static int connectionPointRaduis = 15;
 	protected NodeComponentImportance importance = NodeComponentImportance.SUGGESTED;
 
 	public NodeComponent(String name, T value) {
