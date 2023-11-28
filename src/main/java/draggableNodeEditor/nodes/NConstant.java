@@ -89,17 +89,11 @@ public class NConstant extends DraggableNode<Void> {
 		
 		constantsTable.getSelectionModel().setSelectionInterval(0, 0);
 		
-		
-		
 		this.setSupplier(supplier);
 	}
 
 	@Override public void initNode() {
 		
-	}
-
-	@Override public List<NodeComponent> getNodeComponents() {
-		return null;
 	}
 	
 	public NodeSupplier getSupplier() {
@@ -119,6 +113,7 @@ public class NConstant extends DraggableNode<Void> {
 			this.setPreferredSize(supplier.getPreferredSize());
 		}
 		
+		this.updateNodeComponents();
 	}
 
 	@Override public String getTitle() {

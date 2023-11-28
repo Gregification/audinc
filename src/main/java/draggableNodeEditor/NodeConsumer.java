@@ -59,7 +59,7 @@ public class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
 	
 	public void setOnAccept(BiFunction<T, T, T> onAccept){
 		if(onAccept == null)
-			this.onAccept = (o,n) -> n;
+			this.onAccept = (o,n) -> n;		//default
 		else
 			this.onAccept = onAccept;
 	}

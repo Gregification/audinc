@@ -40,7 +40,8 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 		
 		this.setLayout(stdLayout);
 		int i = 0;
-		for(var v : this.getNodeComponents()) {
+		
+		for(var v : List.of(c_logger, c_forgroundColor)) {
 			var gbc = new GridBagConstraints();
 			    gbc.gridx = 0;
 			    gbc.gridy = i++;
@@ -49,6 +50,8 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 			
 			this.add(v, gbc);
 		}
+		
+		initGUI();	
 	}
 	
 	@Override public String getTitle() { return title + " ("+ index+")"; }
@@ -61,12 +64,7 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 		
 	}
 
-	@Override public List<NodeComponent> getNodeComponents() {
-		return List.of(c_logger, c_forgroundColor);
-	}
-
 	@Override public JComponent getInspector() {
 		return null;
 	}
-	
 }

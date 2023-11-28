@@ -45,9 +45,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		LINE_LAYER 	= 2,
 		NODE_LAYER 	= 3;
 	
-	public static final int
-		stickRadius = 2;
-	
 	public volatile Map<DraggableNodeGroup, Object> nodeGroups;
 	
 	public volatile JToolBar editorToolBar;
@@ -103,7 +100,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				newLocation.y -= dragOffSet.y;
 			newLocation.x = Math.max(newLocation.x, 0);	//lower	bound
 			newLocation.y = Math.max(newLocation.y, 0);	//upper bound
-			newLocation.x = Math.min(newLocation.x, this.getWidth() - dragN.getWidth());	//right bound	
+			newLocation.x = Math.min(newLocation.x, this.getWidth()	- dragN.getWidth());	//right bound	
 			newLocation.y = Math.min(newLocation.y, this.getHeight() - dragN.getHeight());	//bottom bound
 			
 			dragN.setLocation(newLocation);
@@ -119,15 +116,20 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 	@Override public void mousePressed(MouseEvent e) {
-		selectNode(this.dragN = getNodeAt(e));
+		Component compAt = getComponentAt(e.getPoint());
 		
-		//drag node event
-		if(dragN.isDraggable)
-			this.dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
+		if(compAt instanceof DraggableNode) {
+			selectNode(this.dragN = (DraggableNode)compAt);
 		
-		//make connection event
-		System.out.println("click count:" + e.getClickCount());
-		if(e.getClickCount() == 2);
+			//drag node event
+			if(dragN.isDraggable)
+				this.dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
+			
+			//make connection event
+			if(e.getClickCount() == 2) {
+				
+			}
+		}
 	}
 	
 	@Override public void mouseReleased(MouseEvent e) {
@@ -140,15 +142,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	@Override public void mouseExited(MouseEvent e) {
 		
-	}
-	
-	protected DraggableNode getNodeAt(MouseEvent e) {
-		Component comp = getComponentAt(e.getPoint());
-		
-//		System.out.println(comp.hashCode() + " : is "+ ((comp instanceof DraggableNode) ? "" : "NOT ") + "a draggable node");
-		
-		if(comp instanceof DraggableNode) 	return (DraggableNode) comp;
-		else 								return null;
 	}
 	
 	public JToolBar geteditorToolBar() {
@@ -250,15 +243,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					(int)editorScrollPane.getVisibleRect().getCenterX(),		//with null layout this dosnet actually do anyhting
 					(int)editorScrollPane.getVisibleRect().getCenterY()
 				);
-		
-		var border = node.getBorder();
-		if(border == null || !(border instanceof CompoundBorder || border instanceof TitledBorder)) {
-			node.setBorder(new TitledBorder(
-								node.getBorder(),
-								node.getTitle()
-							));
-			System.out.println("draggable node editor> add node | title: " + node.getTitle());
-		}
 		
 		this.add(node, layer);
 		

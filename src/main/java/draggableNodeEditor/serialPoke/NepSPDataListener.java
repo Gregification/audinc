@@ -14,6 +14,8 @@ public class NepSPDataListener extends DraggableNode<SerialPokeCommConnection> {
 
 	public NepSPDataListener(SerialPokeCommConnection context) {
 		super(context);
+		
+		initGUI();
 	}
 
 	@Override
@@ -26,12 +28,6 @@ public class NepSPDataListener extends DraggableNode<SerialPokeCommConnection> {
 	public void initNode() {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public List<NodeComponent> getNodeComponents() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override public String getTitle() {

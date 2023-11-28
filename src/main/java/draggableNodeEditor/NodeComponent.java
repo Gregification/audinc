@@ -1,7 +1,14 @@
 package draggableNodeEditor;
 
+import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Polygon;
+import java.awt.Rectangle;
 import java.util.List;
+import java.util.function.Function;
 
 import javax.swing.JComponent;
 
@@ -15,13 +22,21 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	//node stuff
 	protected String name;
 	protected volatile T value = null;
-	protected volatile List<NodeConnection<T>> connections = List.of();
+	protected volatile List<NodeConnection<T>> 	connections 		= List.of();
+	
+	/**
+	 * center of the connectionPoint relative to the host DraggableNode
+	 */
+	public volatile Point 					connectionPoint 	= new Point(0,0);	//decided by the host node 
 	
 	//meta-ish stuff
 	protected volatile boolean 
 		needsRedrawn	= true,		
 		needsNewValue 	= true;
-	public NodeComponentImportance importance;//UI stuff
+	
+	//UI stuff
+	public final static int connectionPointRaduis = 5;
+	protected NodeComponentImportance importance = NodeComponentImportance.SUGGESTED;
 
 	public NodeComponent(String name, T value) {
 		this.setName(name);
@@ -31,6 +46,14 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	}
 	
 	public abstract NodeSupplier<T> getSupplier();
+	
+	public void drawConnectionPoint(Graphics g, Point p) {
+		var g2d = (Graphics2D)g;
+			
+		g2d.setColor(importance.color);
+		g2d.fillOval(p.x, p.y, connectionPointRaduis, connectionPointRaduis);
+		
+	}
 	
 	public boolean hasConnection() {
 		return connections.size() != 0;
@@ -78,4 +101,13 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 		this.setToolTipText(name);
 	}
 	
+	
+	public NodeComponentImportance getImportance() {
+		return importance;
+	}
+
+	public void setImportance(NodeComponentImportance importance) {
+		if(importance != null)
+			this.importance = importance;
+	}
 }
