@@ -49,6 +49,7 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 			    gbc.anchor = GridBagConstraints.WEST;
 			
 			this.add(v, gbc);
+			genConnectionPoint(v);
 		}
 		
 		initGUI();	

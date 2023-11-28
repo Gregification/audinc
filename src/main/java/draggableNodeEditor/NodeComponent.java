@@ -48,11 +48,16 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	public abstract NodeSupplier<T> getSupplier();
 	
 	public void drawConnectionPoint(Graphics g, Point p) {
-		var g2d = (Graphics2D)g;
-			
-		g2d.setColor(importance.color);
-		g2d.fillOval(p.x, p.y, connectionPointRaduis, connectionPointRaduis);
+		assert g != null && p != null : "(g is null?"+(g==null)+"),(p is null?"+(p==null)+")";
 		
+			
+		g.setColor(importance.color);
+		g.fillOval(p.x, p.y, connectionPointRaduis, connectionPointRaduis);
+		
+	}
+	
+	public boolean isInConnectionSeletionRegion(Point p) {
+		return this.connectionPoint.distance(p) <= 5;
 	}
 	
 	public boolean hasConnection() {

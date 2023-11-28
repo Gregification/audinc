@@ -223,7 +223,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				}
 			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException | NoSuchMethodException | SecurityException e1) {
-				//if your getting a error and traced your back to here, good luck
+				//if your getting a error and traced your back to here it means something in the process of constructing a node has thrown a error. all this function does is call the constructor.
 				if(!(e1 instanceof NoSuchMethodException)) {
 					System.out.println("dragN:" + dragN);
 					e1.printStackTrace();

@@ -111,9 +111,9 @@ public class NConstant extends DraggableNode<Void> {
 		if(isnotnull) {
 			this.add(supplier, Presentable.createGbc(0, 0));
 			this.setPreferredSize(supplier.getPreferredSize());
+			genConnectionPoint(supplier);
 		}
 		
-		this.updateNodeComponents();
 	}
 
 	@Override public String getTitle() {

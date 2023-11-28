@@ -3,6 +3,7 @@ package draggableNodeEditor;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.Serializable;
@@ -13,6 +14,7 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
@@ -47,7 +49,7 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 	public volatile boolean isDraggable = true;
 	
 	protected volatile T context;
-	protected volatile ArrayList<NodeComponent> nodeComponents = new ArrayList<>();
+	private volatile ArrayList<NodeComponent> connectableNodeComponents = new ArrayList<>();
 	
 	public DraggableNode(T context) {
 		super();
@@ -81,49 +83,14 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 			));
 	}
 	
-	public void updateNodeComponents() {
-		
-	}
-	
 	/**
-	 * generates the connection-regions, and connection-points for each available connection.
-	 * <br>done with consideration of the preffered connection regions of the NodeComponent.
-	 * @return
-	 */
-	protected List<Rectangle> genConnectionRegion(NodeComponent comp) {
-		assert comp != null : "theres no point to it";
-		//make a connection point
-		genPoint(comp);
-		
-		//make a connection region for the connection point
-		List<Rectangle> regions = List.of();
-		
-		if(comp.connectionPoint == null) return List.of();
-		
-		return List.of(
-				new Rectangle(
-				comp.connectionPoint.x,
-				comp.connectionPoint.y,
-				connectionPointSize.width,
-				connectionPointSize.height
-			));
-	}
-	
-	/**
-	 * draws the terminal points
-	 */
-	public void drawConnectionPoints() {
-		
-	}
-	
-	/**
-	 * regenerates all the connection points for this object
+	 * regenerates the connection points for the NodeComponent relative to this DraggableNode
 	 * @param comp
 	 */
-	private void genPoint(NodeComponent comp) {			
+	protected void genConnectionPoint(NodeComponent comp) {			
 		Point point = new Point(
 				0,
-				comp.getY()
+				comp.getY() + comp.getWidth()/2
 			);
 		
 		if(comp instanceof NodeSupplier) {
@@ -131,11 +98,30 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 			
 		}else if(comp instanceof NodeConsumer) {
 			//point goes on left side
-			point.x = (int)(this.getBounds().getWidth() - connectionPointSize.getWidth());
+			point.x = (int)(this.getBounds().getWidth());
 		}else {
 			throw new UnsupportedOperationException("idk where the point should go");
 		}
 		
+		connectableNodeComponents.add(comp);
 		comp.connectionPoint = point;
+		System.out.println("new connection point|" +comp.connectionPoint+"| of component:" + comp.name);
+	}
+	
+	@Override public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		
+		for(int i = 0, size = connectableNodeComponents.size(); i < size; i++) {
+			var e = connectableNodeComponents.get(i);
+			
+			if(e.getParent() != this) {
+				connectableNodeComponents.remove(i);
+				i--;
+				size--;
+			}else {
+				System.out.println("draggable node > paint component; drawing point|"+e.connectionPoint.toString()+"|node:"+ e.name);
+				e.drawConnectionPoint(g, e.connectionPoint);
+			}
 		}
 	}
+}
