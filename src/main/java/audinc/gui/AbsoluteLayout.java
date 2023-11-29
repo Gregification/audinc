@@ -143,7 +143,6 @@ public class AbsoluteLayout implements LayoutManager {
 						w = pSize.width	 +	Math.max(minOffsetX, offsetX),
 						h = pSize.height + 	Math.max(minOffsetY, offsetY);
 					
-					c.setLocation(x, y);
 					c.setBounds(x, y, w, h);
 				}
 			}

@@ -54,6 +54,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	//mouse events
 	protected Point dragOffSet;
+	protected boolean draggingNode = false;
 	protected DraggableNode dragN,		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
 		selectedNode;
 	
@@ -89,7 +90,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //mouse events
 ////////////////////////////////
 	@Override public void mouseDragged(MouseEvent e) {
-		if(dragN == null) return;
+		if(!draggingNode && dragN == null) return;
 		
 		assert dragOffSet != null 
 				: "failed to be initialized";
@@ -117,23 +118,28 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	@Override public void mousePressed(MouseEvent e) {
 		Component compAt = getComponentAt(e.getPoint());
+		if(compAt == null) return;
 		
 		if(compAt instanceof DraggableNode) {
 			selectNode(this.dragN = (DraggableNode)compAt);
 		
 			//drag node event
-			if(dragN.isDraggable)
-				this.dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
-			
-			//make connection event
-			if(e.getClickCount() == 2) {
-				
+			if(dragN.isDraggable) {
+				if(e.getClickCount() == 2) {		//make connection event
+					draggingNode = false;
+					NodeComponent selectedComponent = dragN.getComponentForPoint(SwingUtilities.convertPoint(this, e.getPoint(), dragN));
+					
+					System.out.println("selected componetn:" + selectedComponent);
+				}else {								//drag event
+					draggingNode = true;
+					this.dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
+				}
 			}
 		}
 	}
 	
 	@Override public void mouseReleased(MouseEvent e) {
-		
+		draggingNode = false;
 	}
 	
 	@Override public void mouseEntered(MouseEvent e) {
@@ -268,7 +274,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			if(node.getInspector() != null)
 				this.inspectorPanel.add(node.getInspector(), Presentable.createGbc(0, 0));
 			
-			//add visual indicator that the node is selected
+			//remove visual indicator on former selected node
+			//add visual indicator that the new node is selected
 		}
 		
 		selectedNode = node;
