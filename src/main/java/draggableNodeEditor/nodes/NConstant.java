@@ -90,12 +90,10 @@ public class NConstant extends DraggableNode<Void> {
 		});
 		
 		constantsTable.getSelectionModel().setSelectionInterval(0, 0);
-		
-		this.setSupplier(supplier);
 	}
 
 	@Override public void initNode() {
-		
+		this.setSupplier(supplier);
 	}
 	
 	public NodeSupplier getSupplier() {

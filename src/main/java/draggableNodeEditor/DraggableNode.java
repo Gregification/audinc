@@ -89,60 +89,65 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 	 * regenerates the connection points for the NodeComponent relative to this DraggableNode
 	 * @param comp
 	 */
-	protected void genConnectionPoint(NodeComponent comp) {
+	protected void genConnectionPoint(NodeComponent... comps) {
 		SwingUtilities.invokeLater(() -> {
-			if(comp == null) return;
-			
-			synchronized(comp.getTreeLock()) {
-			
-				var nodeBorderInsets 	= this.getBorder().getBorderInsets(comp);
-				var compBounds 			= SwingUtilities.convertRectangle(comp, comp.getBounds(), this);//component bounds, relative to this
-				Point point;
+			for(var comp : comps) {
+				if(comp == null) return;
 				
-				if(comp instanceof NodeSupplier) {
-					//point goes on right side
-					comp.setAlignmentX(Component.RIGHT_ALIGNMENT);
-					point = new Point(
-							(int)(this.getBounds().getWidth()) - comp.getConnecitonPointWidth(),
-							(int)(compBounds.getCenterX())
-						);
+				synchronized(comp.getTreeLock()) {
+				
+					var nodeBorderInsets 	= this.getBorder().getBorderInsets(comp);
+					var compBounds 			= SwingUtilities.convertRectangle(comp, comp.getBounds(), this);//component bounds, relative to this
+					Point point;
 					
-				}else if(comp instanceof NodeConsumer) {
-					//point goes on left side
-					comp.setAlignmentX(Component.LEFT_ALIGNMENT);
-					point = new Point(
-							(int)(this.getBounds().width/2),
-							(int)(compBounds.getY() + compBounds.getHeight() / 2)
-						);
+					if(comp instanceof NodeSupplier) {
+						//point goes on right side
+						comp.setAlignmentX(Component.RIGHT_ALIGNMENT);
+						point = new Point(
+								(int)(this.getBounds().width + nodeBorderInsets.right + nodeBorderInsets.left - comp.getConnecitonPointWidth()),
+								(int)(compBounds.getCenterX() + nodeBorderInsets.top)
+							);
+						
+					}else if(comp instanceof NodeConsumer) {
+						//point goes on left side
+						comp.setAlignmentX(Component.LEFT_ALIGNMENT);
+						point = new Point(
+								0,
+								(int)(comp.getY() + comp.getHeight()/2 - nodeBorderInsets.top)
+							);
+						
+					}else {
+						throw new UnsupportedOperationException("idk where the point should go");
+					}
 					
-				}else {
-					throw new UnsupportedOperationException("idk where the point should go");
+					connectableNodeComponents.add(comp);
+					comp.connectionPoint = point;
+					
+					//keep for debugging
+					System.out.println("draggable node > gen conneciton point; new connection point|" +comp.connectionPoint+"| of component("+(comp.getClass().getCanonicalName())+"):" + comp.name+""
+							+ "\n\t\tgenerated point|" + point+ "|"
+							+ "\n\t\tis supplier?" + (comp instanceof NodeSupplier)
+							+ "\n\t\tis consumer?" + (comp instanceof NodeConsumer)
+							+ "\n\t\talignmentX: " + comp.getAlignmentX()
+							+ "\n\t\tconnection point width:" + comp.getConnecitonPointWidth()
+							+ "\n\torgional:"
+							+ "\n\t\tcomp bounds:\t\t" + comp.getBounds()
+							+ "\n\t\tcomp size:\t\t" + comp.getSize()
+							+ "\n\t\tcomp preferred size:\t" + comp.getPreferredSize()
+							+ "\n\t\tcomp border:\t\t" + comp.getBorder()
+							+ "\n\t\tcomp border insets@comp:\t" + ((comp.getBorder()==null)?"null":comp.getBorder().getBorderInsets(comp))
+							+ "\n\t\tnode bounds:\t\t" + this.getBounds()
+							+ "\n\t\tnode size:\t\t" + this.getSize()
+							+ "\n\t\tnode preferred size:\t" + this.getPreferredSize()
+							+ "\n\t\tnode border:\t\t" + this.getBorder()
+							+ "\n\t\tnode border insets@comp:\t" + nodeBorderInsets
+							+ "\n\t\tpoint relative to node:\t" + SwingUtilities.convertPoint(comp, comp.getLocation(), this)
+							+ "\n\t\tbounds relative to node:\t" + compBounds
+						);
 				}
-				
-				connectableNodeComponents.add(comp);
-				comp.connectionPoint = point;
-				
-				//keep for debugging
-				System.out.println("draggable node > gen conneciton point; new connection point|" +comp.connectionPoint+"| of component("+(comp.getClass().getCanonicalName())+"):" + comp.name+""
-						+ "\n\t\tgenerated point|" + point+ "|"
-						+ "\n\t\tis supplier?" + (comp instanceof NodeSupplier)
-						+ "\n\t\tis consumer?" + (comp instanceof NodeConsumer)
-						+ "\n\t\talignmentX: " + comp.getAlignmentX()
-						+ "\n\torgional:"
-						+ "\n\t\tcomp bounds:\t" + comp.getBounds()
-//						+ "\n\t\tcomp size:\t" + comp.getSize()
-//						+ "\n\t\tcomp preferred size:\t" + comp.getPreferredSize()
-//						+ "\n\t\tcomp border:\t" + comp.getBorder()
-//						+ "\n\t\tcomp border insets@comp:\t" + ((comp.getBorder()==null)?"null":comp.getBorder().getBorderInsets(comp))
-						+ "\n\t\tnode bounds:\t" + this.getBounds()
-//						+ "\n\t\tnode size:\t" + this.getSize()
-//						+ "\n\t\tnode preferred size:\t" + this.getPreferredSize()
-//						+ "\n\t\tnode border:\t" + this.getBorder()
-//						+ "\n\t\tnode border insets@comp:\t" + this.getBorder().getBorderInsets(comp)
-						+ "\n\t\tpoint relative to node:\t" + SwingUtilities.convertPoint(comp, comp.getLocation(), this)
-						+ "\n\t\tbounds relative to node:\t" + compBounds
-					);
 			}
+			
+			this.repaint();
 		});
 	}
 	

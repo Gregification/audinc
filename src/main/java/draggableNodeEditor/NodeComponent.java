@@ -53,7 +53,6 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	public void drawConnectionPoint(Graphics g, Point p) {
 		assert g != null && p != null : "(g is null?"+(g==null)+"),(p is null?"+(p==null)+")";
 		
-			
 		g.setColor(importance.color);
 		g.fillOval(p.x - connectionPointRaduis, p.y, connectionPointRaduis, connectionPointRaduis);
 		g.setColor(Color.black);
