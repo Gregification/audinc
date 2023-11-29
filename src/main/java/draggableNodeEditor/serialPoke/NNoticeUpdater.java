@@ -16,11 +16,10 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	private static final long serialVersionUID = 1L;
 	
 	public static final String title = "Notice Updator";
-	public static final GridBagLayout stdLayout;
 	
-	static {
-		stdLayout = new GridBagLayout();
-	}
+//	static {
+//		stdLayout = new GridBagLayout();
+//	}
 	
 	
 	public NodeConsumer<Object> c_logger 			= new NodeConsumer<>(
@@ -36,33 +35,22 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	public NNoticeUpdater(SerialPokeCommConnection context) {
 		super(context);
 		
-		this.setOpaque(true);
-		
-		this.setLayout(stdLayout);
-		int i = 0;
-		
-		for(var v : List.of(c_logger, c_forgroundColor)) {
-			var gbc = new GridBagConstraints();
-			    gbc.gridx = 0;
-			    gbc.gridy = i++;
-	
-			    gbc.anchor = GridBagConstraints.WEST;
-			
-			this.add(v, gbc);
-			genConnectionPoint(v);
-		}
-		
 		initGUI();	
 	}
 	
 	@Override public String getTitle() { return title + " ("+ index+")"; }
 
 	@Override public void initGUI() {
-		
+		for(var v : List.of(c_logger, c_forgroundColor)) {
+			v.setBorder(null);
+			add(v);
+		}
 	}
 
 	@Override public void initNode() {
-		
+		for(var v : List.of(c_logger, c_forgroundColor)) {
+			genConnectionPoint(v);
+		}
 	}
 
 	@Override public JComponent getInspector() {

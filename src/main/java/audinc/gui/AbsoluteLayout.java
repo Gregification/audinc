@@ -110,34 +110,43 @@ public class AbsoluteLayout implements LayoutManager {
 	}
 
 	@Override public void layoutContainer(Container parent) {
-		var parentInset = parent.getInsets();
-		
-		int
-			minOffsetX =  minNodePaddingLeft + minNodePaddingRight,
-			minOffsetY =  minNodePaddingTop + minNodePaddingBottom;
-		
-		for(Component c : parent.getComponents()) {	
-			int 
-				offsetX = 0,
-				offsetY = 0;
+		synchronized (parent.getTreeLock()) {
+			var parentInset = parent.getInsets();
 			
-			if(c instanceof JComponent) {
-				var jc = (JComponent)c;
-				var border = jc.getBorder();				
-
-				var borderInset = border.getBorderInsets(c);
+			int
+				minOffsetX =  minNodePaddingLeft + minNodePaddingRight,
+				minOffsetY =  minNodePaddingTop + minNodePaddingBottom;
+			
+			for(int i = 0, nmembers = parent.getComponentCount(); i < nmembers; i++) {
+				Component c = parent.getComponent(i);
 				
-				offsetX += borderInset.left + borderInset.right;
-				offsetY += borderInset.top + borderInset.bottom;
+				if(c.isVisible()) {
+					int 
+						offsetX = 0,
+						offsetY = 0;
+					
+					if(c instanceof JComponent) {
+						var jc = (JComponent)c;
+						var border = jc.getBorder();				
+		
+						var borderInset = border.getBorderInsets(c);
+						
+						offsetX += borderInset.left + borderInset.right;
+						offsetY += borderInset.top + borderInset.bottom;
+					}
+					
+					var pSize = c.getPreferredSize();
+					
+					int 
+						x = (int)(c.getX() * positionScale) + parentInset.left,
+						y = (int)(c.getY() * positionScale) + parentInset.right,
+						w = pSize.width	 +	Math.max(minOffsetX, offsetX),
+						h = pSize.height + 	Math.max(minOffsetY, offsetY);
+					
+					c.setLocation(x, y);
+					c.setBounds(x, y, w, h);
+				}
 			}
-			
-			var pSize = c.getPreferredSize();
-			c.setBounds(
-						(int)(c.getX() * positionScale) + parentInset.left, 	//x
-						(int)(c.getY() * positionScale) + parentInset.right, 	//y
-						pSize.width + 	Math.max(minOffsetX, offsetX),			//width
-						pSize.height + 	Math.max(minOffsetY, offsetY)			//height
-					);
 		}
 	}
 }

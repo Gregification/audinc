@@ -138,7 +138,8 @@ public class MainWin extends JFrame {
         
         
 		//starting present
-		setPresent(presentables.presents.menu.class);
+//		setPresent(presentables.presents.menu.class);
+		setPresent(presentables.presents.SerialPoke.class);
 		
 		setVisible(true);
 	}

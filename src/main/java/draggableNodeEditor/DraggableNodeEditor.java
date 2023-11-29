@@ -247,6 +247,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		this.add(node, layer);
 		
 		this.revalidate();
+		
+		node.initNode();
+		
 		this.repaint(node.getBounds());
 		
 		return node;

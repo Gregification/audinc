@@ -53,6 +53,8 @@ public class NConstant extends DraggableNode<Void> {
 	}
 	
 	@Override public void initGUI() {
+		this.setOpaque(false);
+		
 		var constantsKeys = supportedConstants.keySet().stream()
 				.map(e -> new Object[] {e})
 				.toArray(Object[][]::new);

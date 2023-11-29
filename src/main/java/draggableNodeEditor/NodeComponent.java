@@ -1,5 +1,6 @@
 package draggableNodeEditor;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
@@ -35,7 +36,9 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 		needsNewValue 	= true;
 	
 	//UI stuff
-	public final static int connectionPointRaduis = 15;
+	public final static int 
+		connectionPointRaduis = 12,
+		connectionPointBorder = 3;
 	protected NodeComponentImportance importance = NodeComponentImportance.SUGGESTED;
 
 	public NodeComponent(String name, T value) {
@@ -52,12 +55,18 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 		
 			
 		g.setColor(importance.color);
-		g.fillOval(p.x, p.y, connectionPointRaduis, connectionPointRaduis);
+		g.fillOval(p.x - connectionPointRaduis, p.y, connectionPointRaduis, connectionPointRaduis);
+		g.setColor(Color.black);
+		g.drawOval(p.x - connectionPointRaduis, p.y, connectionPointRaduis+connectionPointBorder, connectionPointRaduis+connectionPointBorder);
 		
 	}
 	
 	public boolean isInConnectionSeletionRegion(Point p) {
-		return this.connectionPoint.distance(p) <= 5;
+		return this.connectionPoint.distance(p) <= connectionPointRaduis+connectionPointBorder;
+	}
+	
+	public int getConnecitonPointWidth() {
+		return connectionPointRaduis+connectionPointBorder;
 	}
 	
 	public boolean hasConnection() {

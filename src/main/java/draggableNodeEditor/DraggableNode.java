@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -59,8 +60,9 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 		
 		this.setBorder(stdBorder);
 		this.setBackground(stdBackgroundColor);
-		
 		genBorder();
+		
+		this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		
 		this.setContext(context);
 	}
@@ -78,7 +80,7 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 	
 	protected void genBorder() { 
 		this.setBorder(new TitledBorder(
-				null,
+				this.getBorder(),
 				this.getTitle()
 			));
 	}
@@ -87,25 +89,61 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 	 * regenerates the connection points for the NodeComponent relative to this DraggableNode
 	 * @param comp
 	 */
-	protected void genConnectionPoint(NodeComponent comp) {			
-		Point point = new Point(
-				0,
-				comp.getY() + comp.getWidth()/2
-			);
-		
-		if(comp instanceof NodeSupplier) {
-			//point goes on  right side
+	protected void genConnectionPoint(NodeComponent comp) {
+		SwingUtilities.invokeLater(() -> {
+			if(comp == null) return;
 			
-		}else if(comp instanceof NodeConsumer) {
-			//point goes on left side
-			point.x = (int)(this.getBounds().getWidth());
-		}else {
-			throw new UnsupportedOperationException("idk where the point should go");
-		}
-		
-		connectableNodeComponents.add(comp);
-		comp.connectionPoint = point;
-		System.out.println("new connection point|" +comp.connectionPoint+"| of component:" + comp.name);
+			synchronized(comp.getTreeLock()) {
+			
+				var nodeBorderInsets 	= this.getBorder().getBorderInsets(comp);
+				var compBounds 			= SwingUtilities.convertRectangle(comp, comp.getBounds(), this);//component bounds, relative to this
+				Point point;
+				
+				if(comp instanceof NodeSupplier) {
+					//point goes on right side
+					comp.setAlignmentX(Component.RIGHT_ALIGNMENT);
+					point = new Point(
+							(int)(this.getBounds().getWidth()) - comp.getConnecitonPointWidth(),
+							(int)(compBounds.getCenterX())
+						);
+					
+				}else if(comp instanceof NodeConsumer) {
+					//point goes on left side
+					comp.setAlignmentX(Component.LEFT_ALIGNMENT);
+					point = new Point(
+							(int)(this.getBounds().width/2),
+							(int)(compBounds.getY() + compBounds.getHeight() / 2)
+						);
+					
+				}else {
+					throw new UnsupportedOperationException("idk where the point should go");
+				}
+				
+				connectableNodeComponents.add(comp);
+				comp.connectionPoint = point;
+				
+				//keep for debugging
+				System.out.println("draggable node > gen conneciton point; new connection point|" +comp.connectionPoint+"| of component("+(comp.getClass().getCanonicalName())+"):" + comp.name+""
+						+ "\n\t\tgenerated point|" + point+ "|"
+						+ "\n\t\tis supplier?" + (comp instanceof NodeSupplier)
+						+ "\n\t\tis consumer?" + (comp instanceof NodeConsumer)
+						+ "\n\t\talignmentX: " + comp.getAlignmentX()
+						+ "\n\torgional:"
+						+ "\n\t\tcomp bounds:\t" + comp.getBounds()
+//						+ "\n\t\tcomp size:\t" + comp.getSize()
+//						+ "\n\t\tcomp preferred size:\t" + comp.getPreferredSize()
+//						+ "\n\t\tcomp border:\t" + comp.getBorder()
+//						+ "\n\t\tcomp border insets@comp:\t" + ((comp.getBorder()==null)?"null":comp.getBorder().getBorderInsets(comp))
+						+ "\n\t\tnode bounds:\t" + this.getBounds()
+//						+ "\n\t\tnode size:\t" + this.getSize()
+//						+ "\n\t\tnode preferred size:\t" + this.getPreferredSize()
+//						+ "\n\t\tnode border:\t" + this.getBorder()
+//						+ "\n\t\tnode border insets@comp:\t" + this.getBorder().getBorderInsets(comp)
+						+ "\n\t\tpoint relative to node:\t" + SwingUtilities.convertPoint(comp, comp.getLocation(), this)
+						+ "\n\t\tbounds relative to node:\t" + compBounds
+					);
+			}
+		});
 	}
 	
 	@Override public void paintComponent(Graphics g) {
@@ -119,7 +157,7 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 				i--;
 				size--;
 			}else {
-				System.out.println("draggable node > paint component; drawing point|"+e.connectionPoint.toString()+"|node:"+ e.name);
+//				System.out.println("draggable node > paint component; drawing point|"+e.connectionPoint.toString()+"|node:"+ e.name);
 				e.drawConnectionPoint(g, e.connectionPoint);
 			}
 		}
