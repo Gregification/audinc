@@ -9,6 +9,7 @@ import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 import javax.swing.JComponent;
@@ -23,7 +24,7 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	//node stuff
 	protected String name;
 	protected volatile T value = null;
-	protected volatile List<NodeConnection<T>> 	connections 		= List.of();
+	protected volatile Set<NodeConnection<T>> 	connections 		= Set.of();
 	
 	/**
 	 * center of the connectionPoint relative to the host DraggableNode
@@ -72,7 +73,7 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	}
 	
 	public boolean isInConnectionSeletionRegion(Point p) {
-		return this.connectionPoint.distance(p) <= connectionPointRaduis+connectionPointBorder;
+		return this.connectionPoint.distanceSq(p) <= Math.pow(connectionPointRaduis+connectionPointBorder, 2);
 	}
 	
 	public Dimension getConnecitonPointDimensions() {
@@ -96,16 +97,36 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 		this.value = value;
 	}
 
-	public List<NodeConnection<T>> getConnections() {
+	public Set<NodeConnection<T>> getConnections() {
 		return connections;
 	}
 
-	public void setConnections(List<NodeConnection<T>> connections) {
-		this.connections = connections;
+	public void setConnections(NodeConnection<T>... connections) {
+		for(var v : this.connections)
+			v.dropComponent(this);
+		
+		this.connections.clear();
+		
+		for(var v : connections) {
+			this.addConnection(v);
+		}
 	}
-
-	public void addConnections(List<NodeConnection<T>> connections) {
-		this.connections.addAll(connections);
+	
+	public void addConnection(NodeConnection<T> connection) {
+		if(connections.contains(connection)) return;
+		
+		connections.add(connection);
+		
+		connection.addTerminalTo(this);
+	}
+	
+	public boolean dropConnection(NodeConnection<T> connection) {
+		if(connection != null && this.connections.contains(connection)) {
+			connection.dropComponent(this);
+			this.connections.remove(connection);
+		}
+		
+		return false;
 	}
 	
 	public boolean NeedsRedrawn() {
