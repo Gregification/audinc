@@ -64,8 +64,9 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 		return this.connectionPoint.distance(p) <= connectionPointRaduis+connectionPointBorder;
 	}
 	
-	public int getConnecitonPointWidth() {
-		return connectionPointRaduis+connectionPointBorder;
+	public Dimension getConnecitonPointDimensions() {
+		int r = connectionPointRaduis+connectionPointBorder;
+		return new Dimension(r,r);
 	}
 	
 	public boolean hasConnection() {
