@@ -36,6 +36,10 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 		needsNewValue 	= true;
 	
 	//UI stuff
+	
+	/**
+	 * preferred connection point icon values. these may not necessarily correlate to a circle
+	 */
 	public final static int 
 		connectionPointRaduis = 12,
 		connectionPointBorder = 3;
@@ -57,15 +61,14 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	public void drawConnectionPoint(Graphics g, Point p) {
 		assert g != null && p != null : "(g is null?"+(g==null)+"),(p is null?"+(p==null)+")";
 		
+		//makes a circle with the color of [importance.color] with a black border
 		int 
 			R = connectionPointRaduis+connectionPointBorder,
 			r =	connectionPointRaduis;
-		
 		g.setColor(Color.black);
 		g.fillOval(p.x - R/2, p.y - R/2, R, R);
 		g.setColor(importance.color);
 		g.fillOval(p.x - r/2, p.y - r/2, r, r);
-		
 	}
 	
 	public boolean isInConnectionSeletionRegion(Point p) {

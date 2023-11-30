@@ -9,7 +9,7 @@ import javax.swing.JComponent;
  * each connection may have unlimited number of consumers, but only 1 source. The source can be another consumer.
  * the source is not part of the <code>terminals</code> list 
  */
-public class NodeConnection<T> extends JComponent {	
+public class NodeConnection<T> {	
 	private static final long serialVersionUID = -8049483942756570774L;
 	
 	/**
@@ -50,6 +50,8 @@ public class NodeConnection<T> extends JComponent {
 		if(source != null)
 			terminals.remove(source);
 	}
+	
+	
 
 	public NodeSupplier<T> getSupplier() {
 		if(this.source == null) return null;
