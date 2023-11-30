@@ -17,14 +17,10 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	
 	public static final String title = "Notice Updator";
 	
-//	static {
-//		stdLayout = new GridBagLayout();
-//	}
-	
-	
 	public NodeConsumer<Object> c_logger 			= new NodeConsumer<>(
 				"logger",
-				null
+				null,
+				(o, n) -> {onInput(n); return n;}
 			);
 	public NodeConsumer<Color>  c_forgroundColor	= new NodeConsumer<>(
 				"forground color",
@@ -55,5 +51,10 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 
 	@Override public JComponent getInspector() {
 		return null;
+	}
+	
+	public void onInput(Object obj) {
+		System.out.println("NNoticeUpdator logging w/"+c_forgroundColor.getValue()+" : "+ obj.toString());
+		this.context.setNoticeText(obj.toString(), c_forgroundColor.getValue());
 	}
 }

@@ -86,6 +86,8 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 	
 	/**
 	 * regenerates the connection points for the NodeComponent relative to this DraggableNode.
+	 * connection point is where the connection line will be drawn to. this means its up against the side of the DraggableNode,
+	 * either left or right depending on if its a consumer, supplier, or some secrete third thing.
 	 * @param comp
 	 */
 	protected void genConnectionPoint(NodeComponent... comps) {
@@ -95,26 +97,24 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 				
 				synchronized(comp.getTreeLock()) {
 				
+					var nodeBounds			= this.getBounds();
 					var nodeBorderInsets 	= this.getBorder().getBorderInsets(comp);
 					var compBounds 			= SwingUtilities.convertRectangle(comp, comp.getBounds(), this);//component bounds, relative to this
 					var compCPDimension 	= comp.getConnecitonPointDimensions();
-					Point point;
+					Point point = new Point(
+							0,
+							(int)(comp.getY() + comp.getHeight()/2 - compCPDimension.height/2)
+						);
 					
 					if(comp instanceof NodeSupplier) {
 						//point goes on right side
 						comp.setAlignmentX(Component.RIGHT_ALIGNMENT);
-						point = new Point(
-								(int)(this.getBounds().width + nodeBorderInsets.right + nodeBorderInsets.left - compCPDimension.width),
-								(int)(comp.getY() + comp.getHeight()/2 - compCPDimension.height/2)
-							);
+						
+						point.x = (int)(nodeBounds.width);
 						
 					}else if(comp instanceof NodeConsumer) {
 						//point goes on left side
 						comp.setAlignmentX(Component.LEFT_ALIGNMENT);
-						point = new Point(
-								0,
-								(int)(comp.getY() + comp.getHeight()/2 - compCPDimension.height/2)
-							);
 						
 					}else {
 						throw new UnsupportedOperationException("idk where the point should go");

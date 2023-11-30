@@ -50,13 +50,21 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	
 	public abstract NodeSupplier<T> getSupplier();
 	
+	/**
+	 * @param g
+	 * @param p, point that is the connection point. note that this will be THE RCENTER OF THE ICON, not the top-left
+	 */
 	public void drawConnectionPoint(Graphics g, Point p) {
 		assert g != null && p != null : "(g is null?"+(g==null)+"),(p is null?"+(p==null)+")";
 		
-		g.setColor(importance.color);
-		g.fillOval(p.x - connectionPointRaduis, p.y, connectionPointRaduis, connectionPointRaduis);
+		int 
+			R = connectionPointRaduis+connectionPointBorder,
+			r =	connectionPointRaduis;
+		
 		g.setColor(Color.black);
-		g.drawOval(p.x - connectionPointRaduis, p.y, connectionPointRaduis+connectionPointBorder, connectionPointRaduis+connectionPointBorder);
+		g.fillOval(p.x - R/2, p.y - R/2, R, R);
+		g.setColor(importance.color);
+		g.fillOval(p.x - r/2, p.y - r/2, r, r);
 		
 	}
 	
