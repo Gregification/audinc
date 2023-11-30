@@ -90,7 +90,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //mouse events
 ////////////////////////////////
 	@Override public void mouseDragged(MouseEvent e) {
-		if(!draggingNode && dragN == null) return;
+		if(!draggingNode || dragN == null) return;
 		
 		assert dragOffSet != null 
 				: "failed to be initialized";
