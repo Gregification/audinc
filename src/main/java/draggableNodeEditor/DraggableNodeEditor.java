@@ -54,12 +54,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	//mouse events
 	protected Point dragOffSet;
-	protected boolean draggingNode = false;
-	protected DraggableNode dragN,		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
-		selectedNode;
 	
-	protected NodeConnection draggedConnection;
-	protected int draggedConnectionIndex = 0;
+	protected boolean draggingNode = false;
+	protected DraggableNode dragN;		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
+	
+	protected boolean draggingTerminalPoint = false;
+	protected TerminalPoint tp;
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		this.editorToolBar = index;
@@ -93,7 +93,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //mouse events
 ////////////////////////////////
 	@Override public void mouseDragged(MouseEvent e) {
-		if(!draggingNode || dragN == null) return;
+		if(!(draggingNode || draggingTerminalPoint)) return;
 		
 		assert dragOffSet != null 
 				: "failed to be initialized";
@@ -102,12 +102,18 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			Point newLocation = e.getPoint();
 				newLocation.x -= dragOffSet.x;
 				newLocation.y -= dragOffSet.y;
-			newLocation.x = Math.max(newLocation.x, 0);	//lower	bound
-			newLocation.y = Math.max(newLocation.y, 0);	//upper bound
-			newLocation.x = Math.min(newLocation.x, this.getWidth()	- dragN.getWidth());	//right bound	
-			newLocation.y = Math.min(newLocation.y, this.getHeight() - dragN.getHeight());	//bottom bound
+				
+			newLocation.x = Math.max(newLocation.x, 0);	//west	bound
+			newLocation.y = Math.max(newLocation.y, 0);	//north bound
 			
-			dragN.setLocation(newLocation);
+			if(draggingNode) {
+				newLocation.x = Math.min(newLocation.x, this.getWidth()	- dragN.getWidth());	//east bound	
+				newLocation.y = Math.min(newLocation.y, this.getHeight() - dragN.getHeight());	//south bound
+				dragN.setLocation(newLocation);
+			}else if(draggingTerminalPoint) {
+				newLocation.x = Math.min(newLocation.x, this.getWidth());	//east bound	
+				newLocation.y = Math.min(newLocation.y, this.getHeight());	//south bound
+			}
 		}
 	}
 	
@@ -267,21 +273,13 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public void selectNode(DraggableNode node) {
 		this.inspectorPanel.removeAll();
 		
-		if(selectedNode != null) {
-			//remove visual indicator of node selection
-		}
-		
 		if(node != null){
 			this.moveToFront(node);
 			
 			if(node.getInspector() != null)
 				this.inspectorPanel.add(node.getInspector(), Presentable.createGbc(0, 0));
 			
-			//remove visual indicator on former selected node
-			//add visual indicator that the new node is selected
 		}
-		
-		selectedNode = node;
 		
 		inspectorPanel.revalidate();
 	}

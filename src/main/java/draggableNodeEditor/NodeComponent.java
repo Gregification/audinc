@@ -24,7 +24,7 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	//node stuff
 	protected String name;
 	protected volatile T value = null;
-	protected volatile Set<NodeConnection<T>> 	connections 		= Set.of();
+	public volatile Set<NodeConnection<T>> 	connections 		= Set.of();
 	
 	/**
 	 * center of the connectionPoint relative to the host DraggableNode
@@ -84,10 +84,6 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	public boolean hasConnection() {
 		return connections.size() != 0;
 	}
-	
-	public Class getType() {
-		return value.getClass();
-	}
 
 	public T getValue() {
 		return value;
@@ -95,38 +91,6 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 
 	public void setValue(T value) {
 		this.value = value;
-	}
-
-	public Set<NodeConnection<T>> getConnections() {
-		return connections;
-	}
-
-	public void setConnections(NodeConnection<T>... connections) {
-		for(var v : this.connections)
-			v.dropComponent(this);
-		
-		this.connections.clear();
-		
-		for(var v : connections) {
-			this.addConnection(v);
-		}
-	}
-	
-	public void addConnection(NodeConnection<T> connection) {
-		if(connections.contains(connection)) return;
-		
-		connections.add(connection);
-		
-		connection.addTerminalTo(this);
-	}
-	
-	public boolean dropConnection(NodeConnection<T> connection) {
-		if(connection != null && this.connections.contains(connection)) {
-			connection.dropComponent(this);
-			this.connections.remove(connection);
-		}
-		
-		return false;
 	}
 	
 	public boolean NeedsRedrawn() {
