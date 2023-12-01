@@ -31,5 +31,13 @@ public class DirectConnectionStyle implements ConnectionStyle{
 
 	@Override public <T> void genConnection(NodeConnection<T> nodeConnection, Rectangle[] obstacles, Set<TerminalPoint<T>> terminalsToReconnect) {
 		var arr = nodeConnection.toArray(TerminalPoint[]::new);//apparently includign a generic in the array type dosent fly
+		
+		for(int i = 0; i < arr.length - 1; i++) {
+			if(terminalsToReconnect.contains(arr[i]))
+				arr[i].pathToNext = new Point[] {
+						arr[i+1].getPoint()
+					};
+		}
+		
 	}
 }
