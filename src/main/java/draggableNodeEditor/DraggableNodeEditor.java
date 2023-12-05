@@ -9,8 +9,13 @@ import java.awt.event.MouseMotionListener;
 import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -45,6 +50,10 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		LINE_LAYER 	= 2,
 		NODE_LAYER 	= 3;
 	
+	/**
+	 * for node use.
+	 * A table of all node groups and the "context" associated with them.
+	 */
 	public volatile Map<DraggableNodeGroup, Object> nodeGroups;
 	
 	public volatile JToolBar editorToolBar;
@@ -59,7 +68,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	protected DraggableNode dragN;		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
 	
 	protected boolean draggingTerminalPoint = false;
-	protected TerminalPoint tp;
+	protected NodeConnection nodeConnection;
+	protected TerminalPoint terminalPoint;
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		this.editorToolBar = index;
@@ -73,7 +83,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		
 		this.nodeGroups = nodeGroups;
-		
 		
 		genGUI();
 	}
@@ -109,10 +118,13 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			if(draggingNode) {
 				newLocation.x = Math.min(newLocation.x, this.getWidth()	- dragN.getWidth());	//east bound	
 				newLocation.y = Math.min(newLocation.y, this.getHeight() - dragN.getHeight());	//south bound
+				
 				dragN.setLocation(newLocation);
 			}else if(draggingTerminalPoint) {
 				newLocation.x = Math.min(newLocation.x, this.getWidth());	//east bound	
 				newLocation.y = Math.min(newLocation.y, this.getHeight());	//south bound
+				
+				this.terminalPoint.setPoint(newLocation);
 			}
 		}
 	}
@@ -130,25 +142,71 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		if(compAt == null) return;
 		
 		if(compAt instanceof DraggableNode) {
-			selectNode(this.dragN = (DraggableNode)compAt);
-		
-			//drag node event
-			if(dragN.isDraggable) {
-				if(e.getClickCount() == 2) {		//make connection event
-					draggingNode = false;
-					NodeComponent selectedComponent = dragN.getComponentForPoint(SwingUtilities.convertPoint(this, e.getPoint(), dragN));
+			selectNode(this.dragN = (DraggableNode<?>)compAt);
+			
+			if(e.getClickCount() == 2) {
+				NodeComponent<?> comp;
+				if((comp = dragN.getComponentForPoint(SwingUtilities.convertPoint(this, e.getPoint(), dragN))) != null) {		//new connection event
+					draggingTerminalPoint = true;
+					dragOffSet = new Point(0,0);
 					
-					System.out.println("selected componetn:" + selectedComponent);
-				}else {								//drag event
-					draggingNode = true;
-					this.dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
+					nodeConnection = comp.getNewConnection();
+					
+					var srcTerminal = nodeConnection.makeValidTerminal();
+						srcTerminal.targetComponent = comp;			//connect node to source component
+						nodeConnection.add(srcTerminal);			//this node goes first
+						
+					terminalPoint 	= nodeConnection.makeValidTerminal();
+						terminalPoint.targetComponent = null;		//ensure node it not connected to anything
+						nodeConnection.add(terminalPoint);			//this node goes second
+						
+					System.out.println("dragging point");
 				}
+			}else if(dragN.isDraggable) { 		//drag event
+				draggingNode = true;
+				dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
 			}
 		}
 	}
 	
 	@Override public void mouseReleased(MouseEvent e) {
-		draggingNode = false;
+		if(draggingTerminalPoint) {
+			System.out.println("dropping point");
+			//snap terminal to a node component if its in range
+			var sb = new StringBuilder(); 
+			for(var node : getComponents()) {
+				System.out.println(sb); 
+				sb.setLength(0);
+				sb.append("checking node:" + node);
+					
+				if(!(node instanceof DraggableNode)) continue;
+				DraggableNode<?> dnode = (DraggableNode<?>)node;
+				
+				var comp = dnode.getComponentForPoint(
+							SwingUtilities.convertPoint(this, e.getPoint(), dnode)		//point relative to the node
+						);
+				
+				if(comp == null) continue;
+				
+				if(!(comp.type.isAssignableFrom(terminalPoint.type))) {
+					sb.append("\n\tcomponent and terminal are not compatiable");
+					continue;
+				}
+				
+				sb.append("\n\tcomponent and terminal are compatiable");
+
+				terminalPoint.targetComponent = comp;
+				terminalPoint.needsRepathed = true;
+				
+				break;
+			}
+			
+			System.out.println(sb); 
+		}
+		
+		draggingTerminalPoint = 
+		draggingNode 
+			= false;
 	}
 	
 	@Override public void mouseEntered(MouseEvent e) {
@@ -165,6 +223,65 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public JPanel getInspectorPanel() {
 		return inspectorPanel;
 	}
+	
+//	/**
+//	 * reflection :(
+//	 *   
+//	 * examples of paramaters and what it returns
+//	 * 
+//	 * - return true if given 	(Aclass<Integer>, 0, Aclass<Integer>, 0)
+//	 * - return true if given 	(Aclass<Boolean>, 0, Aclass<Boolean>, 0)
+//	 * - return true if given 	(Aclass<Boolean>, 0, Bclass<Boolean>, 0)
+//	 * - return false if given 	(Aclass<Integer>, 0, Aclass<Boolean>, 0)
+//	 * - return false if given 	(Aclass<Boolean>, 0, Aclass<Double>,  0)
+//	 * - return false if given 	(Aclass<Integer>, 0, Bclass<Boolean>, 0)
+//	 * 
+//	 * @param A
+//	 * @param B
+//	 * @return boolean. (see description)
+//	 */
+//	public static boolean areGenericParamatersTheSame(Object A, int Aargi, Object B, int Bargi) {
+//		  Class<?> classA = A.getClass();
+//		  Class<?> classB = B.getClass();
+//
+//	      if (classA.getGenericSuperclass() instanceof ParameterizedType) {
+//	          ParameterizedType typeA = (ParameterizedType) classA.getGenericSuperclass();
+//	          Type[] typeArgumentsA = typeA.getActualTypeArguments();
+//	          
+//	          System.out.println("A type args: " + List.of(typeArgumentsA));
+//	          
+//	          if (classB.getGenericSuperclass() instanceof ParameterizedType) {
+//	              ParameterizedType typeB = (ParameterizedType) classB.getGenericSuperclass();
+//	              Type[] typeArgumentsB = typeB.getActualTypeArguments();
+//
+//	              System.out.println("B type args: " + List.of(typeArgumentsB));
+//	              
+//	              //return if the paramaters are the same or assignable from each other
+//	              Class<?> 
+//	              	Ac = (Class<?>) typeArgumentsA[Aargi], 
+//	            	Bc = (Class<?>) typeArgumentsB[Bargi];
+//	              
+//	              System.out.println("DraggableNodeEditor > areGenericParamatersTheSame" 
+//	            		  + "\n\tAc:\t"		+ Ac
+//	            		  + "\n\tBc:\t"		+ Bc);
+//	              
+//	              return (Ac).isAssignableFrom(Bc) 	||	
+//	                     (Bc).isAssignableFrom(Ac)	;
+//	          }else {
+//	        	  System.out.println("B paramater error");
+//	          }
+//	      }else {
+//	    	  System.out.println("A paramater error");
+//	      }
+//	      
+//	      System.out.println("" 
+//	    		  + "\n\tA-class:" + classA
+//	    		  + "\n\tA-class generic superclass:\t" + classA.getGenericSuperclass()
+//	    		  + "\n\tB-class:" + classB
+//	    		  + "\n\tB-class generic superclass:\t" + classB.getGenericSuperclass());
+//
+//		  return false;
+//	}
 	
 ////////////////////////////////
 //gui
@@ -207,12 +324,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				Object dragN = NewNodeDialogNodeTable.getValueAt(NewNodeDialogNodeTable.getSelectedRow(), 0);
 				if(dragN != null) {
 					//get context
-					var dragClas = (Class<? extends DraggableNode>)dragN;
+					Class<? extends DraggableNode> dragClas = (Class<? extends DraggableNode>)dragN;
 					
 					for(DraggableNodeGroup dng : nodeGroups.keySet())
 						if(dng.allowedNodes.contains(dragClas)) {
 							//Instantiate
-							DraggableNode node;
+							DraggableNode<?> node;
 							
 							if(dng.expectedContextType == Void.class) {
 								node = dragClas
@@ -248,14 +365,14 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	    }
 	}
 	
-	public DraggableNode addNode(DraggableNode node) { return addNode(NODE_LAYER, null, node); }
-	public DraggableNode addNode(int layer, Point position, DraggableNode node) {
+	public DraggableNode<?> addNode(DraggableNode<?> node) { return addNode(NODE_LAYER, null, node); }
+	public DraggableNode<?> addNode(int layer, Point position, DraggableNode<?> node) {
 		assert node != null
 			: "cannot add a null node";
 		
 		if(position == null)
 			position = new Point(
-					(int)editorScrollPane.getVisibleRect().getCenterX(),		//with null layout this dosnet actually do anyhting
+					(int)editorScrollPane.getVisibleRect().getCenterX(),		//with null layout this dosen't actually do anything
 					(int)editorScrollPane.getVisibleRect().getCenterY()
 				);
 		
@@ -270,7 +387,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		return node;
 	}
 	
-	public void selectNode(DraggableNode node) {
+	public void selectNode(DraggableNode<?> node) {
 		this.inspectorPanel.removeAll();
 		
 		if(node != null){
@@ -327,5 +444,4 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	private void genGUI_inspector(JPanel panel) {
 		panel.setLayout(new GridBagLayout());
 	}
-	
 }

@@ -1,5 +1,6 @@
 package draggableNodeEditor;
 
+import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
@@ -17,11 +18,12 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
  * 
  * the source is not part of the <code>terminals</code> list 
  */
-public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>> {
+public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>>{
 	private static final long serialVersionUID = -2495316406627258166L;
-
+	
 	public static final int defaultLineWidth = 5;
 	
+	public final Class<T> type;
 	protected int lineWidth = defaultLineWidth; 
 	
 	/**
@@ -31,8 +33,21 @@ public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>> {
 	
 //	private final ReentrantLock connectionLock = new ReentrantLock(true);
 	
-	public NodeConnection(ConnectionStyle connectionStyle) {
-		this.connectionStyle = connectionStyle;
+	public NodeConnection(Class<T> type) {
+		super();
+		
+		this.type = type;
+		setConnectionStyle(null);
+	}
+	
+	public TerminalPoint<T> makeValidTerminal(){
+		return new TerminalPoint<T>(type);
+	}
+	
+	public TerminalPoint<T> getRoot(){
+		if(this.isEmpty()) return null;
+		
+		return this.getFirst();
 	}
 	
 //////////////////////////
@@ -43,18 +58,21 @@ public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>> {
 	}
 
 	public void setLineWidth(int lineWidth) {
-		this.lineWidth = lineWidth;
+		this.lineWidth = Math.max(lineWidth, 1);
 	}
 	
 	public ConnectionStyle getConnectionStyle() {
 		return connectionStyle;
 	}
 	
+	/**
+	 * sets the connection style, defaults to [DirectConnectionStyle] if NULL 
+	 * @param connectionStyle, if NULL will use default
+	 */
 	public void setConnectionStyle(ConnectionStyle connectionStyle) {
 		if(connectionStyle == null)
 			this.connectionStyle = new DirectConnectionStyle();
 		
 		this.connectionStyle = connectionStyle;
 	}
-
 }

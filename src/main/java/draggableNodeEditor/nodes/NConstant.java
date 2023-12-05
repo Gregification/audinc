@@ -30,6 +30,7 @@ public class NConstant extends DraggableNode<Void> {
 	private JTable constantsTable;	//could be better optimized 
 	private static final Map<Class, Function<Void, NodeSupplier>> supportedConstants = Map.of(
 				Number.class, v -> new NspSpinner<Number>(
+							Number.class,
 							"number spinner",
 							new SpinnerNumberModel(0, null, null, 1),
 							(s,e) -> (Number)s.getModel().getValue()

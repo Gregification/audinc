@@ -18,11 +18,13 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	public static final String title = "Notice Updator";
 	
 	public NodeConsumer<Object> c_logger 			= new NodeConsumer<>(
+				Object.class,
 				"logger",
 				null,
 				(o, n) -> {onInput(n); return n;}
 			);
 	public NodeConsumer<Color>  c_forgroundColor	= new NodeConsumer<>(
+				Color.class,
 				"forground color",
 				Color.black, 
 				(o, n) -> n == null ? Color.black : n

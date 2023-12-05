@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 //import java.nio.file.Path;
 //import java.nio.file.Paths;
 //import java.util.Collections;
@@ -293,11 +295,6 @@ public abstract class Presentable {
 		lamda.doTheThing(o);
 		return true;
 	}
-	
-	
-	
-	
-	
 	
 	//quick c&p
 	

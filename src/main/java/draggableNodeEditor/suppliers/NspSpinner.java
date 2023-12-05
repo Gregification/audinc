@@ -21,13 +21,13 @@ public class NspSpinner<T> extends NodeSupplier<T> {
 	
 	public JSpinner spinner;
 	
-	public NspSpinner(AbstractSpinnerModel spinnerModel, BiFunction<JSpinner, ChangeEvent,T> onSpinnerChange) {
-		this("", spinnerModel, onSpinnerChange);
+	public NspSpinner(Class<T> type, AbstractSpinnerModel spinnerModel, BiFunction<JSpinner, ChangeEvent,T> onSpinnerChange) {
+		this(type, "", spinnerModel, onSpinnerChange);
 		this.setName(value.getClass().toString());
 	}
 	@SuppressWarnings("unchecked")//death
-	public NspSpinner(String name, AbstractSpinnerModel spinnerModel, BiFunction<JSpinner, ChangeEvent,T> onSpinnerChange) {
-		super(name, (T)spinnerModel.getValue());
+	public NspSpinner(Class<T> type, String name, AbstractSpinnerModel spinnerModel, BiFunction<JSpinner, ChangeEvent,T> onSpinnerChange) {
+		super(type, name, (T)spinnerModel.getValue());
 		
 		spinner = new JSpinner(spinnerModel);
 			spinner.addChangeListener(e -> {

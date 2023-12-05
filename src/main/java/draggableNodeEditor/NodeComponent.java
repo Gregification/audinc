@@ -18,7 +18,9 @@ import javax.swing.JComponent;
  * a editable value for the
  * @param <T>
  */
-public abstract class NodeComponent<T extends Object> extends JComponent {
+public abstract class NodeComponent<T> extends JComponent {
+	public final Class<T> type;
+	
 	private static final long serialVersionUID = 1L;
 	
 	//node stuff
@@ -46,10 +48,10 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 		connectionPointBorder = 3;
 	protected NodeComponentImportance importance = NodeComponentImportance.SUGGESTED;
 
-	public NodeComponent(String name, T value) {
+	public NodeComponent(Class<T> type, String name, T value) {
+		this.type = type;
 		this.setName(name);
 		this.setValue(value);
-
 		this.setLayout(new FlowLayout());
 	}
 	
@@ -111,7 +113,6 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 		this.setToolTipText(name);
 	}
 	
-	
 	public NodeComponentImportance getImportance() {
 		return importance;
 	}
@@ -119,5 +120,11 @@ public abstract class NodeComponent<T extends Object> extends JComponent {
 	public void setImportance(NodeComponentImportance importance) {
 		if(importance != null)
 			this.importance = importance;
+	}
+	
+	public NodeConnection<T> getNewConnection(){
+		NodeConnection<T> conn = new NodeConnection<T>(type);
+		
+		return conn;
 	}
 }

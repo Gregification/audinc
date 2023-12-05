@@ -17,12 +17,12 @@ public class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
 	 */
 	protected BiFunction<T, T, T> onAccept;
 	
-	public NodeConsumer(String name, T value) {
-		this(name, value, null);
+	public NodeConsumer(Class<T> type, String name, T value) {
+		this(type, name, value, null);
 	}
 
-	public NodeConsumer(String name, T value, BiFunction<T, T, T> onAccept) {
-		super(name, value);
+	public NodeConsumer(Class<T> type, String name, T value, BiFunction<T, T, T> onAccept) {
+		super(type, name, value);
 		this.setOnAccept(onAccept);;
 	}
 	
