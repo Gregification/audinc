@@ -3,6 +3,7 @@ package draggableNodeEditor;
 import java.awt.Component;
 import java.awt.GridBagLayout;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -56,10 +57,11 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	 */
 	public volatile Map<DraggableNodeGroup, Object> nodeGroups;
 	
-	public volatile JToolBar editorToolBar;
+	public JToolBar editorToolBar;
 	
-	protected volatile JScrollPane editorScrollPane;
-	protected volatile JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
+	protected JScrollPane editorScrollPane;
+	protected JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
+	protected NodeConnectionPanel nodeConnectionPanel = new NodeConnectionPanel();
 	
 	//mouse events
 	protected Point dragOffSet;
@@ -72,9 +74,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	protected TerminalPoint terminalPoint;
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
+		super();
+		
 		this.editorToolBar = index;
 		this.inspectorPanel = inspector;
 		
+		this.add(nodeConnectionPanel, LINE_LAYER);
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);
 		
@@ -151,6 +156,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					dragOffSet = new Point(0,0);
 					
 					nodeConnection = comp.getNewConnection();
+					registerConnection(nodeConnection);
 					
 					var srcTerminal = nodeConnection.makeValidTerminal();
 						srcTerminal.targetComponent = comp;			//connect node to source component
@@ -160,7 +166,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 						terminalPoint.targetComponent = null;		//ensure node it not connected to anything
 						nodeConnection.add(terminalPoint);			//this node goes second
 						
-					System.out.println("dragging point");
+					System.out.println("dragging point, terminal: " + terminalPoint);
 				}
 			}else if(dragN.isDraggable) { 		//drag event
 				draggingNode = true;
@@ -198,6 +204,15 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				terminalPoint.targetComponent = comp;
 				terminalPoint.needsRepathed = true;
 				
+				final Rectangle[] obsticles = Arrays.stream(getComponents())
+						.map(Component::getBounds)
+						.toArray(Rectangle[]::new);
+				this.nodeConnectionPanel.connectionLock.lock();
+				for(var conn : nodeConnectionPanel.connections) {
+					conn.genConnections(obsticles);
+				}
+				this.nodeConnectionPanel.connectionLock.unlock();
+				
 				break;
 			}
 			
@@ -224,64 +239,13 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		return inspectorPanel;
 	}
 	
-//	/**
-//	 * reflection :(
-//	 *   
-//	 * examples of paramaters and what it returns
-//	 * 
-//	 * - return true if given 	(Aclass<Integer>, 0, Aclass<Integer>, 0)
-//	 * - return true if given 	(Aclass<Boolean>, 0, Aclass<Boolean>, 0)
-//	 * - return true if given 	(Aclass<Boolean>, 0, Bclass<Boolean>, 0)
-//	 * - return false if given 	(Aclass<Integer>, 0, Aclass<Boolean>, 0)
-//	 * - return false if given 	(Aclass<Boolean>, 0, Aclass<Double>,  0)
-//	 * - return false if given 	(Aclass<Integer>, 0, Bclass<Boolean>, 0)
-//	 * 
-//	 * @param A
-//	 * @param B
-//	 * @return boolean. (see description)
-//	 */
-//	public static boolean areGenericParamatersTheSame(Object A, int Aargi, Object B, int Bargi) {
-//		  Class<?> classA = A.getClass();
-//		  Class<?> classB = B.getClass();
-//
-//	      if (classA.getGenericSuperclass() instanceof ParameterizedType) {
-//	          ParameterizedType typeA = (ParameterizedType) classA.getGenericSuperclass();
-//	          Type[] typeArgumentsA = typeA.getActualTypeArguments();
-//	          
-//	          System.out.println("A type args: " + List.of(typeArgumentsA));
-//	          
-//	          if (classB.getGenericSuperclass() instanceof ParameterizedType) {
-//	              ParameterizedType typeB = (ParameterizedType) classB.getGenericSuperclass();
-//	              Type[] typeArgumentsB = typeB.getActualTypeArguments();
-//
-//	              System.out.println("B type args: " + List.of(typeArgumentsB));
-//	              
-//	              //return if the paramaters are the same or assignable from each other
-//	              Class<?> 
-//	              	Ac = (Class<?>) typeArgumentsA[Aargi], 
-//	            	Bc = (Class<?>) typeArgumentsB[Bargi];
-//	              
-//	              System.out.println("DraggableNodeEditor > areGenericParamatersTheSame" 
-//	            		  + "\n\tAc:\t"		+ Ac
-//	            		  + "\n\tBc:\t"		+ Bc);
-//	              
-//	              return (Ac).isAssignableFrom(Bc) 	||	
-//	                     (Bc).isAssignableFrom(Ac)	;
-//	          }else {
-//	        	  System.out.println("B paramater error");
-//	          }
-//	      }else {
-//	    	  System.out.println("A paramater error");
-//	      }
-//	      
-//	      System.out.println("" 
-//	    		  + "\n\tA-class:" + classA
-//	    		  + "\n\tA-class generic superclass:\t" + classA.getGenericSuperclass()
-//	    		  + "\n\tB-class:" + classB
-//	    		  + "\n\tB-class generic superclass:\t" + classB.getGenericSuperclass());
-//
-//		  return false;
-//	}
+	public void registerConnection(NodeConnection<?> conn) {
+		nodeConnectionPanel.addConnection(conn);
+	}
+	
+	public void unregisterConnection(NodeConnection<?> conn) {
+		nodeConnectionPanel.removeConnection(conn);
+	}
 	
 ////////////////////////////////
 //gui
@@ -324,7 +288,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				Object dragN = NewNodeDialogNodeTable.getValueAt(NewNodeDialogNodeTable.getSelectedRow(), 0);
 				if(dragN != null) {
 					//get context
-					Class<? extends DraggableNode> dragClas = (Class<? extends DraggableNode>)dragN;
+					Class<? extends DraggableNode<?>> dragClas = (Class<? extends DraggableNode<?>>)dragN;
 					
 					for(DraggableNodeGroup dng : nodeGroups.keySet())
 						if(dng.allowedNodes.contains(dragClas)) {

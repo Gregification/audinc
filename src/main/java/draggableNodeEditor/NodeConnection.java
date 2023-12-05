@@ -1,6 +1,10 @@
 package draggableNodeEditor;
 
-import java.util.LinkedList;
+import java.awt.Graphics;
+import java.awt.Rectangle;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
@@ -20,18 +24,18 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
  */
 public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>>{
 	private static final long serialVersionUID = -2495316406627258166L;
-	
+
+	protected static final ExecutorService connectionCalculatorExecutorService;
 	public static final int defaultLineWidth = 5;
 	
 	public final Class<T> type;
+	
 	protected int lineWidth = defaultLineWidth; 
+	protected ConnectionStyle connectionStyle;
 	
-	/**
-	 * the type of line between the terminals
-	 */
-	protected volatile ConnectionStyle connectionStyle;
-	
-//	private final ReentrantLock connectionLock = new ReentrantLock(true);
+	static {
+		connectionCalculatorExecutorService = Executors.newCachedThreadPool();
+	}
 	
 	public NodeConnection(Class<T> type) {
 		super();
@@ -44,10 +48,29 @@ public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>>{
 		return new TerminalPoint<T>(type);
 	}
 	
+	public boolean needsRepathed() {
+		for(var v : this)
+			if(v.needsRepathed) return true;
+		
+		return false;
+	}
+	
 	public TerminalPoint<T> getRoot(){
 		if(this.isEmpty()) return null;
 		
 		return this.getFirst();
+	}
+	
+	public void genConnections(Rectangle[] obstacles) {
+		connectionCalculatorExecutorService.execute(()->{
+			connectionStyle.genConnections(this, obstacles);
+		});
+	}
+	
+	public void genConnection(Rectangle[] obstacles, Set<TerminalPoint<T>> terminalsToReconnect) {
+		connectionCalculatorExecutorService.execute(()->{
+			connectionStyle.genConnection(this, obstacles, terminalsToReconnect);
+		});
 	}
 	
 //////////////////////////
@@ -74,5 +97,21 @@ public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>>{
 			this.connectionStyle = new DirectConnectionStyle();
 		
 		this.connectionStyle = connectionStyle;
+	}
+	
+	public void paint(Graphics g) {
+		if(this.isEmpty()) return;
+		
+		for(var terminal : this) {
+			int 
+				x = terminal.pathToNext[0].x,
+				y = terminal.pathToNext[0].y;
+			
+			for(var point : terminal.pathToNext) {
+				g.drawLine(x, y, point.x, point.y);
+				x = point.x;
+				y = point.y;
+			}
+		}
 	}
 }
