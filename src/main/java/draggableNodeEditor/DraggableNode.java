@@ -24,11 +24,10 @@ import javax.swing.border.TitledBorder;
 import audinc.gui.MainWin;
 
 /**
- * <b>ALL CHILDREN OF THIS CLASS MUST HAVE A DEFAULT(ZERO PARAMATER) CONSTRUCTOR!!! (because i cheesed the new-node-dialog)</b>
- * 
- * <br>a node object meant to be used by the {@code DraggableNodeEditor} class.
+ * a node object meant to be used by the {@code DraggableNodeEditor} class.
  */	
-public abstract class DraggableNode<T> extends JPanel implements Serializable{
+public abstract class DraggableNode<T> extends JPanel{
+	private static final long serialVersionUID = 1L;
 	public final static Border 
 		stdBorder 			= BorderFactory.createLineBorder(Color.black),
 		stdBorderEmphasis1 	= BorderFactory.createBevelBorder(BevelBorder.RAISED);
@@ -44,12 +43,10 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 
 	public final static double terminalPointSelectionRadius = 3;
 	
-	private static final long serialVersionUID = 1L;
-	
 	public volatile boolean isDraggable = true;
 	
 	protected volatile T context;
-	private volatile ArrayList<NodeComponent> connectableNodeComponents = new ArrayList<>();
+	private volatile ArrayList<NodeComponent<?>> connectableNodeComponents = new ArrayList<>();
 	
 	public DraggableNode(T context) {
 		super();

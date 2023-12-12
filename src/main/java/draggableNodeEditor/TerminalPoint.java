@@ -9,7 +9,7 @@ public class TerminalPoint<T> {
 	public final Class<T> type;
 	
 	public Point[] pathToNext = new Point[0];
-	public boolean needsRepathed = true;
+	private boolean needsRepathed = true;
 	
 	public NodeComponent<T> targetComponent = null;
 	
@@ -21,7 +21,7 @@ public class TerminalPoint<T> {
 	
 	public Point getPoint() {
 		if(this.targetComponent != null) {
-			needsRepathed = !point.equals(targetComponent.connectionPoint);
+			setNeedsRepathed(!point.equals(targetComponent.connectionPoint));
 			
 			point.x = this.targetComponent.connectionPoint.x;
 			point.y = this.targetComponent.connectionPoint.y;
@@ -45,14 +45,22 @@ public class TerminalPoint<T> {
 	}
 	
 	public void setPoint(Point point) {
-		this.needsRepathed = !point.equals(this.point);
+		this.setNeedsRepathed(!point.equals(this.point));
 		
 		this.point = point;
 	}
 	public void setPoint(int x, int y) {
-		this.needsRepathed = point.x != x || point.y != y;
+		this.setNeedsRepathed(point.x != x || point.y != y);
 		
 		point.x = x;
 		point.y = y;
+	}
+
+	public boolean needsRepathed() {
+		return needsRepathed;
+	}
+
+	public void setNeedsRepathed(boolean needsRepathed) {
+		this.needsRepathed = needsRepathed;
 	}
 }

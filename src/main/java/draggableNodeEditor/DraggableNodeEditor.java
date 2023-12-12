@@ -61,7 +61,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	protected JScrollPane editorScrollPane;
 	protected JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
-	protected NodeConnectionPanel nodeConnectionPanel = new NodeConnectionPanel();
 	
 	//mouse events
 	protected Point dragOffSet;
@@ -69,17 +68,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	protected boolean draggingNode = false;
 	protected DraggableNode dragN;		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
 	
-	protected boolean draggingTerminalPoint = false;
-	protected NodeConnection nodeConnection;
-	protected TerminalPoint terminalPoint;
-	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		super();
 		
 		this.editorToolBar = index;
 		this.inspectorPanel = inspector;
 		
-		this.add(nodeConnectionPanel, LINE_LAYER);
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);
 		
@@ -107,7 +101,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //mouse events
 ////////////////////////////////
 	@Override public void mouseDragged(MouseEvent e) {
-		if(!(draggingNode || draggingTerminalPoint)) return;
+		if(!draggingNode) return;
 		
 		assert dragOffSet != null 
 				: "failed to be initialized";
@@ -119,18 +113,10 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				
 			newLocation.x = Math.max(newLocation.x, 0);	//west	bound
 			newLocation.y = Math.max(newLocation.y, 0);	//north bound
+			newLocation.x = Math.min(newLocation.x, this.getWidth()	- dragN.getWidth());	//east bound	
+			newLocation.y = Math.min(newLocation.y, this.getHeight() - dragN.getHeight());	//south bound
 			
-			if(draggingNode) {
-				newLocation.x = Math.min(newLocation.x, this.getWidth()	- dragN.getWidth());	//east bound	
-				newLocation.y = Math.min(newLocation.y, this.getHeight() - dragN.getHeight());	//south bound
-				
-				dragN.setLocation(newLocation);
-			}else if(draggingTerminalPoint) {
-				newLocation.x = Math.min(newLocation.x, this.getWidth());	//east bound	
-				newLocation.y = Math.min(newLocation.y, this.getHeight());	//south bound
-				
-				this.terminalPoint.setPoint(newLocation);
-			}
+			dragN.setLocation(newLocation);
 		}
 	}
 	
@@ -149,26 +135,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		if(compAt instanceof DraggableNode) {
 			selectNode(this.dragN = (DraggableNode<?>)compAt);
 			
-			if(e.getClickCount() == 2) {
-				NodeComponent<?> comp;
-				if((comp = dragN.getComponentForPoint(SwingUtilities.convertPoint(this, e.getPoint(), dragN))) != null) {		//new connection event
-					draggingTerminalPoint = true;
-					dragOffSet = new Point(0,0);
-					
-					nodeConnection = comp.getNewConnection();
-					registerConnection(nodeConnection);
-					
-					var srcTerminal = nodeConnection.makeValidTerminal();
-						srcTerminal.targetComponent = comp;			//connect node to source component
-						nodeConnection.add(srcTerminal);			//this node goes first
-						
-					terminalPoint 	= nodeConnection.makeValidTerminal();
-						terminalPoint.targetComponent = null;		//ensure node it not connected to anything
-						nodeConnection.add(terminalPoint);			//this node goes second
-						
-					System.out.println("dragging point, terminal: " + terminalPoint);
-				}
-			}else if(dragN.isDraggable) { 		//drag event
+			if(dragN.isDraggable) { 		//drag event
 				draggingNode = true;
 				dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
 			}
@@ -176,52 +143,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 	@Override public void mouseReleased(MouseEvent e) {
-		if(draggingTerminalPoint) {
-			System.out.println("dropping point");
-			//snap terminal to a node component if its in range
-			var sb = new StringBuilder(); 
-			for(var node : getComponents()) {
-				System.out.println(sb); 
-				sb.setLength(0);
-				sb.append("checking node:" + node);
-					
-				if(!(node instanceof DraggableNode)) continue;
-				DraggableNode<?> dnode = (DraggableNode<?>)node;
-				
-				var comp = dnode.getComponentForPoint(
-							SwingUtilities.convertPoint(this, e.getPoint(), dnode)		//point relative to the node
-						);
-				
-				if(comp == null) continue;
-				
-				if(!(comp.type.isAssignableFrom(terminalPoint.type))) {
-					sb.append("\n\tcomponent and terminal are not compatiable");
-					continue;
-				}
-				
-				sb.append("\n\tcomponent and terminal are compatiable");
-
-				terminalPoint.targetComponent = comp;
-				terminalPoint.needsRepathed = true;
-				
-				final Rectangle[] obsticles = Arrays.stream(getComponents())
-						.map(Component::getBounds)
-						.toArray(Rectangle[]::new);
-				this.nodeConnectionPanel.connectionLock.lock();
-				for(var conn : nodeConnectionPanel.connections) {
-					conn.genConnections(obsticles);
-				}
-				this.nodeConnectionPanel.connectionLock.unlock();
-				
-				break;
-			}
-			
-			System.out.println(sb); 
-		}
-		
-		draggingTerminalPoint = 
-		draggingNode 
-			= false;
+		draggingNode = false;
 	}
 	
 	@Override public void mouseEntered(MouseEvent e) {
@@ -237,14 +159,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	public JPanel getInspectorPanel() {
 		return inspectorPanel;
-	}
-	
-	public void registerConnection(NodeConnection<?> conn) {
-		nodeConnectionPanel.addConnection(conn);
-	}
-	
-	public void unregisterConnection(NodeConnection<?> conn) {
-		nodeConnectionPanel.removeConnection(conn);
 	}
 	
 ////////////////////////////////

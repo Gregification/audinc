@@ -22,8 +22,7 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
  * 
  * the source is not part of the <code>terminals</code> list 
  */
-public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>>{
-	private static final long serialVersionUID = -2495316406627258166L;
+public class NodeConnection<T>{
 
 	protected static final ExecutorService connectionCalculatorExecutorService;
 	public static final int defaultLineWidth = 5;
@@ -46,19 +45,6 @@ public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>>{
 	
 	public TerminalPoint<T> makeValidTerminal(){
 		return new TerminalPoint<T>(type);
-	}
-	
-	public boolean needsRepathed() {
-		for(var v : this)
-			if(v.needsRepathed) return true;
-		
-		return false;
-	}
-	
-	public TerminalPoint<T> getRoot(){
-		if(this.isEmpty()) return null;
-		
-		return this.getFirst();
 	}
 	
 	public void genConnections(Rectangle[] obstacles) {
@@ -97,21 +83,5 @@ public class NodeConnection<T> extends LinkedBlockingDeque<TerminalPoint<T>>{
 			this.connectionStyle = new DirectConnectionStyle();
 		
 		this.connectionStyle = connectionStyle;
-	}
-	
-	public void paint(Graphics g) {
-		if(this.isEmpty()) return;
-		
-		for(var terminal : this) {
-			int 
-				x = terminal.pathToNext[0].x,
-				y = terminal.pathToNext[0].y;
-			
-			for(var point : terminal.pathToNext) {
-				g.drawLine(x, y, point.x, point.y);
-				x = point.x;
-				y = point.y;
-			}
-		}
 	}
 }

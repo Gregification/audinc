@@ -13,8 +13,6 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 
-import draggableNodeEditor.DraggableNode;
-
 public class AbsoluteLayout implements LayoutManager {
 	public volatile Point defaultPosition;
 	
@@ -74,11 +72,6 @@ public class AbsoluteLayout implements LayoutManager {
 			ret.height 	= Math.max(ret.height,	minSize.height);
 			
 		return ret;
-			
-//		return new Dimension(
-//					Math.max(parent.getWidth(), ret.width),
-//					Math.max(parent.getHeight(), ret.height)
-//				);
 	}
 
 	/**
