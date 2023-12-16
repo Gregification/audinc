@@ -1,66 +1,70 @@
 package draggableNodeEditor;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.Point;
+
+import javax.swing.JComponent;
 
 /**
  * a cheesy way to make terminal points
  */
-public class TerminalPoint<T> {
-	public final Class<T> type;
+public class TerminalPoint extends DraggableNode<Void> {
+	private static final long serialVersionUID = -1554483802522425955L;
 	
-	public Point[] pathToNext = new Point[0];
-	private boolean needsRepathed = true;
+	public final static int 
+		pointDiameter = 12,
+		pointBorderThickness = 3;
+	public static Color 
+		defaultPointColor 		= Color.yellow,
+		defaultPointBorderColor	= Color.black; 
 	
-	public NodeComponent<T> targetComponent = null;
+	public Color 
+		pointColor 		 = TerminalPoint.defaultPointColor,
+		pointBorderColor = TerminalPoint.defaultPointBorderColor;
 	
-	private Point point = new Point(0,0);
-	
-	public TerminalPoint(Class<T> type) {
-		this.type = type;
+	public TerminalPoint() {
+		super(null);
+		
+		this.setBorder(null);
+		
+		int diameter = pointDiameter + pointBorderThickness;
+		var dim = new Dimension(diameter, diameter);
+		this.setPreferredSize(dim);
+		
+//		this.setOpaque(true);
 	}
 	
 	public Point getPoint() {
-		if(this.targetComponent != null) {
-			setNeedsRepathed(!point.equals(targetComponent.connectionPoint));
-			
-			point.x = this.targetComponent.connectionPoint.x;
-			point.y = this.targetComponent.connectionPoint.y;
-		}
-			
-		return this.point;
-	}
-	
-	public boolean pathEndsOn(TerminalPoint<T> otherTerminal) {
-		if(pathIsEmpty()) return false;
-		
-		return pathToNext[pathToNext.length-1].equals(otherTerminal.getPoint());
-	}
-	
-	public boolean pathIsEmpty() {
-		return pathToNext == null || pathToNext.length == 0;
-	}
-	
-	public void emptyPath() {
-		this.pathToNext = new Point[0];
-	}
-	
-	public void setPoint(Point point) {
-		this.setNeedsRepathed(!point.equals(this.point));
-		
-		this.point = point;
-	}
-	public void setPoint(int x, int y) {
-		this.setNeedsRepathed(point.x != x || point.y != y);
-		
-		point.x = x;
-		point.y = y;
+		var bounds = this.getBounds();
+		return new Point((int)bounds.getCenterX(), (int)bounds.getCenterY());
 	}
 
-	public boolean needsRepathed() {
-		return needsRepathed;
+	@Override public String getTitle() {
+		return "terminal point " + this.index;
 	}
 
-	public void setNeedsRepathed(boolean needsRepathed) {
-		this.needsRepathed = needsRepathed;
+	@Override public void initNode() {
+		
+	}
+
+	@Override public JComponent getInspector() {
+		return null;
+	}
+	
+	@Override public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		
+		int 
+			R =	pointDiameter + 2 * pointBorderThickness;
+		
+		System.out.println("size: " + this.getSize()+""
+				+ "\n\t R " + R);
+		
+		g.setColor(pointBorderColor); 
+		g.fillOval(0, 0, R, R);
+		g.setColor(pointColor);
+		g.fillOval(pointBorderThickness,pointBorderThickness, pointDiameter, pointDiameter);
 	}
 }

@@ -28,5 +28,5 @@ public interface ConnectionStyle {
 	 * @param obstacles : regions the lines are not to cross 
 	 * @param terminalsToReconnect : specific terminals to recalculate
 	 */
-	public abstract <T> void genConnection(NodeConnection<T> nodeConnection, final Rectangle[] obstacles, final Set<TerminalPoint<T>> terminalsToReconnect);
+	public abstract <T> void genConnection(NodeConnection<T> nodeConnection, final Rectangle[] obstacles, final Set<TerminalPoint> terminalsToReconnect);
 }

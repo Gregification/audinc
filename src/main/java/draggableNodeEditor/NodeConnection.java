@@ -1,11 +1,10 @@
 package draggableNodeEditor;
 
-import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
 
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 
@@ -16,21 +15,22 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
  * 
  * this class is potentially a hot mess, for ensured safety, please only call these functions in the Swing EDT
  * 
- * honestly I'm not quite sure what keeps this thing alive, but it'll sometimes gives thread related errors if the "volatile" decelerations are removed.
- * 
- * the TerminalPoints are not updated when their added to this
+ * honestly I'm not quite sure what keeps this thing alive
+ *
+ * points are relative to the host node
  * 
  * the source is not part of the <code>terminals</code> list 
  */
-public class NodeConnection<T>{
-
+public class NodeConnection<T> extends ConcurrentLinkedDeque<T>{
+	private static final long serialVersionUID = 2584984934426240095L;
+	
 	protected static final ExecutorService connectionCalculatorExecutorService;
 	public static final int defaultLineWidth = 5;
 	
 	public final Class<T> type;
 	
-	protected int lineWidth = defaultLineWidth; 
-	protected ConnectionStyle connectionStyle;
+	protected int lineWidth = defaultLineWidth;
+	protected ConnectionStyle connectionStyle; 
 	
 	static {
 		connectionCalculatorExecutorService = Executors.newCachedThreadPool();
@@ -43,17 +43,13 @@ public class NodeConnection<T>{
 		setConnectionStyle(null);
 	}
 	
-	public TerminalPoint<T> makeValidTerminal(){
-		return new TerminalPoint<T>(type);
-	}
-	
 	public void genConnections(Rectangle[] obstacles) {
 		connectionCalculatorExecutorService.execute(()->{
 			connectionStyle.genConnections(this, obstacles);
 		});
 	}
 	
-	public void genConnection(Rectangle[] obstacles, Set<TerminalPoint<T>> terminalsToReconnect) {
+	public void genConnection(Rectangle[] obstacles, Set<TerminalPoint> terminalsToReconnect) {
 		connectionCalculatorExecutorService.execute(()->{
 			connectionStyle.genConnection(this, obstacles, terminalsToReconnect);
 		});

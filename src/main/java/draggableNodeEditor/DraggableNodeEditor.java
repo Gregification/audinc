@@ -66,7 +66,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	protected Point dragOffSet;
 	
 	protected boolean draggingNode = false;
-	protected DraggableNode dragN;		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
+	protected DraggableNode<?> dragN;		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		super();

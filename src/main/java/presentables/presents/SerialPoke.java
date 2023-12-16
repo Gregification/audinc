@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout
 ;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -61,6 +62,7 @@ public class SerialPoke extends Presentable{
 				JPanel editorTab = new JPanel(new BorderLayout());
 					JButton editorTab_newEditor_btn = new JButton("new editor");
 						editorTab_newEditor_btn.addActionListener(event -> onNewEditorSelect(mainTp));
+						editorTab_newEditor_btn.setMnemonic(KeyEvent.VK_ENTER);
 					JPanel editorTab_portDescriptor = new JPanel();
 						SpringLayout editorTab_portDescriptor_layout = new SpringLayout();
 						editorTab_portDescriptor.setLayout(editorTab_portDescriptor_layout);{
@@ -195,6 +197,8 @@ public class SerialPoke extends Presentable{
 		JButton tabClosebtn = new JButton("X");
 			tabClosebtn.setBorder(new CompoundBorder(BorderFactory.createEmptyBorder(), new EmptyBorder(0,10,0,0)));//border padding: top,left,bottom,right
 			tabClosebtn.addActionListener(event -> {spcc.quit(); tabbedPane.remove(spcc);});
+			tabClosebtn.setOpaque(true);
+			tabClosebtn.setMnemonic(KeyEvent.VK_W);
 		
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 0;

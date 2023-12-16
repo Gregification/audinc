@@ -18,7 +18,7 @@ public class DirectConnectionStyle implements ConnectionStyle{
 		
 	}
 
-	@Override public <T> void genConnection(NodeConnection<T> nodeConnection, Rectangle[] obstacles, Set<TerminalPoint<T>> terminalsToReconnect) {
+	@Override public <T> void genConnection(NodeConnection<T> nodeConnection, Rectangle[] obstacles, Set<TerminalPoint> terminalsToReconnect) {
 		
 	}
 }

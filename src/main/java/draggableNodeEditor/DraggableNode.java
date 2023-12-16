@@ -5,11 +5,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Point;
-import java.awt.Rectangle;
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -18,7 +14,6 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.TitledBorder;
 
 import audinc.gui.MainWin;
@@ -54,9 +49,7 @@ public abstract class DraggableNode<T> extends JPanel{
 		index = count;
 		count++;
 		
-		this.setBorder(stdBorder);
 		this.setBackground(stdBackgroundColor);
-		genBorder();
 		
 		this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		
@@ -64,17 +57,16 @@ public abstract class DraggableNode<T> extends JPanel{
 	}
 	
 	public abstract String getTitle();
-	public abstract void initGUI();
+	public abstract JComponent getInspector();
 	public abstract void initNode();
 	
-	public abstract JComponent getInspector();
-	public void setContext(T newContext) {
-		this.context = newContext;
-	}
-	
+	public void initGUI() { applyDefaultNamedBorder(); }
+	public void setContext(T newContext) { this.context = newContext; }
 	public T getContext() { return context; }
 	
-	protected void genBorder() { 
+	protected void applyDefaultNamedBorder() { 
+		this.setBorder(stdBorder);
+		
 		this.setBorder(new TitledBorder(
 				this.getBorder(),
 				this.getTitle()

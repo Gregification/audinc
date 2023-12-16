@@ -1,16 +1,12 @@
 package draggableNodeEditor.serialPoke;
 
-import java.util.List;
-
 import javax.swing.JPanel;
 
-import com.fazecast.jSerialComm.SerialPort;
-
 import draggableNodeEditor.DraggableNode;
-import draggableNodeEditor.NodeComponent;
 import presentables.presents.serialPoke.SerialPokeCommConnection;
 
 public class NepSPDataListener extends DraggableNode<SerialPokeCommConnection> {
+	private static final long serialVersionUID = -3194482443889654939L;
 
 	public NepSPDataListener(SerialPokeCommConnection context) {
 		super(context);
@@ -18,15 +14,7 @@ public class NepSPDataListener extends DraggableNode<SerialPokeCommConnection> {
 		initGUI();
 	}
 
-	@Override
-	public void initGUI() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void initNode() {
-		// TODO Auto-generated method stub
+	@Override public void initNode() {
 		
 	}
 
@@ -34,9 +22,7 @@ public class NepSPDataListener extends DraggableNode<SerialPokeCommConnection> {
 		return "entry point : Serial Port data listener";
 	}
 
-	@Override
-	public JPanel getInspector() {
-		// TODO Auto-generated method stub
+	@Override public JPanel getInspector() {
 		return null;
 	}
 }
