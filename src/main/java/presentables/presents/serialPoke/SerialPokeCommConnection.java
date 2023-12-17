@@ -258,10 +258,11 @@ public class SerialPokeCommConnection extends JPanel{
 		content_tabb.addTab("input editor", MainWin.getImageIcon("res/clear.png", MainWin.stdtabIconSize), 
 				inputTabb, "let me be clear");
 		
-		Thread.startVirtualThread(() -> genUI_tab_general(generalTabb));
-		Thread.startVirtualThread(() -> genUI_tab_liveInfo(liveInfoTabb));
-		Thread.startVirtualThread(() -> genUI_tab_input(inputTabb));		
-		
+		try(ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()){
+			executor.execute(() -> genUI_tab_general(generalTabb));
+			executor.execute(() -> genUI_tab_liveInfo(liveInfoTabb));
+			executor.execute(() -> genUI_tab_input(inputTabb));
+		}
 		
 		content_tabb.addChangeListener(new ChangeListener() {
 				@Override public void stateChanged(ChangeEvent e) {
