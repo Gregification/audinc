@@ -1,8 +1,6 @@
 package draggableNodeEditor.nodes;
 
 import java.awt.GridBagLayout;
-import java.awt.Rectangle;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -17,7 +15,6 @@ import javax.swing.table.DefaultTableModel;
 
 import audinc.gui.MainWin;
 import draggableNodeEditor.DraggableNode;
-import draggableNodeEditor.NodeComponent;
 import draggableNodeEditor.NodeSupplier;
 import draggableNodeEditor.suppliers.NspSpinner;
 import presentables.Presentable;
@@ -28,7 +25,7 @@ public class NConstant extends DraggableNode<Void> {
 	//GUI
 	private JScrollPane constantsTableWrapper;
 	private JTable constantsTable;	//could be better optimized 
-	private static final Map<Class, Function<Void, NodeSupplier>> supportedConstants = Map.of(
+	private static final Map<Class<?>, Function<Void, NodeSupplier<?>>> supportedConstants = Map.of(
 				Number.class, v -> new NspSpinner<Number>(
 							Number.class,
 							"number spinner",
@@ -38,12 +35,12 @@ public class NConstant extends DraggableNode<Void> {
 			);
 	
 	//node
-	protected NodeSupplier supplier;
+	protected NodeSupplier<?> supplier;
 	
 	public NConstant() {
 		this(null);
 	}
-	public NConstant(NodeSupplier supplier) {
+	public NConstant(NodeSupplier<?> supplier) {
 		super(null);
 		
 		this.supplier = supplier;
@@ -54,6 +51,7 @@ public class NConstant extends DraggableNode<Void> {
 	}
 	
 	@Override public void initGUI() {
+		super.initGUI();
 		this.setOpaque(false);
 		
 		var constantsKeys = supportedConstants.keySet().stream()
@@ -97,11 +95,11 @@ public class NConstant extends DraggableNode<Void> {
 		this.setSupplier(supplier);
 	}
 	
-	public NodeSupplier getSupplier() {
+	public NodeSupplier<?> getSupplier() {
 		return supplier;
 	}
 
-	public void setSupplier(NodeSupplier supplier) {
+	public void setSupplier(NodeSupplier<?> supplier) {
 		boolean isnotnull = this.supplier != null;
 		
 		if(isnotnull)

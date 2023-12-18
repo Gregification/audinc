@@ -13,11 +13,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -32,11 +29,9 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.JToolBar;
-import javax.swing.ListSelectionModel;
 import javax.swing.SpringLayout;
 import javax.swing.SwingConstants;
 import javax.swing.border.BevelBorder;
@@ -44,10 +39,7 @@ import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.DefaultTableModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyledDocument;
@@ -80,7 +72,7 @@ public class SerialPokeCommConnection extends JPanel{
 	public SPCParser settingsParser;
 	
 	public DraggableNodeEditor inputEditor	= new DraggableNodeEditor(Map.of(
-				DraggableNodeGroup.GENERAL, "java.lang.NullPointerException",
+				DraggableNodeGroup.GENERAL, Void.class,//no context
 				DraggableNodeGroup.SERIAL_PIKE, this
 			));
 	
@@ -266,12 +258,11 @@ public class SerialPokeCommConnection extends JPanel{
 		content_tabb.addTab("input editor", MainWin.getImageIcon("res/clear.png", MainWin.stdtabIconSize), 
 				inputTabb, "let me be clear");
 		
-		//not sure if this is actually helping. doesn't seem to be but I don't see why not so it gets to stay
-		ExecutorService threadpool = Executors.newCachedThreadPool();
-			threadpool.execute(() -> genUI_tab_general(generalTabb));
-			threadpool.execute(() -> genUI_tab_liveInfo(liveInfoTabb));
-			threadpool.execute(() -> genUI_tab_input(inputTabb));
-		threadpool.shutdown();
+		try(ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()){
+			executor.execute(() -> genUI_tab_general(generalTabb));
+			executor.execute(() -> genUI_tab_liveInfo(liveInfoTabb));
+			executor.execute(() -> genUI_tab_input(inputTabb));
+		}
 		
 		content_tabb.addChangeListener(new ChangeListener() {
 				@Override public void stateChanged(ChangeEvent e) {

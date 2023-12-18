@@ -1,8 +1,10 @@
 package draggableNodeEditor;
 
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 public interface ConnectionStyle {
 	/**
@@ -15,7 +17,7 @@ public interface ConnectionStyle {
 	 * @param nodeConnection : source of connection information
 	 * @param obstacles : regions the lines are not to cross
 	 */
-	public abstract <T> void genConnections(NodeConnection<T> nodeConnection, final Rectangle[] obstacles);
+	public abstract <T> Future<List<Point>> genConnections(NodeConnection<T> nodeConnection, final Rectangle[] obstacles);
 	
 	/**
 	 * redraws the connections for only the given nodes.
@@ -28,5 +30,5 @@ public interface ConnectionStyle {
 	 * @param obstacles : regions the lines are not to cross 
 	 * @param terminalsToReconnect : specific terminals to recalculate
 	 */
-	public abstract <T> void genConnection(NodeConnection<T> nodeConnection, final Rectangle[] obstacles, final Set<TerminalPoint<T>> terminalsToReconnect);
+	public abstract <T> void genConnection(NodeConnection<T> nodeConnection, final Rectangle[] obstacles, final Set<TerminalPoint> terminalsToReconnect);
 }

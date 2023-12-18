@@ -9,12 +9,13 @@ import presentables.presents.serialPoke.SerialPokeCommConnection;
 
 public enum DraggableNodeGroup {
 	
-	//do not duplicate classes. searches through here only expect 1 instance if each
+	//do not duplicate classes. searches through here only expect 1 instance of each
 	
 		GENERAL(
 				Void.class,
 				Set.of(
-					NConstant.class
+					NConstant.class,
+					TerminalPoint.class
 				)
 			),
 		SERIAL_PIKE(
@@ -26,10 +27,10 @@ public enum DraggableNodeGroup {
 			)
 	;
 	
-	public volatile Class expectedContextType;
-	public volatile Set<Class<? extends DraggableNode>> allowedNodes;
+	public volatile Class<?> expectedContextType;
+	public volatile Set<Class<? extends DraggableNode<?>>> allowedNodes;
 	
-	private DraggableNodeGroup(Class expectedContext, Set<Class<? extends DraggableNode>> allowedNodes) {
+	private DraggableNodeGroup(Class<?> expectedContext, Set<Class<? extends DraggableNode<?>>> allowedNodes) {
 		this.allowedNodes = allowedNodes;
 		this.expectedContextType = expectedContext;
 	}

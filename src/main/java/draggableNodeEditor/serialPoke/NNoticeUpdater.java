@@ -32,13 +32,14 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 
 	public NNoticeUpdater(SerialPokeCommConnection context) {
 		super(context);
-		
-		initGUI();	
+		initGUI();
 	}
 	
 	@Override public String getTitle() { return title + " ("+ index+")"; }
 
 	@Override public void initGUI() {
+		super.initGUI();
+		
 		for(var v : List.of(c_logger, c_forgroundColor)) {
 			v.setBorder(null);
 			add(v);

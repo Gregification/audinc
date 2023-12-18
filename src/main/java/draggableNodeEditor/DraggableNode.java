@@ -5,11 +5,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Point;
-import java.awt.Rectangle;
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -18,17 +14,15 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.TitledBorder;
 
 import audinc.gui.MainWin;
 
 /**
- * <b>ALL CHILDREN OF THIS CLASS MUST HAVE A DEFAULT(ZERO PARAMATER) CONSTRUCTOR!!! (because i cheesed the new-node-dialog)</b>
- * 
- * <br>a node object meant to be used by the {@code DraggableNodeEditor} class.
+ * a node object meant to be used by the {@code DraggableNodeEditor} class.
  */	
-public abstract class DraggableNode<T> extends JPanel implements Serializable{
+public abstract class DraggableNode<T> extends JPanel{
+	private static final long serialVersionUID = 1L;
 	public final static Border 
 		stdBorder 			= BorderFactory.createLineBorder(Color.black),
 		stdBorderEmphasis1 	= BorderFactory.createBevelBorder(BevelBorder.RAISED);
@@ -44,12 +38,10 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 
 	public final static double terminalPointSelectionRadius = 3;
 	
-	private static final long serialVersionUID = 1L;
-	
 	public volatile boolean isDraggable = true;
 	
 	protected volatile T context;
-	private volatile ArrayList<NodeComponent> connectableNodeComponents = new ArrayList<>();
+	private volatile ArrayList<NodeComponent<?>> connectableNodeComponents = new ArrayList<>();
 	
 	public DraggableNode(T context) {
 		super();
@@ -57,9 +49,7 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 		index = count;
 		count++;
 		
-		this.setBorder(stdBorder);
 		this.setBackground(stdBackgroundColor);
-		genBorder();
 		
 		this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		
@@ -67,17 +57,16 @@ public abstract class DraggableNode<T> extends JPanel implements Serializable{
 	}
 	
 	public abstract String getTitle();
-	public abstract void initGUI();
+	public abstract JComponent getInspector();
 	public abstract void initNode();
 	
-	public abstract JComponent getInspector();
-	public void setContext(T newContext) {
-		this.context = newContext;
-	}
-	
+	public void initGUI() { applyDefaultNamedBorder(); }
+	public void setContext(T newContext) { this.context = newContext; }
 	public T getContext() { return context; }
 	
-	protected void genBorder() { 
+	protected void applyDefaultNamedBorder() { 
+		this.setBorder(stdBorder);
+		
 		this.setBorder(new TitledBorder(
 				this.getBorder(),
 				this.getTitle()
