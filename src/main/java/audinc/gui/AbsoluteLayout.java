@@ -118,8 +118,7 @@ public class AbsoluteLayout implements LayoutManager {
 						offsetX = 0,
 						offsetY = 0;
 					
-					if(c instanceof JComponent) {
-						var jc = (JComponent)c;
+					if(c instanceof JComponent jc) {
 						var border = jc.getBorder();				
 						
 						if(border != null) {

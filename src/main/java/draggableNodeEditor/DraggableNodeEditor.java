@@ -132,8 +132,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		Component compAt = getComponentAt(e.getPoint());
 		if(compAt == null) return;
 		
-		if(compAt instanceof DraggableNode) {
-			selectNode(this.dragN = (DraggableNode<?>)compAt);
+		if(compAt instanceof DraggableNode c) {
+			selectNode(this.dragN = c); 
 			
 			if(dragN.isDraggable) { 		//drag event
 				draggingNode = true;

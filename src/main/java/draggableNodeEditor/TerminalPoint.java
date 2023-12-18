@@ -19,11 +19,11 @@ public class TerminalPoint extends DraggableNode<Void> {
 	public static Color 
 		defaultPointColor 		= Color.yellow,
 		defaultPointBorderColor	= Color.black; 
-	
+	 
 	public Color 
 		pointColor 		 = TerminalPoint.defaultPointColor,
 		pointBorderColor = TerminalPoint.defaultPointBorderColor;
-	
+	 
 	public TerminalPoint() {
 		super(null);
 		
@@ -33,7 +33,8 @@ public class TerminalPoint extends DraggableNode<Void> {
 		var dim = new Dimension(diameter, diameter);
 		this.setPreferredSize(dim);
 		
-//		this.setOpaque(true);
+		this.setBackground(new Color(0,0,0,0));
+		this.setOpaque(true);
 	}
 	
 	public Point getPoint() {
@@ -49,6 +50,7 @@ public class TerminalPoint extends DraggableNode<Void> {
 		
 	}
 
+	
 	@Override public JComponent getInspector() {
 		return null;
 	}

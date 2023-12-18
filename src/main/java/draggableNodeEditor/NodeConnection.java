@@ -21,20 +21,13 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
  * 
  * the source is not part of the <code>terminals</code> list 
  */
-public class NodeConnection<T> extends ConcurrentLinkedDeque<T>{
-	private static final long serialVersionUID = 2584984934426240095L;
-	
-	protected static final ExecutorService connectionCalculatorExecutorService;
+public class NodeConnection<T>{
 	public static final int defaultLineWidth = 5;
 	
 	public final Class<T> type;
 	
 	protected int lineWidth = defaultLineWidth;
-	protected ConnectionStyle connectionStyle; 
-	
-	static {
-		connectionCalculatorExecutorService = Executors.newCachedThreadPool();
-	}
+	protected ConnectionStyle connectionStyle;
 	
 	public NodeConnection(Class<T> type) {
 		super();
@@ -44,15 +37,15 @@ public class NodeConnection<T> extends ConcurrentLinkedDeque<T>{
 	}
 	
 	public void genConnections(Rectangle[] obstacles) {
-		connectionCalculatorExecutorService.execute(()->{
-			connectionStyle.genConnections(this, obstacles);
-		});
+		
+		connectionStyle.genConnections(this, obstacles);
+		
 	}
 	
 	public void genConnection(Rectangle[] obstacles, Set<TerminalPoint> terminalsToReconnect) {
-		connectionCalculatorExecutorService.execute(()->{
-			connectionStyle.genConnection(this, obstacles, terminalsToReconnect);
-		});
+		
+		connectionStyle.genConnection(this, obstacles, terminalsToReconnect);
+		
 	}
 	
 //////////////////////////
