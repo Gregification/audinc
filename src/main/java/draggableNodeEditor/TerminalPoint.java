@@ -53,6 +53,8 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 		incommingBias 	= new Point2D.Float(0,0),
 		outgoingBias	= new Point2D.Float(0,0);
 	
+	protected DraggableNodeEditor nodeEditor;
+	
 	private Point selectedBias;
 	
 	public TerminalPoint() {
@@ -78,7 +80,7 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 	}
 
 	@Override public void initNode(DraggableNodeEditor editor) {
-		
+		nodeEditor = editor;
 	}
 
 	@Override public JComponent getInspector() {
@@ -141,7 +143,7 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 	@Override public void mousePressed(MouseEvent e) 	{
 		if(SwingUtilities.isRightMouseButton(e)) {
 			var mp = e.getPoint();
-			System.out.println("TerminalPoint > mouse pressed on me!");
+			System.out.println("child > mouse pressed on me!");
 		}
 	}
 	@Override public void mouseReleased(MouseEvent e)	{}
@@ -171,14 +173,20 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 	}
 	
 	private void enableMouseBiasSelection(boolean on) {
-//		System.out.println("Terminal node > enableMouseBiasSelector, " + on + " ,\tnodeEditor:" + nodeEditor);
+		System.out.println("Terminal node > enableMouseBiasSelector, " + on + " ,\tnodeEditor:" + nodeEditor);
 		
 		if(on) {
 			addMouseListener(this);
 			addMouseMotionListener(this);
+			
+			addMouseListener(nodeEditor);
+			addMouseMotionListener(nodeEditor);
 		}else {
 			removeMouseMotionListener(this);
 			removeMouseListener(this);
+			
+			removeMouseMotionListener(nodeEditor);
+			removeMouseListener(nodeEditor);
 		}
 	}
 }

@@ -123,7 +123,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	@Override public void mouseMoved(MouseEvent e) {}
 	@Override public void mouseClicked(MouseEvent e) {}
-	@Override public void mousePressed(MouseEvent e) {		
+	@Override public void mousePressed(MouseEvent e) {
+		System.out.println("parent > mouse pressed on me!");
+		
 		Component compAt = getComponentAt(e.getPoint());
 		if(compAt == null) return;
 		
