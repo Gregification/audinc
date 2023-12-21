@@ -15,6 +15,7 @@ import javax.swing.table.DefaultTableModel;
 
 import audinc.gui.MainWin;
 import draggableNodeEditor.DraggableNode;
+import draggableNodeEditor.DraggableNodeEditor;
 import draggableNodeEditor.NodeSupplier;
 import draggableNodeEditor.suppliers.NspSpinner;
 import presentables.Presentable;
@@ -44,8 +45,9 @@ public class NConstant extends DraggableNode<Void> {
 		super(null);
 		
 		this.supplier = supplier;
-		this.setLayout(new GridBagLayout());
-		this.setPreferredSize(MainWin.stdtabIconSize);
+		
+		setLayout(new GridBagLayout());
+		setPreferredSize(MainWin.stdtabIconSize);
 		
 		initGUI();
 	}
@@ -91,8 +93,8 @@ public class NConstant extends DraggableNode<Void> {
 		constantsTable.getSelectionModel().setSelectionInterval(0, 0);
 	}
 
-	@Override public void initNode() {
-		this.setSupplier(supplier);
+	@Override public void initNode(DraggableNodeEditor editor) {
+		setSupplier(supplier);
 	}
 	
 	public NodeSupplier<?> getSupplier() {

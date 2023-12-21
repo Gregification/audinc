@@ -27,7 +27,10 @@ public class NodeConnection<T>{
 	public final Class<T> type;
 	
 	protected int lineWidth = defaultLineWidth;
-	protected ConnectionStyle connectionStyle;
+	
+	private ConnectionStyle connectionStyle;
+	
+	
 	
 	public NodeConnection(Class<T> type) {
 		super();
@@ -38,13 +41,11 @@ public class NodeConnection<T>{
 	
 	public void genConnections(Rectangle[] obstacles) {
 		
-		connectionStyle.genConnections(this, obstacles);
 		
 	}
 	
 	public void genConnection(Rectangle[] obstacles, Set<TerminalPoint> terminalsToReconnect) {
 		
-		connectionStyle.genConnection(this, obstacles, terminalsToReconnect);
 		
 	}
 	

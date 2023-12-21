@@ -5,6 +5,9 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Point;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
@@ -21,7 +24,7 @@ import audinc.gui.MainWin;
 /**
  * a node object meant to be used by the {@code DraggableNodeEditor} class.
  */	
-public abstract class DraggableNode<T> extends JPanel{
+public abstract class DraggableNode<T> extends JPanel {
 	private static final long serialVersionUID = 1L;
 	public final static Border 
 		stdBorder 			= BorderFactory.createLineBorder(Color.black),
@@ -58,10 +61,23 @@ public abstract class DraggableNode<T> extends JPanel{
 	
 	public abstract String getTitle();
 	public abstract JComponent getInspector();
-	public abstract void initNode();
 	
+	/**
+	 * final step after being added to the editor. when this method is called it means the node is free of concerns for the node editors mission.
+	 * @param hostEditor : the hosting editor for this node
+	 */
+	public abstract void initNode(DraggableNodeEditor hostEditor);
+	
+	/**
+	 * gets called on the currently selected node when the mouse clicks on something thats not the current node, or its unselected.
+	 * 
+	 * @param otherNode : the other node that was selected. is null if empty space was clicked
+	 * @param otherComponent : the other component part of the selected node. is null if otherNode is null, otherwise can be null if no component was selected
+	 */
+	public void onOffClick(MouseEvent me, DraggableNode<?> otherNode, NodeComponent<?> otherComponent) {};
 	public void initGUI() { applyDefaultNamedBorder(); }
-	public void setContext(T newContext) { this.context = newContext; }
+	public void setContext(T newContext) { this.context = newContext; }	
+	
 	public T getContext() { return context; }
 	
 	protected void applyDefaultNamedBorder() { 
@@ -79,7 +95,7 @@ public abstract class DraggableNode<T> extends JPanel{
 	 * either left or right depending on if its a consumer, supplier, or some secrete third thing.
 	 * @param comp
 	 */
-	protected void genConnectionPoint(NodeComponent... comps) {
+	protected void genConnectionPoint(NodeComponent<?>... comps) {
 		SwingUtilities.invokeLater(() -> {
 			for(var comp : comps) {
 				if(comp == null) return;
@@ -87,8 +103,8 @@ public abstract class DraggableNode<T> extends JPanel{
 				synchronized(comp.getTreeLock()) {
 				
 					var nodeBounds			= this.getBounds();
-					var nodeBorderInsets 	= this.getBorder().getBorderInsets(comp);
-					var compBounds 			= SwingUtilities.convertRectangle(comp, comp.getBounds(), this);//component bounds, relative to this
+//					var nodeBorderInsets 	= this.getBorder().getBorderInsets(comp);
+//					var compBounds 			= SwingUtilities.convertRectangle(comp, comp.getBounds(), this);//component bounds, relative to this
 					var compCPDimension 	= comp.getConnecitonPointDimensions();
 					Point point = new Point(
 							0,
@@ -161,7 +177,7 @@ public abstract class DraggableNode<T> extends JPanel{
 	 * @param aPoint relative to this DraggableNode
 	 * @return the selected component, or null is none are avaliable
 	 */
-	public NodeComponent getComponentForPoint(Point aPoint) {
+	public NodeComponent<?> getComponentForPoint(Point aPoint) {
 		for(var comp : this.connectableNodeComponents) {
 			if(comp.isInConnectionSeletionRegion(aPoint))
 				return comp;

@@ -196,7 +196,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 					functionsToUpdateUI.put(setting, o ->{ field.setText(o.toString()); return null; });
 					
 					//need it to be parsed as its specific class because these are passed around abstractly and checked using "instanceof"
-					final Class classToCastTo = List.of(	//gets the first matching class else null
+					final Class<?> classToCastTo = List.of(	//gets the first matching class else null
 									SPCSetting.parityOptions.class,
 									SPCSetting.stopbitOptions.class,
 									SPCSetting.timeoutOptions.class,
@@ -208,7 +208,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 					assert classToCastTo != null : "enum not listed!"; //list the new enum above
 					
 					comboBoxFunctions.putIfAbsent(clas, new Function<Object, Void>(){
-						private final Class caster = classToCastTo;
+						private final Class<?> caster = classToCastTo;
 						@Override public Void apply(Object i) {
 							try {
 								var selectedEnum = this.caster.cast(i);	
@@ -309,7 +309,7 @@ public class SPCParser extends DOMParser<DOMViewer.parsers.SPCParser.Variations>
 		}
 	}
 	
-	public static EnumSet<? extends Enum> getVariEnum() {
+	public static EnumSet<? extends Enum<?>> getVariEnum() {
 		return EnumSet.allOf(Variations.class);
 	}
 	

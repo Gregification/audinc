@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
@@ -72,7 +73,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		super();
 		
 		this.editorToolBar = index;
-		this.inspectorPanel = inspector;
+		this.inspectorPanel = inspector;			
 		
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);
@@ -120,39 +121,33 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		}
 	}
 	
-	@Override public void mouseMoved(MouseEvent e) {
-	// 	TODO Auto-generated method stub
-	}
-	
-	@Override public void mouseClicked(MouseEvent e) {
-		
-	}
-	
-	@Override public void mousePressed(MouseEvent e) {
+	@Override public void mouseMoved(MouseEvent e) {}
+	@Override public void mouseClicked(MouseEvent e) {}
+	@Override public void mousePressed(MouseEvent e) {		
 		Component compAt = getComponentAt(e.getPoint());
 		if(compAt == null) return;
 		
 		if(compAt instanceof DraggableNode c) {
+			if(dragN != null)
+				dragN.onOffClick(e, c, dragN.getComponentForPoint(SwingUtilities.convertPoint(this, e.getPoint(), dragN)));
+			
 			selectNode(this.dragN = c); 
 			
 			if(dragN.isDraggable) { 		//drag event
 				draggingNode = true;
 				dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
+				return;
 			}
+		}else {
+			if(dragN != null)
+				dragN.onOffClick(e, null, null);
 		}
 	}
-	
 	@Override public void mouseReleased(MouseEvent e) {
 		draggingNode = false;
 	}
-	
-	@Override public void mouseEntered(MouseEvent e) {
-		
-	}
-	
-	@Override public void mouseExited(MouseEvent e) {
-		
-	}
+	@Override public void mouseEntered(MouseEvent e) {}
+	@Override public void mouseExited(MouseEvent e) {}
 	
 	public JToolBar geteditorToolBar() {
 		return this.editorToolBar;
@@ -166,15 +161,21 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 ////////////////////////////////
 	
 	private JTable NewNodeDialogNodeTable = null;
+	private List<Class<? extends DraggableNode<?>>> nodeClasses; 
 	protected void openNewNodeDialog() {	
 		if(NewNodeDialogNodeTable == null) {	//c++ strikes again
-			var nodeClasses = nodeGroups.keySet().stream()
+			nodeClasses = nodeGroups.keySet().stream()
 					.flatMap(e -> e.allowedNodes.stream())
-					.map(e -> new Object[] {e})
-					.sorted((a,b) -> a[0].toString().compareTo(b[0].toString()))
+					.sorted((a,b) -> a.toString().compareTo(b.toString()))
+					.toList();
+			Object[][] nodeClassNames = nodeClasses.stream().sequential()
+					.map(e -> {
+							String es = e.toString();
+							return new Object[] {es.substring(es.indexOf('.') + 1)};
+						})
 					.toArray(Object[][]::new);
 			
-			NewNodeDialogNodeTable = new JTable(new DefaultTableModel(nodeClasses, new Object[]{"nodes ("+ nodeClasses.length +")"})) {
+			NewNodeDialogNodeTable = new JTable(new DefaultTableModel(nodeClassNames, new Object[]{"nodes ("+ nodeClassNames.length +")"})) {
 					private static final long serialVersionUID = 2L;
 		
 					public boolean isCellEditable(int row, int column) {                
@@ -199,43 +200,40 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				return;
 			
 			try {
-				Object dragN = NewNodeDialogNodeTable.getValueAt(NewNodeDialogNodeTable.getSelectedRow(), 0);
-				if(dragN != null) {
-					//get context
-					Class<? extends DraggableNode<?>> dragClas = (Class<? extends DraggableNode<?>>)dragN;
-					
-					for(DraggableNodeGroup dng : nodeGroups.keySet())
-						if(dng.allowedNodes.contains(dragClas)) {
-							//Instantiate
-							DraggableNode<?> node;
-							
-							if(dng.expectedContextType == Void.class) {
-								node = dragClas
-										.getConstructor()
-										.newInstance();
-							}else {
-								//life saving if need to debug.
+				Class<? extends DraggableNode<?>> dragClas = nodeClasses.get(NewNodeDialogNodeTable.getSelectedRow());
+				
+				//find & supply context
+				for(DraggableNodeGroup dng : nodeGroups.keySet())
+					if(dng.allowedNodes.contains(dragClas)) {
+						//Instantiate
+						DraggableNode<?> node;
+						
+						if(dng.expectedContextType == Void.class) {
+							node = dragClas
+									.getConstructor()
+									.newInstance();
+						}else {
+							//life saving if need to debug.
 //								System.out.println("draggable node editor > open new node dialog"
 //										+ "\n\tdraggable node class: \t" + dragClas
 //										+ "\n\tdraggable node group: \t" + dng
 //										+ "\n\texpected class: \t" + dng.expectedContextType
 //										+ "\n\tobject class: \t" + nodeGroups.get(dng));
-								node = dragClas
-									.getConstructor(dng.expectedContextType)
-									.newInstance(nodeGroups.get(dng));
-							}
-							
-							addNode(node);
-							return;
+							node = dragClas
+								.getConstructor(dng.expectedContextType)
+								.newInstance(nodeGroups.get(dng));
 						}
-					
-					throw new RuntimeException("failed to find a matching class by the selected table value. expected type:Class<? extends DraggableNode>, got value:" + dragN==null?"null":dragN.toString());
-				}
+						
+						addNode(node);
+						return;
+					}
+				
+				throw new RuntimeException("failed to find a matching class by the selected table value. expected type:Class<? extends DraggableNode>, got value:" + dragN==null?"null":dragN.toString());
 			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException | NoSuchMethodException | SecurityException e1) {
 				//if your getting a error and traced your back to here it means something in the process of constructing a node has thrown a error. all this function does is call the constructor.
 				if(!(e1 instanceof NoSuchMethodException)) {
-					System.out.println("dragN:" + dragN);
+					System.out.println("draggableNodeEditor > openNewNodeDialog, dragN:" + dragN);
 					e1.printStackTrace();
 				}
 				e1.printStackTrace();
@@ -258,7 +256,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		this.revalidate();
 		
-		node.initNode();
+		node.initNode(this);
 		
 		this.repaint(node.getBounds());
 		
@@ -266,13 +264,21 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 	public void selectNode(DraggableNode<?> node) {
-		this.inspectorPanel.removeAll();
-		
 		if(node != null){
 			this.moveToFront(node);
 			
-			if(node.getInspector() != null)
-				this.inspectorPanel.add(node.getInspector(), Presentable.createGbc(0, 0));
+			if(node != null || node != dragN) {
+				
+				inspectorPanel.removeAll();
+				inspectorPanel.setBorder(new TitledBorder(
+						null,
+						node.getTitle()
+					));
+				
+				var ins = node.getInspector();
+				if(ins != null)
+					this.inspectorPanel.add(ins);
+			}
 			
 		}
 		

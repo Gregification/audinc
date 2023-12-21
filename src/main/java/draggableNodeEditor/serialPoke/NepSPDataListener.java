@@ -3,6 +3,7 @@ package draggableNodeEditor.serialPoke;
 import javax.swing.JPanel;
 
 import draggableNodeEditor.DraggableNode;
+import draggableNodeEditor.DraggableNodeEditor;
 import presentables.presents.serialPoke.SerialPokeCommConnection;
 
 public class NepSPDataListener extends DraggableNode<SerialPokeCommConnection> {
@@ -14,9 +15,7 @@ public class NepSPDataListener extends DraggableNode<SerialPokeCommConnection> {
 		initGUI();
 	}
 
-	@Override public void initNode() {
-		
-	}
+	@Override public void initNode(DraggableNodeEditor editor) { }
 
 	@Override public String getTitle() {
 		return "entry point : Serial Port data listener";

@@ -8,6 +8,7 @@ import java.util.List;
 import javax.swing.JComponent;
 
 import draggableNodeEditor.DraggableNode;
+import draggableNodeEditor.DraggableNodeEditor;
 import draggableNodeEditor.NodeComponent;
 import draggableNodeEditor.NodeConsumer;
 import presentables.presents.serialPoke.SerialPokeCommConnection;
@@ -46,7 +47,7 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 		}
 	}
 
-	@Override public void initNode() {
+	@Override public void initNode(DraggableNodeEditor editor) {
 		for(var v : List.of(c_logger, c_forgroundColor)) {
 			genConnectionPoint(v);
 		}
