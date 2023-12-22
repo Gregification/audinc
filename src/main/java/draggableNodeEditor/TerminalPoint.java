@@ -94,13 +94,13 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 				"line bias"
 			));
 		
-		Supplier<SpinnerNumberModel> 	newModel = () 	-> new SpinnerNumberModel(0,Integer.MIN_VALUE, Integer.MAX_VALUE, .2f);
-		Function<JSpinner, Double>		getValue = (s)	-> (Double)s.getValue();
+		Function<Double, SpinnerNumberModel>	newModel = (num) 	-> new SpinnerNumberModel((double)num,Integer.MIN_VALUE, Integer.MAX_VALUE, .2f);
+		Function<JSpinner, Double>			getValue = (s)	-> (Double)s.getValue();
 		JSpinner //bias for X and Y of i/o
-			ibx = new JSpinner(newModel.get()),		
-			iby = new JSpinner(newModel.get()),		
-			obx = new JSpinner(newModel.get()),		
-			oby = new JSpinner(newModel.get());
+			ibx = new JSpinner(newModel.apply(incommingBias.getX())),		
+			iby = new JSpinner(newModel.apply(incommingBias.getY())),		
+			obx = new JSpinner(newModel.apply(outgoingBias.getX())),		
+			oby = new JSpinner(newModel.apply(outgoingBias.getY()));
 		ibx.addChangeListener(e -> incommingBias.setLocation(getValue.apply(ibx) ,	incommingBias.getY()));
 		iby.addChangeListener(e -> incommingBias.setLocation(incommingBias.getX(), 	getValue.apply(iby)));
 		obx.addChangeListener(e -> outgoingBias.setLocation(getValue.apply(obx)  ,	outgoingBias.getY()));
@@ -142,11 +142,13 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 	@Override public void mouseClicked(MouseEvent e) 	{}
 	@Override public void mousePressed(MouseEvent e) 	{
 		if(SwingUtilities.isRightMouseButton(e)) {
+			this.isDraggable = false;
 			var mp = e.getPoint();
-			System.out.println("child > mouse pressed on me!");
 		}
 	}
-	@Override public void mouseReleased(MouseEvent e)	{}
+	@Override public void mouseReleased(MouseEvent e)	{
+		this.isDraggable = true;
+	}
 	@Override public void mouseEntered(MouseEvent e) 	{}
 	@Override public void mouseExited(MouseEvent e)	 	{}
 	@Override public void mouseDragged(MouseEvent e) 	{}
@@ -172,9 +174,8 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 		this.outgoingBias = outgoingBias;
 	}
 	
-	private void enableMouseBiasSelection(boolean on) {
-		System.out.println("Terminal node > enableMouseBiasSelector, " + on + " ,\tnodeEditor:" + nodeEditor);
-		
+	//cheese hack to make the mouseListeners work
+	private void enableMouseBiasSelection(boolean on) {		
 		if(on) {
 			addMouseListener(this);
 			addMouseMotionListener(this);

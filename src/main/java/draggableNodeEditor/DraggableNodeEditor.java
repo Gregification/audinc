@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -102,10 +103,20 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //mouse events
 ////////////////////////////////
 	@Override public void mouseDragged(MouseEvent e) {
-		if(!draggingNode) return;
+		if(!draggingNode || !dragN.isDraggable || !SwingUtilities.isLeftMouseButton(e) ) return;
 		
 		assert dragOffSet != null 
 				: "failed to be initialized";
+		
+		/* accounts for different JComponents triggering the mouse listener.
+		 * 
+		 * sets [e](MouseEvent) to the perspective of [this](DraggableNodeEditor)
+		 */
+		switch(e.getSource()) {
+			case DraggableNode<?> sourceNode -> { e = SwingUtilities.convertMouseEvent(sourceNode, e, this); }
+			case DraggableNodeEditor editor when editor == this -> {}
+			default -> {throw new UnsupportedOperationException("mouse event of the DraggableNodeEditor got triggered by a unknown Swing.Component . unable :( .");}
+		};
 		
 		if(this.getBounds().contains(e.getPoint())) {
 			Point newLocation = e.getPoint();
@@ -124,25 +135,48 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	@Override public void mouseMoved(MouseEvent e) {}
 	@Override public void mouseClicked(MouseEvent e) {}
 	@Override public void mousePressed(MouseEvent e) {
-		System.out.println("parent > mouse pressed on me!");
+		if(draggingNode){//is something is being dragged already
+			this.mouseDragged(e);
+			return;
+		}
 		
-		Component compAt = getComponentAt(e.getPoint());
-		if(compAt == null) return;
+		DraggableNode<?> nodeAt = null;
 		
-		if(compAt instanceof DraggableNode c) {
-			if(dragN != null)
-				dragN.onOffClick(e, c, dragN.getComponentForPoint(SwingUtilities.convertPoint(this, e.getPoint(), dragN)));
-			
-			selectNode(this.dragN = c); 
-			
-			if(dragN.isDraggable) { 		//drag event
-				draggingNode = true;
-				dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
-				return;
+		/* accounts for different JComponents triggering the mouse listener.
+		 * 
+		 * sets [compAt] to the component selected (can be null)
+		 * sets [e](MouseEvent) to the perspective of [this](DraggableNodeEditor)
+		 */
+		switch(e.getSource()) {
+			case DraggableNode<?> sourceNode -> {
+				nodeAt = sourceNode;
+				e = SwingUtilities.convertMouseEvent(sourceNode, e, this);
 			}
-		}else {
+			case DraggableNodeEditor editor when editor == this -> {
+				Component compAt = getComponentAt(e.getPoint());
+				
+				if(compAt instanceof DraggableNode<?> catnode)
+					nodeAt = catnode;
+			}
+			default -> {throw new UnsupportedOperationException("mouse event of the DraggableNodeEditor got triggered by a unknown Swing.Component . unable :( .");}
+		};
+		
+		if(nodeAt == null){
 			if(dragN != null)
 				dragN.onOffClick(e, null, null);
+			
+			return;
+		}
+		
+		if(dragN != null)
+			dragN.onOffClick(e, nodeAt, dragN.getComponentForPoint(SwingUtilities.convertPoint(this, e.getPoint(), dragN)));
+			
+		selectNode(this.dragN = nodeAt); 
+			
+		if(dragN.isDraggable) { 		//drag event
+			draggingNode = true;
+			dragOffSet = SwingUtilities.convertPoint(this, e.getPoint(), dragN);
+			return;
 		}
 	}
 	@Override public void mouseReleased(MouseEvent e) {
@@ -227,6 +261,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 						}
 						
 						addNode(node);
+						
+						//let user drag the new node
+						selectNode(this.dragN = node);
+						this.dragOffSet = new Point((int)(node.getWidth() / 2), (int)(node.getHeight() / 2));
+						this.draggingNode = true;
+						
 						return;
 					}
 				
@@ -319,15 +359,29 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		var newNodeBtn = new JButton("+");
 			newNodeBtn.addActionListener(e -> openNewNodeDialog());
 			newNodeBtn.setMnemonic('n');
+			
+		var deleteNodeBtn = new JButton(MainWin.getImageIcon("res/trashCan.png", MainWin.stdtabIconSize));
+			deleteNodeBtn.addActionListener(e -> onDeletenodeButtonClick());
+			deleteNodeBtn.setMnemonic(KeyEvent.VK_DELETE);
 		
 		editorToolBar = new JToolBar("editor tool bar",JToolBar.VERTICAL);
 			editorToolBar.setRollover(true);
 			
 		editorToolBar.add(newNodeBtn);
+		editorToolBar.add(deleteNodeBtn);
 		editorToolBar.add(Box.createVerticalStrut(MainWin.stdStructSpace / 2));
 	}
 	
 	private void genGUI_inspector(JPanel panel) {
 		panel.setLayout(new GridBagLayout());
+	}
+	
+	public void onDeletenodeButtonClick() {
+		if(dragN == null) return;
+		dragN.onDelete();
+		this.inspectorPanel = null;
+		
+		this.remove(dragN);
+		this.revalidate();
 	}
 }

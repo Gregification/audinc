@@ -77,6 +77,7 @@ public abstract class DraggableNode<T> extends JPanel {
 	public void onOffClick(MouseEvent me, DraggableNode<?> otherNode, NodeComponent<?> otherComponent) {};
 	public void initGUI() { applyDefaultNamedBorder(); }
 	public void setContext(T newContext) { this.context = newContext; }	
+	public void onDelete() {};
 	
 	public T getContext() { return context; }
 	
