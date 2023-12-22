@@ -107,7 +107,8 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 		oby.addChangeListener(e -> outgoingBias.setLocation(outgoingBias.getX()	 ,	getValue.apply(oby)));
 		
 		JCheckBox mouseBiasSelectionToggler = new JCheckBox("use mouse to select", List.of(getMouseListeners()).contains(this));//is mouse listener already registered?
-		mouseBiasSelectionToggler.addItemListener(l -> enableMouseBiasSelection(l.getStateChange() == ItemEvent.SELECTED));
+			mouseBiasSelectionToggler.addItemListener(l -> enableMouseBiasSelection(l.getStateChange() == ItemEvent.SELECTED));
+			mouseBiasSelectionToggler.setToolTipText("work in progress (aka does not work right now)");
 		
 		BiFunction<Integer, Integer, GridBagConstraints>	gc = (x,y) -> {var c = Presentable.createGbc(x, y); c.weighty = 0; return c;};
 		

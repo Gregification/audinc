@@ -199,7 +199,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	private JTable NewNodeDialogNodeTable = null;
 	private List<Class<? extends DraggableNode<?>>> nodeClasses; 
 	protected void openNewNodeDialog() {	
-		if(NewNodeDialogNodeTable == null) {	//c++ strikes again
+		if(NewNodeDialogNodeTable == null) {	//this if statement is intended to work exactly like the c++ local-static concept
 			nodeClasses = nodeGroups.keySet().stream()
 					.flatMap(e -> e.allowedNodes.stream())
 					.sorted((a,b) -> a.toString().compareTo(b.toString()))
@@ -357,10 +357,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		System.out.println();
 		var newNodeBtn = new JButton("+");
+			newNodeBtn.setToolTipText("new node");
 			newNodeBtn.addActionListener(e -> openNewNodeDialog());
 			newNodeBtn.setMnemonic('n');
 			
-		var deleteNodeBtn = new JButton(MainWin.getImageIcon("res/trashCan.png", MainWin.stdtabIconSize));
+		var deleteNodeBtn = new JButton("-");//MainWin.getImageIcon("res/trashCan.png", MainWin.stdtabIconSize));
+			deleteNodeBtn.setToolTipText("delete the selected node");
 			deleteNodeBtn.addActionListener(e -> onDeletenodeButtonClick());
 			deleteNodeBtn.setMnemonic(KeyEvent.VK_DELETE);
 		
@@ -378,10 +380,14 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	public void onDeletenodeButtonClick() {
 		if(dragN == null) return;
-		dragN.onDelete();
-		this.inspectorPanel = null;
 		
-		this.remove(dragN);
-		this.revalidate();
+		dragN.onDelete();
+		
+		inspectorPanel.removeAll();
+		inspectorPanel.setBorder(null);
+		inspectorPanel.revalidate();
+		
+		remove(dragN);
+		repaint(dragN.getBounds());
 	}
 }
