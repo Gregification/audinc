@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
+/**
+ * handles the drawing of a line 
+ */
 public interface ConnectionStyle {
 	/**
 	 * generates the path, point by point, between all terminal nodes. 

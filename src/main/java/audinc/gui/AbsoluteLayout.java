@@ -6,6 +6,9 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.LayoutManager;
 import java.awt.Point;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -15,6 +18,8 @@ import javax.swing.border.TitledBorder;
 
 public class AbsoluteLayout implements LayoutManager {
 	public volatile Point defaultPosition;
+	
+	private ArrayList<WeakReference<Component>> uninfluenceableComponents = new ArrayList<>();
 	
 	/**
 	 * padding for nodes, useful for making sure every node has a suitable amount of drag space
@@ -47,9 +52,27 @@ public class AbsoluteLayout implements LayoutManager {
 	public AbsoluteLayout() {
 		
 	}
-	
+		
 	public AbsoluteLayout(Point defaultPosition) {
 		this.defaultPosition = defaultPosition;
+	}
+	
+	public ArrayList<Component> getUninfluenceableComponents(){
+		ArrayList<Component> ret = new ArrayList<>();
+		for(var itt = uninfluenceableComponents.listIterator(); itt.hasNext();) {
+			WeakReference<Component> wr = itt.next();
+			Component comp = wr.get();
+			
+			if(comp != null)
+				ret.add(comp);
+			else
+				itt.remove();
+		}
+		return ret;
+	}
+	
+	public void addUninfluenceableComponent(Component comp) {
+		uninfluenceableComponents.add(new WeakReference<Component>(comp));
 	}
 	
 	@Override public void addLayoutComponent(String name, Component comp) {
@@ -83,22 +106,78 @@ public class AbsoluteLayout implements LayoutManager {
 		int 
 			maxX = 0, maxY = 0,
 			maxXOffSet = 0, maxYOffSet = 0,
-			t;
-	
-		for(Component c : parent.getComponents()) {
-			if((t = c.getX()) >= maxX) {
-				maxX = t;
-				maxXOffSet = Math.max(maxXOffSet, c.getWidth());
+			tPos, tOff, diff = 0;
+		
+		ArrayList<Component> 
+			south 	= new ArrayList<>(),
+			east 	= new ArrayList<>();
+		
+		Component[] comps = parent.getComponents();
+		if(comps.length == 1) {
+			var c = comps[0];
+			var bnd = c.getBounds();
+			
+			maxX = (int)bnd.getX();
+			maxY = (int)bnd.getY();
+			maxXOffSet = (int)bnd.getWidth();
+			maxYOffSet = (int)bnd.getHeight();
+		}
+		
+		for(Component c : comps) {
+			if((tPos = c.getX()) >= maxX) {
+				tOff = c.getWidth();
+				
+				diff = (tPos+tOff) - (maxX+maxXOffSet);
+				if(diff < 0) //get the farthest out
+					maxXOffSet = (maxX+maxXOffSet) - tPos;
+				else
+					maxXOffSet = tOff;
+				
+				maxX = tPos;
+				
+				if(diff != 0) east.clear();
+				
+				east.add(c);
 			}
-			if((t = c.getY()) >= maxY) {
-				maxY = t;
-				maxYOffSet = Math.max(maxYOffSet, c.getHeight());
+			if((tPos = c.getY()) >= maxY) {
+				tOff = c.getHeight();
+				
+				diff = (tPos+tOff) - (maxY+maxYOffSet);
+				if(diff < 0) //get the farthest out
+					maxYOffSet = (maxY+maxYOffSet) - tPos;
+				else
+					maxYOffSet = tOff;
+				
+				maxY = tPos;
+				
+				if(diff == 0) south.clear();
+				
+				south.add(c);
 			}
 		}
 		
+		int padX, padY;
+		
+		List<Component> nonoList = getUninfluenceableComponents();
+		if(nonoList.containsAll(east)) padX = 0;
+		else padX = areaPaddingTop  + areaPaddingBottom;
+		
+		if(nonoList.containsAll(south)) padY = 0;
+		else padY = areaPaddingLeft + areaPaddingRight;
+		
+//		System.out.println("absolute layout > @Override , min layout size , "
+//				+ "\n\tsouth: \t\t" + south
+//				+ "\n\teast: \t\t" + east
+//				+ "\n\tnonolist: \t" + nonoList
+//				+ "\n\tpadX: \t\t" + padX
+//				+ "\n\tpadY: \t\t" + padY
+//				+ "\n\tmax off set X: \t" + maxXOffSet
+//				+ "\n\tmax off set Y: \t" + maxYOffSet
+//				+ "\n\tdiff: \t\t" + diff);
+		
 		return new Dimension(
-					(int)(maxX * positionScale) + maxXOffSet + areaPaddingTop  + areaPaddingBottom,
-					(int)(maxY * positionScale) + maxYOffSet + areaPaddingLeft + areaPaddingRight
+					(int)(maxX * positionScale) + maxXOffSet + padX,
+					(int)(maxY * positionScale) + maxYOffSet + padY
 				);
 	}
 

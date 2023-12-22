@@ -55,8 +55,6 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 	
 	protected DraggableNodeEditor nodeEditor;
 	
-	private Point selectedBias;
-	
 	public TerminalPoint() {
 		super(null);
 		
@@ -124,7 +122,7 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 		
 		x=y=0;
 		content.add(wrapper_bias);
-		
+		content.setMaximumSize(content.getMinimumSize());
 		return content;
 	}
 	
@@ -144,7 +142,7 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 	@Override public void mousePressed(MouseEvent e) 	{
 		if(SwingUtilities.isRightMouseButton(e)) {
 			this.isDraggable = false;
-			var mp = e.getPoint();
+			//... bias selection with mouse. logic would go here
 		}
 	}
 	@Override public void mouseReleased(MouseEvent e)	{

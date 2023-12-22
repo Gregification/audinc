@@ -21,7 +21,7 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
  * 
  * the source is not part of the <code>terminals</code> list 
  */
-public class NodeConnection<T>{
+public class NodeConnection<T> {
 	public static final int defaultLineWidth = 5;
 	
 	public final Class<T> type;

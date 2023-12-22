@@ -1,6 +1,7 @@
 package draggableNodeEditor.nodes;
 
 import java.awt.GridBagLayout;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -16,6 +17,7 @@ import javax.swing.table.DefaultTableModel;
 import audinc.gui.MainWin;
 import draggableNodeEditor.DraggableNode;
 import draggableNodeEditor.DraggableNodeEditor;
+import draggableNodeEditor.NodeComponent;
 import draggableNodeEditor.NodeSupplier;
 import draggableNodeEditor.suppliers.NspSpinner;
 import presentables.Presentable;

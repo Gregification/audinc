@@ -6,9 +6,8 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -44,7 +43,7 @@ public abstract class DraggableNode<T> extends JPanel {
 	public volatile boolean isDraggable = true;
 	
 	protected volatile T context;
-	private volatile ArrayList<NodeComponent<?>> connectableNodeComponents = new ArrayList<>();
+	protected volatile ArrayList<NodeComponent<?>> connectableNodeComponents = new ArrayList<>();
 	
 	public DraggableNode(T context) {
 		super();
@@ -61,6 +60,9 @@ public abstract class DraggableNode<T> extends JPanel {
 	
 	public abstract String getTitle();
 	public abstract JComponent getInspector();
+	public List<NodeComponent<?>> getConnectableNodeComponents(){
+		return connectableNodeComponents;
+	}
 	
 	/**
 	 * final step after being added to the editor. when this method is called it means the node is free of concerns for the node editors mission.
@@ -74,12 +76,17 @@ public abstract class DraggableNode<T> extends JPanel {
 	 * @param otherNode : the other node that was selected. is null if empty space was clicked
 	 * @param otherComponent : the other component part of the selected node. is null if otherNode is null, otherwise can be null if no component was selected
 	 */
-	public void onOffClick(MouseEvent me, DraggableNode<?> otherNode, NodeComponent<?> otherComponent) {};
+	public void onOffClick(MouseEvent me, DraggableNode<?> otherNode, NodeComponent<?> otherComponent) {};//me can be null
 	public void initGUI() { applyDefaultNamedBorder(); }
 	public void setContext(T newContext) { this.context = newContext; }	
 	public void onDelete() {};
 	
 	public T getContext() { return context; }
+	
+	protected void registerConnectableNodeComponent(NodeComponent<?> ncomp) {
+		if(!connectableNodeComponents.contains(ncomp))
+			connectableNodeComponents.add(ncomp);
+	}
 	
 	protected void applyDefaultNamedBorder() { 
 		this.setBorder(stdBorder);
@@ -112,21 +119,18 @@ public abstract class DraggableNode<T> extends JPanel {
 							(int)(comp.getY() + comp.getHeight()/2 - compCPDimension.height/2)
 						);
 					
-					if(comp instanceof NodeSupplier) {
-						//point goes on right side
-						comp.setAlignmentX(Component.RIGHT_ALIGNMENT);
-						
-						point.x = (int)(nodeBounds.width);
-						
-					}else if(comp instanceof NodeConsumer) {
-						//point goes on left side
-						comp.setAlignmentX(Component.LEFT_ALIGNMENT);
-						
-					}else {
-						throw new UnsupportedOperationException("idk where the point should go");
+					switch(comp) {
+						case NodeSupplier<?> s -> {	//point goes on right side
+								comp.setAlignmentX(Component.RIGHT_ALIGNMENT);
+								point.x = (int)(nodeBounds.width);
+							}
+						case NodeConsumer<?> c -> { //point goes on left side
+								comp.setAlignmentX(Component.LEFT_ALIGNMENT);
+							}
+						default -> {throw new UnsupportedOperationException("idk where the point should go");}
 					}
 					
-					connectableNodeComponents.add(comp);
+					if(!connectableNodeComponents.contains(comp)) connectableNodeComponents.add(comp);
 					comp.connectionPoint = point;
 					
 					//keep for debugging
