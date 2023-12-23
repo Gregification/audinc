@@ -4,6 +4,7 @@ import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.event.ComponentEvent;
@@ -47,8 +48,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	 * see her for layer guidelines -> https://docs.oracle.com/javase/tutorial/uiswing/components/rootpane.html
 	 */
 	public static final int 
-		LINE_LAYER 	= JLayeredPane.PALETTE_LAYER,
-		NODE_LAYER 	= 3;
+		NODE_LAYER 	= JLayeredPane.DEFAULT_LAYER;
 	
 	/**
 	 * for node use.
@@ -185,9 +185,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	@Override public void mouseReleased(MouseEvent e) {
 		if(draggingNode) {
-			this.revalidate();//triggers layout manager (should be AbsoluteLayout) to recalculate the minimum size 
-			
 			this.setLayer(dragN, NODE_LAYER);
+			
+			this.revalidate();//triggers layout manager (should be AbsoluteLayout) to recalculate the minimum size 
 		}
 		
 		draggingNode = false;
@@ -449,4 +449,13 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		@Override public void componentShown(ComponentEvent e)  	{ }
 		@Override public void componentHidden(ComponentEvent e) 	{ }
 	};
+
+	@Override public void paint(Graphics g) {
+		super.paint(g);
+		
+		g.setXORMode(Color.red);
+		g.drawLine(0, getHeight(), getWidth(), 0);
+	}
+	
+	
 }
