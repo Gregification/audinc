@@ -72,10 +72,11 @@ public abstract class DraggableNode<T> extends JPanel {
 	/**
 	 * gets called on the currently selected node when the mouse clicks on something thats not the current node, or its unselected.
 	 * 
+	 * @return <b>true</b> : if the node can be unselected, <b>false</b> : if the node should remain selected 
 	 * @param otherNode : the other node that was selected. is null if empty space was clicked
 	 * @param otherComponent : the other component part of the selected node. is null if otherNode is null, otherwise can be null if no component was selected
 	 */
-	public void onOffClick(MouseEvent me, DraggableNode<?> otherNode, NodeComponent<?> otherComponent) {};//me can be null
+	public boolean onOffClick(MouseEvent me, DraggableNode<?> otherNode, NodeComponent<?> otherComponent) {return true;};//me can be null
 	public void initGUI() { applyDefaultNamedBorder(); }
 	public void setContext(T newContext) { this.context = newContext; }	
 	public void onDelete() {};

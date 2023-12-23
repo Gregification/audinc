@@ -15,7 +15,7 @@ public enum DraggableNodeGroup {
 				Void.class,
 				Set.of(
 					NConstant.class,
-					TerminalPoint.class
+					AnchorPoint.class
 				)
 			),
 		SERIAL_PIKE(

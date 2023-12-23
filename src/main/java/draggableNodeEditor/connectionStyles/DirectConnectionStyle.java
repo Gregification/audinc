@@ -2,13 +2,11 @@ package draggableNodeEditor.connectionStyles;
 
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.util.Set;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import draggableNodeEditor.ConnectionStyle;
-import draggableNodeEditor.NodeConnection;
-import draggableNodeEditor.TerminalPoint;
+import draggableNodeEditor.LineAnchor;
 
 /**
  * a straight line between each terminal.
@@ -16,18 +14,17 @@ import draggableNodeEditor.TerminalPoint;
 public class DirectConnectionStyle implements ConnectionStyle{
 	protected boolean objsticalNavication = false; //TODO
 
-	@Override
-	public <T> Future<Boolean> genConnections(NodeConnection<T> nodeConnection, LinkedBlockingQueue<Point> output,
+	@Override public CompletableFuture<LinkedBlockingQueue<Point>> genConnections(
+			LinkedBlockingQueue<Point> output,
+			LineAnchor[] anchors,
+			LineAnchor[] terminals,
 			Rectangle[] obsticals) {
-		// TODO Auto-generated method stub
-		return null;
+		return CompletableFuture.supplyAsync(() -> {
+			for(var t : terminals) {
+				output.add(new Point(t.x(), t.y()));
+			}
+			
+			return output;
+		});
 	}
-
-	@Override
-	public <T> Future<Boolean> genConnection(NodeConnection<T> nodeConnection, LinkedBlockingQueue<Point> output,
-			Rectangle[] obsticals, Set<TerminalPoint> terminalsToReconnect) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 }

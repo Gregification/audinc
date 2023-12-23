@@ -32,7 +32,7 @@ import presentables.Presentable;
  * 
  * TODO: some Swing shenangains. the inspector panel vertically centers the options. make it such that the content starts at the top right corner instead of the center. 
  */
-public class TerminalPoint extends DraggableNode<Void> implements MouseListener, MouseMotionListener {
+public class AnchorPoint extends DraggableNode<Void> implements MouseListener, MouseMotionListener {
 	private static final long serialVersionUID = -1554483802522425955L;
 	
 	public final static int 
@@ -45,19 +45,17 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 		defaultPointBorderColor	= Color.black; 
 	 
 	public Color 
-		pointColor 		 = TerminalPoint.defaultPointColor,
-		pointBorderColor = TerminalPoint.defaultPointBorderColor;
+		pointColor 		 = AnchorPoint.defaultPointColor,
+		pointBorderColor = AnchorPoint.defaultPointBorderColor;
 	
-	private boolean isHardTerminal = true;
-	
-	public int weight = 1;
+	public float weight = 1;
 	protected Point2D 
 		incommingBias 	= new Point2D.Float(0,0),
 		outgoingBias	= new Point2D.Float(0,0);
 	
 	protected DraggableNodeEditor nodeEditor;
 	
-	public TerminalPoint() {
+	public AnchorPoint() {
 		super(null);
 		
 		this.setBorder(null);
@@ -74,9 +72,21 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 		var bounds = this.getBounds();
 		return new Point((int)bounds.getCenterX(), (int)bounds.getCenterY());
 	}
+	
+	public LineAnchor getAsLineAnchor() {
+		return new LineAnchor(	//some of the casts maybe unnecessary
+				(int)getX(),
+				(int)getY(),
+				(float)weight,
+				(float)incommingBias.getX(),
+				(float)incommingBias.getY(),
+				(float)outgoingBias.getX(),
+				(float)outgoingBias.getY()
+			);
+	}
 
 	@Override public String getTitle() {
-		return "terminal point (" + this.index + ")";
+		return "anchor point (" + this.index + ")";
 	}
 
 	@Override public void initNode(DraggableNodeEditor editor) {
@@ -128,18 +138,6 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 		return content;
 	}
 	
-	/**
-	 * does a line linked to this terminal have to pass through it?
-	 * @return
-	 */
-	public boolean getIsHardTerminal() {
-		return this.isHardTerminal;
-	}
-	
-	public boolean setIsHardTerminal(boolean bool) {
-		return this.isHardTerminal = bool;
-	}
-	
 	@Override public void paintComponent(Graphics g) {
 		super.paintComponent(g);
 		
@@ -167,11 +165,12 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 	@Override public void mouseDragged(MouseEvent e) 	{}
 	@Override public void mouseMoved(MouseEvent e) 		{}
 	
-	@Override public void onOffClick(MouseEvent me, DraggableNode<?> oNode, NodeComponent<?> oC) {
+	@Override public boolean onOffClick(MouseEvent me, DraggableNode<?> oNode, NodeComponent<?> oC) {
 		if(oNode != null && oNode != this) {	//on deselect
 			enableMouseBiasSelection(false);
-			return;
 		}
+		
+		return true;
 	}
 	
 	public float getIncommingBiasX() { return (float) incommingBias.getX(); }
