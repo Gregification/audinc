@@ -14,7 +14,6 @@ import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
@@ -29,7 +28,7 @@ import javax.swing.border.TitledBorder;
 import presentables.Presentable;
 
 /**
- * a cheesy way to make terminal points
+ * a cheesy way to make anchor points
  * 
  * TODO: some Swing shenangains. the inspector panel vertically centers the options. make it such that the content starts at the top right corner instead of the center. 
  */
@@ -49,6 +48,9 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 		pointColor 		 = TerminalPoint.defaultPointColor,
 		pointBorderColor = TerminalPoint.defaultPointBorderColor;
 	
+	private boolean isHardTerminal = true;
+	
+	public int weight = 1;
 	protected Point2D 
 		incommingBias 	= new Point2D.Float(0,0),
 		outgoingBias	= new Point2D.Float(0,0);
@@ -124,6 +126,18 @@ public class TerminalPoint extends DraggableNode<Void> implements MouseListener,
 		content.add(wrapper_bias);
 		content.setMaximumSize(content.getMinimumSize());
 		return content;
+	}
+	
+	/**
+	 * does a line linked to this terminal have to pass through it?
+	 * @return
+	 */
+	public boolean getIsHardTerminal() {
+		return this.isHardTerminal;
+	}
+	
+	public boolean setIsHardTerminal(boolean bool) {
+		return this.isHardTerminal = bool;
 	}
 	
 	@Override public void paintComponent(Graphics g) {

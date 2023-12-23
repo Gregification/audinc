@@ -7,7 +7,6 @@ import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -60,7 +59,7 @@ public abstract class DraggableNode<T> extends JPanel {
 	
 	public abstract String getTitle();
 	public abstract JComponent getInspector();
-	public List<NodeComponent<?>> getConnectableNodeComponents(){
+	public ArrayList<NodeComponent<?>> getConnectableNodeComponents(){
 		return connectableNodeComponents;
 	}
 	

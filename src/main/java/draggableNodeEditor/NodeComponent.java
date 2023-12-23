@@ -4,13 +4,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Point;
-import java.awt.Polygon;
-import java.awt.Rectangle;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
+import java.util.ArrayList;
 
 import javax.swing.JComponent;
 
@@ -26,19 +21,12 @@ public abstract class NodeComponent<T> extends JComponent {
 	//node stuff
 	protected String name;
 	protected volatile T value = null;
-	public volatile Set<NodeConnection<T>> 	connections 		= Set.of();
+	public volatile ArrayList<NodeConnection<T>> 	connections = new ArrayList<>();
 	
 	/**
 	 * center of the connectionPoint relative to the host DraggableNode
 	 */
 	public volatile Point 					connectionPoint 	= new Point(0,0);	//decided by the host node 
-	
-	//meta-ish stuff
-	protected volatile boolean 
-		needsRedrawn	= true,		
-		needsNewValue 	= true;
-	
-	//UI stuff
 	
 	/**
 	 * preferred connection point icon values. these may not necessarily correlate to a circle
@@ -57,7 +45,12 @@ public abstract class NodeComponent<T> extends JComponent {
 	
 	public abstract NodeSupplier<T> getSupplier();
 	
+	public NodeConnection<T> makeNewConnection(){
+		return new NodeConnection<T>(type);
+	}
+	
 	/**
+	 * draws the connection ports indicator, used by NodeComp's .paintComponent()
 	 * @param g
 	 * @param p, point that is the connection point. note that this will be THE RCENTER OF THE ICON, not the top-left
 	 */
@@ -93,14 +86,6 @@ public abstract class NodeComponent<T> extends JComponent {
 
 	public void setValue(T value) {
 		this.value = value;
-	}
-	
-	public boolean NeedsRedrawn() {
-		return needsRedrawn;
-	}
-
-	public boolean NeedsNewValue() {
-		return needsNewValue;
 	}
 	
 	public String getName() {

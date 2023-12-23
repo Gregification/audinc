@@ -3,7 +3,6 @@ package draggableNodeEditor;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.GridBagLayout;
 import java.awt.Point;
@@ -13,7 +12,9 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +62,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	protected JScrollPane editorScrollPane;
 	protected JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
 	
+	/**
+	 * contains all the nodes on the nodeEditor including those that may not be a part of it anymore.
+	 * use something like <code>this.isAncestor(element)</code> to see if its still in the editor
+	 */
+	protected ArrayList<SoftReference<DraggableNode<?>>> draggableNodes = new ArrayList<>();
+	
 	//mouse events
 	protected Point dragOffSet;
 	
@@ -93,9 +100,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	/**
 	 * this just calls the 3 functions <code>genGUI inspector-index-editor</code> in that order 
 	 */
-	public void genGUI() {
-		nConnCanvas.setBackground(new Color(0f,0f,0f,0f));
-		
+	public void genGUI() {		
 		genGUI_inspector(inspectorPanel);
 		genGUI_editor();
 	}
@@ -134,7 +139,22 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 	@Override public void mouseMoved(MouseEvent e) {}
-	@Override public void mouseClicked(MouseEvent e) {}
+	@Override public void mouseClicked(MouseEvent e) {
+		if(SwingUtilities.isMiddleMouseButton(e)) {
+			if(e.getSource() == this) {
+				switch(this.getComponentAt(e.getPoint())) {
+					case DraggableNode<?> node -> {
+							NodeComponent<?> ncomp = node.getComponentForPoint(SwingUtilities.convertPoint(this, e.getPoint(), node));
+							if(ncomp == null) return;
+							
+							System.out.println("new connection by : " + ncomp);
+						} 
+					default -> {System.out.println("not a node");}
+				}
+			}
+		}
+		
+	}
 	@Override public void mousePressed(MouseEvent e) {
 		if(draggingNode){//is something is being dragged already
 			this.mouseDragged(e);
@@ -218,7 +238,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 ////////////////////////////////
-//gui
+//node & gui
 ////////////////////////////////
 	
 	private JTable NewNodeDialogNodeTable = null;
@@ -318,6 +338,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					(int)editorScrollPane.getVisibleRect().getCenterY()
 				);
 		
+		draggableNodes.add(new SoftReference<DraggableNode<?>>(node));
 		this.add(node, layer);
 		
 		this.revalidate();
@@ -329,6 +350,19 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		this.repaint(node.getBounds());
 		
 		return node;
+	}
+	
+	public void removeNode(DraggableNode<?> node) {
+		dragN.onDelete();
+		
+		if(dragN != null && node == dragN) {
+			inspectorPanel.removeAll();
+			inspectorPanel.setBorder(null);
+			inspectorPanel.revalidate();
+		}
+		
+		remove(dragN);
+		repaint(dragN.getBounds());
 	}
 	
 	public void selectNode(DraggableNode<?> node) {
@@ -354,14 +388,11 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 ////////////////////////////////
-//gen gui
+//gui events
 ////////////////////////////////
 	private void genGUI_editor() {
 		var absLayout = new AbsoluteLayout();
 		this.setLayout(absLayout);
-		
-//		add(nConnCanvas, LINE_LAYER);
-//		absLayout.addUninfluenceableComponent(nConnCanvas);
 				
 		System.out.println();
 		var newNodeBtn = new JButton("+");
@@ -392,19 +423,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		removeNode(dragN);
 	}
 	
-	public void removeNode(DraggableNode<?> node) {
-		dragN.onDelete();
-		
-		if(dragN != null && node == dragN) {
-			inspectorPanel.removeAll();
-			inspectorPanel.setBorder(null);
-			inspectorPanel.revalidate();
-		}
-		
-		remove(dragN);
-		repaint(dragN.getBounds());
-	}
-	
 /////////////////////
 //node connection stuff
 /////////////////////
@@ -413,39 +431,25 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	 * this should be triggered when the AbsoluteLayout decides to resize. this triggers when the gui is initialized
 	 * - maintains the size of the nodeConnectionCanvas to that of the this(nodeEditor)
 	 */
-	@Override public void componentResized(ComponentEvent e) 	{		
-		Dimension 
-			newSize = this.getVisibleRect().getSize(),
-			oldSize = nConnCanvas.getSize();
-		
-//		System.out.println(""
-//				+ "@@@@@@@@@@@@@@@@@@@@@"
-//				+ "\n\t visible rect size: \t" + newSize
-//				+ "\n\t current canvas size: \t" + oldSize);
-		
-		newSize.width = Math.max(newSize.width, oldSize.width);
-		newSize.height = Math.max(newSize.height, oldSize.height);
-		
-		if(!oldSize.equals(newSize)) {
-			nConnCanvas.setSize(newSize);
-			nConnCanvas.revalidate();
-		}
+	@Override public void componentResized(ComponentEvent e) 	{ 
+//		System.out.println("draggable node editor > component resized, editor resized");
 	}
 	@Override public void componentMoved(ComponentEvent e)  	{ }
 	@Override public void componentShown(ComponentEvent e)  	{ }
 	@Override public void componentHidden(ComponentEvent e) 	{ }
 	
 	/**
-	 * node connections are drawn here. this has the same size as the this(nodeEditor)
-	 */
-	protected Canvas nConnCanvas = new Canvas();
-	
-	/**
-	 * when attached to a draggableNode as a child of this nodeEditor this allows the editor to tell nodeConnection's should be recalculated/redrawn
+	 * triggers a line recalculation. editor to tell nodeConnection's should be recalculated/redrawn
+	 * must only be attached to draggableNode's . intended for nodes that are a child of this nodeEditor.
 	 */
 	private ComponentListener nConnRescheduler = new ComponentListener() {
 		@Override public void componentResized(ComponentEvent e) 	{ }
-		@Override public void componentMoved(ComponentEvent e)  	{ }
+		@Override public void componentMoved(ComponentEvent e)  	{
+//			System.out.println("draggable node editor > nConnRescheduler , component moved : " + e.getSource());
+			if(e.getSource() instanceof DraggableNode node) {
+				
+			}
+		}
 		@Override public void componentShown(ComponentEvent e)  	{ }
 		@Override public void componentHidden(ComponentEvent e) 	{ }
 	};
@@ -455,6 +459,16 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		g.setXORMode(Color.red);
 		g.drawLine(0, getHeight(), getWidth(), 0);
+		
+		draggableNodes.parallelStream()
+			.map(sr -> sr.get())
+			.filter(e 	-> e != null)
+			.flatMap(e 	-> e.getConnectableNodeComponents().parallelStream())
+			.flatMap(comp 	-> comp.connections.parallelStream())
+			.filter(conn 	-> conn.needsRedrawn)
+			.forEach(conn 	-> {
+					
+				});
 	}
 	
 	

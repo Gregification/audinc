@@ -1,10 +1,13 @@
 package draggableNodeEditor;
 
+import java.awt.Point;
 import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 
@@ -26,12 +29,17 @@ public class NodeConnection<T> {
 	
 	public final Class<T> type;
 	
+	public volatile boolean needsRedrawn = true;
+	
+	protected ArrayList<TerminalPoint> terminals = new ArrayList<>();
 	protected int lineWidth = defaultLineWidth;
 	
+	private List<Point> linePoints = List.of();
 	private ConnectionStyle connectionStyle;
 	
-	
-	
+	private LinkedBlockingQueue<Point> points;
+	private CompletableFuture<Point[]> connectionFuture;
+
 	public NodeConnection(Class<T> type) {
 		super();
 		
@@ -39,19 +47,29 @@ public class NodeConnection<T> {
 		setConnectionStyle(null);
 	}
 	
-	public void genConnections(Rectangle[] obstacles) {
-		
+	public void genConnection(Rectangle[] obstacles) {
 		
 	}
 	
 	public void genConnection(Rectangle[] obstacles, Set<TerminalPoint> terminalsToReconnect) {
-		
-		
+				
 	}
 	
 //////////////////////////
 // getters & setters
-//////////////////////////	
+//////////////////////////
+	public final List<TerminalPoint> getTerminals(){
+		return terminals.stream().toList();
+	}
+	
+	public final List<Point> getLinePoints(){
+		return this.linePoints;
+	}
+	
+	public final CompletableFuture<Point[]> getPointFuture(){
+		return this.connectionFuture;
+	}
+	
 	public int getLineWidth() {
 		return lineWidth;
 	}
