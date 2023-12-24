@@ -1,35 +1,19 @@
 package draggableNodeEditor;
 
-import java.util.function.BiFunction;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import javax.swing.JLabel;
 
-public class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
+public non-sealed class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
 	private static final long serialVersionUID = 1L;
 	
 	protected JLabel nameLabel;
 	
-	/**
-	 * BiFunction< old-value , new-value, final-value> 
-	 * defaults to 
-	 * <br><code>(old_v , new_v) -> new_v</code>
-	 */
-	protected BiFunction<T, T, T> onAccept;
-	
-	public NodeConsumer(Class<T> type, String name, T value) {
-		this(type, name, value, null);
-	}
-
-	public NodeConsumer(Class<T> type, String name, T value, BiFunction<T, T, T> onAccept) {
-		super(type, name, value);
-		this.setOnAccept(onAccept);;
-	}
-	
 	protected NodeSupplier<T> supplier;
 	
-	@Override public void accept(T t) {
-		this.setValue(onAccept.apply(value, t));
+	public NodeConsumer(Class<T> type, String name, T value) {
+		super(type, name, value);
 	}
 	
 	@Override public NodeSupplier<T> getSupplier() {
@@ -56,11 +40,27 @@ public class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
 		
 		nameLabel.setText(name);
 	}
+
+	@Override public CompletableFuture<T> getValue() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
-	public void setOnAccept(BiFunction<T, T, T> onAccept){
-		if(onAccept == null)
-			this.onAccept = (o,n) -> n;		//default
-		else
-			this.onAccept = onAccept;
+	@Override public void setValue(T value) {
+		//TODO Auto-generated method stub
+	}
+
+	@Override public void accept(T value) { this.setValue(value); }
+
+	@Override
+	public void considerComponent(NodeComponent<T> comp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void unconsiderComponent(NodeComponent<T> comp) {
+		// TODO Auto-generated method stub
+		
 	}
 }

@@ -59,7 +59,7 @@ public abstract class DraggableNode<T> extends JPanel {
 	
 	public abstract String getTitle();
 	public abstract JComponent getInspector();
-	public ArrayList<NodeComponent<?>> getConnectableNodeComponents(){
+	public final ArrayList<NodeComponent<?>> getConnectableNodeComponents(){
 		return connectableNodeComponents;
 	}
 	

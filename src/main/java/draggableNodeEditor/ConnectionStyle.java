@@ -1,7 +1,7 @@
 package draggableNodeEditor;
 
 import java.awt.Point;
-import java.awt.Rectangle;
+import java.awt.Polygon;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -26,7 +26,7 @@ public interface ConnectionStyle {
 			LinkedBlockingQueue<Point> output,
 			final LineAnchor[] anchors,
 			final LineAnchor[] terminals,
-			final Rectangle[] obsticals
+			final Polygon[] obsticals
 		);	
 	
 	//unused. too complicated and little reward. would require some sort of way to map what terminals effect what points, and some thread safe accessing of that data

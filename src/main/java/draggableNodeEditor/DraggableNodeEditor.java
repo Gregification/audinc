@@ -461,10 +461,10 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		draggableNodes.parallelStream()
 			.map(sr -> sr.get())
-			.filter(e 	-> e != null)
+			.filter(e 	-> e == null)
 			.flatMap(e 	-> e.getConnectableNodeComponents().parallelStream())
-			.flatMap(comp 	-> comp.connections.parallelStream())
-			.filter(conn 	-> conn.needsRedrawn)
+			.flatMap(comp 	-> comp.getDirectConnections().parallelStream())
+			.filter(conn 	-> conn.needsRedrawing())
 			.forEach(conn 	-> {
 					
 				});

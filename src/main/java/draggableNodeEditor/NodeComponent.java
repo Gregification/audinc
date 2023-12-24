@@ -5,7 +5,9 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Point;
-import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import javax.swing.JComponent;
 
@@ -13,20 +15,19 @@ import javax.swing.JComponent;
  * a editable value for the
  * @param <T>
  */
-public abstract class NodeComponent<T> extends JComponent {
+public abstract sealed class NodeComponent<T> extends JComponent permits NodeConsumer, NodeSupplier {
 	public final Class<T> type;
-	
 	private static final long serialVersionUID = 1L;
 	
 	//node stuff
 	protected String name;
-	protected volatile T value = null;
-	public volatile ArrayList<NodeConnection<T>> 	connections = new ArrayList<>();
+	protected HashSet<NodeConnection<T>> 	directConnections = new HashSet<>();
+	protected CompletableFuture<T> valueFuture = CompletableFuture.supplyAsync(() -> null);
 	
 	/**
 	 * center of the connectionPoint relative to the host DraggableNode
 	 */
-	public volatile Point 					connectionPoint 	= new Point(0,0);	//decided by the host node 
+	public volatile Point 	connectionPoint 	= new Point(0,0);	//decided by the host node 
 	
 	/**
 	 * preferred connection point icon values. these may not necessarily correlate to a circle
@@ -43,9 +44,49 @@ public abstract class NodeComponent<T> extends JComponent {
 		this.setLayout(new FlowLayout());
 	}
 	
+	public abstract CompletableFuture<T> getValue();
+	public abstract void setValue(T value);
+	
+	/**
+	 * gets called when a new node joins the connection. 
+	 * @param comp : the new node
+	 */
+	public abstract void considerComponent(NodeComponent<T> comp);
+	
+	/**
+	 * gets called when a node is removed from the connection. 
+	 * it is likely, especially in networks with many shared nodes, that the same NodeComponent 
+	 *  will be called by unconsiderComponent will be called shortly before being rediscovered by
+	 *  considerComponent.
+	 * @param comp : the removed node
+	 */
+	public abstract void unconsiderComponent(NodeComponent<T> comp);
+	
+	
 	public abstract NodeSupplier<T> getSupplier();
 	
-	public NodeConnection<T> makeNewConnection(){
+	public List<NodeConnection<T>> getDirectConnections(){
+		return directConnections.stream().toList();
+	}
+	
+	public void joinConnection(NodeConnection<T> conn) {
+		directConnections.add(conn);
+		
+		if(!conn.isDirectlyConnected(this)) conn.connectToComponents(List.of(this));
+	}
+	
+	public void dropConnection(NodeConnection<T> conn) {
+		directConnections.remove(conn);
+		
+		if(conn.isDirectlyConnected(this)) conn.disconnectComponents(List.of(this));
+	}
+	
+	/**
+	 * makes a new connection compatible with this NodeComponent. 
+	 * <br>the component is not registered with the connection in any way.
+	 * @return
+	 */
+	public NodeConnection<T> makeNewConnectionOfType(){
 		return new NodeConnection<T>(type);
 	}
 	
@@ -76,16 +117,12 @@ public abstract class NodeComponent<T> extends JComponent {
 		return new Dimension(r,r);
 	}
 	
+	/**
+	 * hash any sort of connection. 
+	 * @return true if a direct connection exists
+	 */
 	public boolean hasConnection() {
-		return connections.size() != 0;
-	}
-
-	public T getValue() {
-		return value;
-	}
-
-	public void setValue(T value) {
-		this.value = value;
+		return directConnections.size() != 0;
 	}
 	
 	public String getName() {
