@@ -3,10 +3,17 @@ package draggableNodeEditor;
 import java.awt.Point;
 import java.awt.Polygon;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 
@@ -31,7 +38,12 @@ public class NodeConnection<T> {
 	/**
 	 * set of directly connected components
 	 */
-	protected HashSet<NodeComponent<T>> directleyConnectedComponents = new HashSet<>();
+	protected HashSet<NodeComponent<T>> directleyConnectedComponents 	= new HashSet<>();
+	
+	/**
+	 * a shared hashset between each group of connected NodeConnections
+	 */
+	protected HashSet<NodeConnection<T>> reachableConnections 			= new HashSet<>(List.of(this));
 	
 	//drawing stuff
 	private boolean needsRedrawn = true;
@@ -52,42 +64,144 @@ public class NodeConnection<T> {
 		setConnectionStyle(null);
 	}
 	
-	public boolean isDirectlyConnected(NodeComponent<T> comp) {
-		return directleyConnectedComponents.contains(comp);
-	}
-	
-	public void connectToComponents(List<NodeComponent<T>> comps) {
-		var newComps = comps.stream().parallel()
-			.filter(directleyConnectedComponents::add)
-			.peek(comp -> comp.joinConnection(this))
-			.toList();
+	/**
+	 * adds the component as a directly connected one. rechecks all connections associated with the component
+	 * @param comp : the new component
+	 */
+	public void connectToComponent(NodeComponent<T> comp) {		
+		//if already connected
+		if(directleyConnectedComponents.contains(comp)) 
+			return;
 		
-		if(newComps.size() == 0) return;
-		
-		var connPacket = new NodeConnectionUpdatePacket<T>(
-				new HashSet<NodeConnection<T>>(),
-				newComps,
-				Collections.<NodeComponent<T>>emptyList()
-			);
-		
-		receiveUpdatePacket(connPacket);
-	}
-	
-	public void disconnectComponents(List<NodeComponent<T>> comps) {
-		var newComps = comps.stream().parallel()
-				.filter(directleyConnectedComponents::remove)
-				.peek(comp -> comp.dropConnection(this))
-				.toList();
+		//if is a orphaned node -> no need to worry about a network
+		if(!comp.getDirectConnections().isEmpty()) {			
+			//check if the existing networks are valid (this should always be true but i don't trust my code)
+			boolean 
+				isOtherSus 	= isNodeNetworkSus(comp, true),
+				isThisSus	= this.getDirectleyConnectedComponents().stream().anyMatch(n -> isNodeNetworkSus(n, false));
 			
-		if(newComps.size() == 0) return;
+			HashSet<NodeConnection<T>> otherNet = comp.getDirectConnections().getFirst().reachableConnections;
+			
+			if(!isOtherSus || !isThisSus) {
+				//if the networks share a connection
+				if(otherNet.stream().anyMatch(reachableConnections::contains))
+					isOtherSus = isThisSus = true;
+			}
+			
+			//if-elses' for readability.
+			if(isOtherSus && isThisSus) { 	//trust nothing, except your self :3
+				remap(List.of(this));
+			}else if(isOtherSus) {			//trust this network.
+				remap(reachableConnections);
+			}else if(isThisSus) {			//trust the other network.
+				remap(otherNet);
+			}else {							//trust both networks.
+				//if networks are the same
+				if(reachableConnections == otherNet) return;
+				
+				//join
+				joinNetworks(reachableConnections, otherNet);
+			}
+		}
 		
-		var connPacket = new NodeConnectionUpdatePacket<T>(
-				new HashSet<NodeConnection<T>>(),
-				Collections.<NodeComponent<T>>emptyList(),
-				newComps
-			);
+		//update self
+		directleyConnectedComponents.add(comp);
 		
-		receiveUpdatePacket(connPacket);
+		//update the node
+		comp.joinConnection(this);
+	}
+	
+	/**
+	 * disconnects a node from the the connection, is not guaranteed to remove it from the network
+	 * @param comp
+	 */
+	public void disconnectComponent(NodeComponent<T> comp) {
+		if(!directleyConnectedComponents.remove(comp))
+			return;
+		
+		//update node
+		comp.dropConnection(this);
+		
+		//update network
+		//if linked to another connection
+		if(comp.getDirectConnections().stream().filter(conn -> conn != this).anyMatch(e -> true)) {
+			//lazy, just remap the network
+			remap(List.of(this));
+		}
+	}
+	
+	/**
+	 * checks if a node is part of a proper network. 
+	 * @param node the node to check
+	 * @return true if all direct NodeConnections share the same network, or if there are no connections
+	 */
+	public boolean isNodeNetworkSus(NodeComponent<T> node, boolean ignoreself) {
+		List<NodeConnection<T>> conns = node.getDirectConnections();
+		
+		if(ignoreself) conns.remove(this);
+		
+		if(conns.isEmpty()) return true;
+		
+		var net = conns.getFirst().reachableConnections;
+		
+		return conns.stream()
+				.allMatch(conn -> conn.reachableConnections == net);
+	}
+	
+	/**
+	 * ignores all existing information. remaps connections using the given knownConnections and sets this.reachableConnections to the updated map.
+	 * this instance will now host the network map
+	 */
+	public void remap(Collection<NodeConnection<T>> knownConnections) {
+		reachableConnections.clear();
+		
+		Set<NodeConnection<T>> connections = ConcurrentHashMap.<NodeConnection<T>>newKeySet(); //basically a concurrent HashSet
+			connections.addAll(knownConnections);
+			
+		try(ExecutorService exe = Executors.newVirtualThreadPerTaskExecutor()){
+			recursiveConnectionMapperFunc(this, connections, exe);
+		}
+		
+		//replace the existing network
+		//this is the new head
+		reachableConnections.addAll(connections);
+
+		for(var conn : reachableConnections)
+			conn.reachableConnections = reachableConnections;
+	}
+	private final void recursiveConnectionMapperFunc(NodeConnection<T> srcConn, Set<NodeConnection<T>> knownConnections, ExecutorService exe) {
+		srcConn.getDirectleyConnectedComponents().stream()
+			.flatMap(comp -> comp.getDirectConnections().stream())
+			.filter(conn -> conn != srcConn) //preemptively removes some known duplicates
+			.forEach(conn -> {
+				if(knownConnections.add(conn))
+					exe.execute(() -> recursiveConnectionMapperFunc(conn, knownConnections, exe));
+			});
+	}
+	
+	public static <V> HashSet<NodeConnection<V>> joinNetworks(HashSet<NodeConnection<V>> net1, HashSet<NodeConnection<V>> net2) {
+		//faster to add the smaller network to the larger one
+		HashSet<NodeConnection<V>> small, big;
+				
+		if(net1.size() > net2.size()) {
+			small 	= net2;
+			big 	= net1;
+		}else {
+			small 	= net1;
+			big 	= net2;
+		}
+		
+		big.addAll(small);
+		
+		//update references
+		for(var conn : small)
+			conn.reachableConnections = big;
+		
+		return big;
+	}
+	
+	public void onNodeUpdate() {
+		
 	}
 	
 	public void redraw(final Polygon[] obsticals) {
@@ -111,25 +225,6 @@ public class NodeConnection<T> {
 		return true;
 	}
 	
-//////////////////////////
-// network
-//////////////////////////
-	/**
-	 * apply the changes to itself
-	 * @param changes
-	 */
-	void receiveUpdatePacket(NodeConnectionUpdatePacket<T> changes) { this.receiveUpdatePacket(changes, true); }
-	void receiveUpdatePacket(NodeConnectionUpdatePacket<T> changes, boolean propagate) {
-		if(changes.visitedConnections().add(this)) {
-			
-			//update packet with this nodes info
-			
-			
-			//propagate to neighboring connections
-			if(propagate) propagateUpdatePacket(changes);
-		}
-	}
-	
 	/**
 	 * send the changes to neighboring connections.
 	 * @param changes
@@ -151,7 +246,7 @@ public class NodeConnection<T> {
 	
 //////////////////////////
 // getters & setters
-//////////////////////////
+//////////////////////////	
 	public List<NodeComponent<T>> getDirectleyConnectedComponents(){
 		return directleyConnectedComponents.stream().toList();
 	}

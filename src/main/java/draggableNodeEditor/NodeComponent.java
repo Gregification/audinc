@@ -70,15 +70,20 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	}
 	
 	public void joinConnection(NodeConnection<T> conn) {
-		directConnections.add(conn);
-		
-		if(!conn.isDirectlyConnected(this)) conn.connectToComponents(List.of(this));
+		//if is not connected
+		if(directConnections.add(conn)) {
+			//update the connection
+			conn.connectToComponent(this);
+		}
 	}
 	
 	public void dropConnection(NodeConnection<T> conn) {
-		directConnections.remove(conn);
-		
-		if(conn.isDirectlyConnected(this)) conn.disconnectComponents(List.of(this));
+		//if is connected
+		if(directConnections.remove(conn)) {
+			//update the connection
+			conn.disconnectComponent(this);
+		}
+			
 	}
 	
 	/**

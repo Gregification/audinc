@@ -33,6 +33,7 @@ import javax.swing.table.DefaultTableModel;
 
 import audinc.gui.AbsoluteLayout;
 import audinc.gui.MainWin;
+import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 import presentables.Presentable;
 /**
  * GUI editor for draggable and linkable nodes. encouraged to inherit this class for more specialized uses
@@ -72,6 +73,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	protected boolean draggingNode = false;
 	protected DraggableNode<?> dragN;		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
+	
+	private final ConnectionStyle connectionIndicator = new DirectConnectionStyle();
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		super();
