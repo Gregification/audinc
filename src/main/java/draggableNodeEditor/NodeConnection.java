@@ -52,7 +52,7 @@ public class NodeConnection<T> {
 	private boolean needsRedrawn = true;
 	protected int lineWidth = defaultLineWidth;
 	
-	private PriorityBlockingQueue<WeightedPoint> linePoints =  new PriorityBlockingQueue<>();
+	public PriorityBlockingQueue<WeightedPoint> linePoints =  new PriorityBlockingQueue<>();
 	private ConnectionStyle connectionStyle;
 	
 	/**
@@ -213,6 +213,8 @@ public class NodeConnection<T> {
 	 * @param obstacles : regions the lines will try to avoid (see ConnectionStyle doc. for more info).
 	 */
 	public void redraw(final Polygon[] obstacles) {
+		setNeedsRedrawing(false);
+		
 		stopRedrawing();
 		LineAnchor[] 
 				anchs  	= this.anchors.stream().map(LineAnchor::getFromAnchorPoint).toArray(LineAnchor[]::new),
@@ -231,7 +233,11 @@ public class NodeConnection<T> {
 				);
 	}
 	
-	public void setNeedsRedrawing(boolean needsRedrawn) { this.needsRedrawn = needsRedrawn; }
+	public void setNeedsRedrawing(boolean needsRedrawn) {
+		this.needsRedrawn = needsRedrawn;
+		
+		if(needsRedrawn) stopRedrawing();
+	}
 	public boolean needsRedrawing() { return this.needsRedrawn; }
 	
 	public boolean isRedrawing() { return !connectionFuture.isDone(); }
@@ -288,8 +294,6 @@ public class NodeConnection<T> {
 				conn.remap(List.of(conn));
 			}
 		}
-		
-		directleyConnectedComponents.clear();
 	}
 	
 //////////////////////////
@@ -297,10 +301,6 @@ public class NodeConnection<T> {
 //////////////////////////	
 	public List<NodeComponent<T>> getDirectleyConnectedComponents(){
 		return directleyConnectedComponents.stream().toList();
-	}
-	
-	public Queue<WeightedPoint> getLinePoints(){
-		return linePoints;
 	}
 	
 	public CompletableFuture<PriorityBlockingQueue<WeightedPoint>> getPointFuture(){
@@ -328,5 +328,7 @@ public class NodeConnection<T> {
 			this.connectionStyle = new DirectConnectionStyle();
 		
 		this.connectionStyle = connectionStyle;
+		
+		setNeedsRedrawing(true);
 	}
 }

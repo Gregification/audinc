@@ -5,18 +5,21 @@ import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.GridBagLayout;
 import java.awt.Point;
+import java.awt.Polygon;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -81,7 +84,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	/**
 	 * draws the tempoary connection thats being controlled
 	 */
-	private NodeConnection<?> connectionIndicator = null;
+	private NodeConnection<?> 	connectionIndicator = null;
+	private ConnectionStyle		connectionIndicatorStyle = new DirectConnectionStyle();
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		super();
@@ -211,6 +215,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		} else if(SwingUtilities.isRightMouseButton(e)) {
 			if(compAt != null) {
 				//new connection event
+				makeNewConnectionFrom(compAt);
 			}
 		}
 		
@@ -261,6 +266,14 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public void plopNode(DraggableNode<?> node) {
 		assert isAncestorOf(node) : "refrenced a non existing node";
 		
+	}
+	
+	public void makeNewConnectionFrom(NodeComponent<?> comp) {
+		System.out.println("draggableNodeEditor > makeNewConnectionFrom, new connection from : " + comp);
+		
+	}
+	
+	public void plopConnectionIndicator() {
 		
 	}
 	
@@ -334,15 +347,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 						
 						addNode(node);
 						
-						{
-							var visR = this.getVisibleRect();
-							var location = new Point((int)visR.getCenterX(), (int)visR.getCenterY());
-							location.x = Math.max(0, location.x - (int)node.getWidth()/2);
-							location.y = Math.max(0, location.y - (int)node.getHeight()/2);
-							
-							node.setLocation(location);
-						}
-						
 						//let user drag the new node
 						selectNode(node);
 						dragNode(node, null);
@@ -368,13 +372,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		assert node != null
 			: "cannot add a null node";
 		
-		if(position == null)
-			position = new Point(
-					(int)editorScrollPane.getVisibleRect().getCenterX(),		//with null layout this dosen't actually do anything
-					(int)editorScrollPane.getVisibleRect().getCenterY()
-				);
-		
 		draggableNodes.add(node);
+		
 		this.add(node, layer);
 		
 		this.revalidate();
@@ -383,7 +382,18 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		node.addComponentListener(nConnRescheduler);
 		
-		this.repaint(node.getBounds());
+		SwingUtilities.invokeLater(() -> {
+			Point location = position;
+			if(location == null) {
+				var visr = this.getVisibleRect();
+				location = new Point(
+						(int)visr.getCenterX() - node.getWidth()/2,
+						(int)visr.getCenterY() - node.getHeight()/2
+					);
+			}
+			
+			node.setLocation(location);
+		});
 		
 		return node;
 	}
@@ -499,13 +509,37 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		g.setXORMode(Color.red);
 		g.drawLine(0, getHeight(), getWidth(), 0);
 		
-//		draggableNodes.parallelStream()
-//			.flatMap(e 	-> e.getConnectableNodeComponents().parallelStream())
-//			.flatMap(comp 	-> comp.getDirectConnections().parallelStream())
-//			.filter(conn 	-> conn.needsRedrawing())
-//			.forEach(conn 	-> {
-//					
-//				});
+//		final Polygon[] obs = draggableNodes.parallelStream()
+//				.map(node -> node.getBounds())
+//				.toArray(Polygon[]::new);
+		
+		draggableNodes.stream().sequential()
+			.flatMap(node 	-> node.getConnectableNodeComponents().stream())
+			.flatMap(comp 	-> comp.getDirectConnections().stream())
+			.distinct()
+			.filter(conn 	-> {
+					if(conn.needsRedrawing()) {
+						conn.redraw(new Polygon[0]);
+						return false;
+					}
+					return true;
+				})
+			.forEach(conn -> {
+				var ite = conn.linePoints.iterator();
+				
+				Point formerP;
+				if(ite.hasNext()) {
+					formerP = ite.next().point();
+				} else return;
+				
+				for(Point p; ite.hasNext();) {
+					p = ite.next().point();
+					
+					g.drawLine(formerP.x, formerP.y, p.x, p.y);
+					
+					formerP = p;
+				}
+			});
 	}
 	
 	enum EditorState{
