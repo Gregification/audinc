@@ -14,6 +14,7 @@ import java.awt.event.MouseMotionListener;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ import javax.swing.table.DefaultTableModel;
 
 import audinc.gui.AbsoluteLayout;
 import audinc.gui.MainWin;
+import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle;
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 import presentables.Presentable;
 /**
@@ -66,15 +68,20 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	 * contains all the nodes on the nodeEditor including those that may not be a part of it anymore.
 	 * use something like <code>this.isAncestor(element)</code> to see if its still in the editor
 	 */
-	protected ArrayList<SoftReference<DraggableNode<?>>> draggableNodes = new ArrayList<>();
+	protected ArrayList<DraggableNode<?>> draggableNodes = new ArrayList<>();
 	
 	//mouse events
 	protected Point dragOffSet;
 	
-	protected boolean draggingNode = false;
-	protected DraggableNode<?> dragN;		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
+	//state events
+	private EditorState editorState = EditorState.GENERAL;
 	
-	private final ConnectionStyle connectionIndicator = new DirectConnectionStyle();
+	protected DraggableNode<?> selectedNode;		//the current node being dragged. "dragN":pronounced like drag-n-dez-...
+	public int dragDropSnapRange = 4;
+	/**
+	 * draws the tempoary connection thats being controlled
+	 */
+	private NodeConnection<?> connectionIndicator = null;
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		super();
@@ -111,7 +118,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //mouse events
 ////////////////////////////////
 	@Override public void mouseDragged(MouseEvent e) {
-		if(!draggingNode || !dragN.isDraggable || !SwingUtilities.isLeftMouseButton(e) ) return;
+		if(!(editorState == EditorState.DRAGGINGNODE) || !selectedNode.isDraggable || !SwingUtilities.isLeftMouseButton(e) ) return;
 		
 		assert dragOffSet != null 
 				: "failed to be initialized";
@@ -133,10 +140,10 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				
 			newLocation.x = Math.max(newLocation.x, 0);	//west	bound
 			newLocation.y = Math.max(newLocation.y, 0);	//north bound
-			newLocation.x = Math.min(newLocation.x, this.getWidth()	- dragN.getWidth());	//east bound	
-			newLocation.y = Math.min(newLocation.y, this.getHeight() - dragN.getHeight());	//south bound
+			newLocation.x = Math.min(newLocation.x, this.getWidth()	- selectedNode.getWidth());	//east bound	
+			newLocation.y = Math.min(newLocation.y, this.getHeight() - selectedNode.getHeight());	//south bound
 			
-			dragN.setLocation(newLocation);
+			selectedNode.setLocation(newLocation);
 		}
 	}
 	
@@ -158,61 +165,67 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 	}
 	@Override public void mousePressed(MouseEvent e) {
-		if(draggingNode){//is something is being dragged already
+		if((editorState == EditorState.DRAGGINGNODE)){//is something is being dragged already
+			dragOffSet = switch(e.getSource()) {
+				case DraggableNode<?> node when node == selectedNode -> e.getPoint();
+				case DraggableNodeEditor editor -> SwingUtilities.convertPoint(editor, e.getPoint(), selectedNode);
+				default -> new Point(0,0);
+			};
+			
 			this.mouseDragged(e);
 			return;
 		}
 		
-		DraggableNode<?> nodeAt = null;
+		DraggableNode<?> 	nodeAt = null;	//node at clicked point. nodeAt == null => compAt == null
+		NodeComponent<?>	compAt = null; 	//component at clicked point.
+		Point 				pointAt= e.getPoint();	//clicked point relative to nodeAt
 		
-		/* accounts for different JComponents triggering the mouse listener.
-		 * 
-		 * sets [compAt] to the component selected (can be null)
-		 * sets [e](MouseEvent) to the perspective of [this](DraggableNodeEditor)
-		 */
+		// accounts for different JComponents triggering the mouse listener.
 		switch(e.getSource()) {
+			case null -> {} 
 			case DraggableNode<?> sourceNode -> {
 				nodeAt = sourceNode;
+				pointAt = e.getPoint();
 				e = SwingUtilities.convertMouseEvent(sourceNode, e, this);
 			}
 			case DraggableNodeEditor editor when editor == this -> {
-				Component compAt = getComponentAt(e.getPoint());
-				
-				if(compAt instanceof DraggableNode<?> catnode)
-					nodeAt = catnode;
+				if(getComponentAt(e.getPoint()) instanceof DraggableNode<?> cat) {
+					nodeAt = cat;
+					pointAt = SwingUtilities.convertPoint(this, e.getPoint(), nodeAt);
+				}
 			}
 			default -> {throw new UnsupportedOperationException("mouse event of the DraggableNodeEditor got triggered by a unknown Swing.Component . unable :( .");}
 		};
+		if(nodeAt != null)	compAt = nodeAt.getComponentForPoint(pointAt);
 		
-		if(nodeAt == null){
-			if(dragN != null)
-				dragN.onOffClick(e, null, null);
-			
-			return;
-		}
+		if(selectedNode != null) 	selectedNode.onOffClick(e, nodeAt, compAt);
 		
-		if(dragN != null)
-			dragN.onOffClick(e, nodeAt, dragN.getComponentForPoint(SwingUtilities.convertPoint(this, e.getPoint(), dragN)));
-		
-		if(SwingUtilities.isLeftMouseButton(e)) {
-			selectNode(this.dragN = nodeAt); 
-				
-			if(dragN.isDraggable) { 		//drag event
-				dragNode(nodeAt, SwingUtilities.convertPoint(this, e.getPoint(), dragN));
-				return;
+		//event logic
+		if(SwingUtilities.isLeftMouseButton(e)) { 
+			if(nodeAt != null) {			
+				//drag event
+				if(nodeAt.isDraggable) {
+					dragNode(nodeAt, pointAt);
+				}
 			}
-		}else if(SwingUtilities.isMiddleMouseButton(e)) {//attempt creating a new connection 
-			
+		} else if(SwingUtilities.isRightMouseButton(e)) {
+			if(compAt != null) {
+				//new connection event
+			}
 		}
+		
+		selectNode(nodeAt);
 	}
 	@Override public void mouseReleased(MouseEvent e) {
-		if(draggingNode) {
-			this.setLayer(dragN, NODE_LAYER);
+		if((editorState == EditorState.DRAGGINGNODE)) {
+			setLayer(selectedNode, NODE_LAYER);
 			
-			this.revalidate();//triggers layout manager (should be AbsoluteLayout) to recalculate the minimum size 
+			plopNode(selectedNode);
+			
+			editorState = EditorState.GENERAL;
+			
+			revalidate();//triggers layout manager (should be AbsoluteLayout) to recalculate the minimum size
 		}
-		
-		draggingNode = false;
 	}
 	@Override public void mouseEntered(MouseEvent e) {}
 	@Override public void mouseExited(MouseEvent e) {}
@@ -225,18 +238,30 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 	public void dragNode(DraggableNode<?> node, Point offset) {
-		if(!isAncestorOf(node)) return;
+		assert isAncestorOf(node) : "refrenced a non existing node";
 		
-		if(draggingNode) {
-			dragN.onOffClick(null, null, null);
+		if((editorState == EditorState.DRAGGINGNODE)) {
+			selectedNode.onOffClick(null, null, null);
 		}
 		
-		if(node != dragN) dragN = node;
+		if(node != selectedNode) selectedNode = node;
 		
 		if(offset == null) offset = new Point((int)(node.getWidth() / 2), (int)(node.getHeight() / 2));
 		
-		draggingNode = true;
+		editorState = EditorState.DRAGGINGNODE;
 		this.dragOffSet = offset;
+	}
+	
+	/**
+	 * puts the given node to the given location.
+	 * the node must already be part of the editor.
+	 * @param node
+	 * @param location
+	 */
+	public void plopNode(DraggableNode<?> node) {
+		assert isAncestorOf(node) : "refrenced a non existing node";
+		
+		
 	}
 	
 ////////////////////////////////
@@ -285,7 +310,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			try {
 				Class<? extends DraggableNode<?>> dragClas = nodeClasses.get(NewNodeDialogNodeTable.getSelectedRow());
 				
-				//find & supply context
+				//find & supply contexts
 				for(DraggableNodeGroup dng : nodeGroups.keySet())
 					if(dng.allowedNodes.contains(dragClas)) {
 						//Instantiate
@@ -309,19 +334,28 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 						
 						addNode(node);
 						
+						{
+							var visR = this.getVisibleRect();
+							var location = new Point((int)visR.getCenterX(), (int)visR.getCenterY());
+							location.x = Math.max(0, location.x - (int)node.getWidth()/2);
+							location.y = Math.max(0, location.y - (int)node.getHeight()/2);
+							
+							node.setLocation(location);
+						}
+						
 						//let user drag the new node
-						selectNode(this.dragN = node);
+						selectNode(node);
 						dragNode(node, null);
 						
 						return;
 					}
 				
-				throw new RuntimeException("failed to find a matching class by the selected table value. expected type:Class<? extends DraggableNode>, got value:" + dragN==null?"null":dragN.toString());
+				throw new RuntimeException("failed to find a matching class by the selected table value. expected type:Class<? extends DraggableNode>, got value:" + selectedNode==null?"null":selectedNode.toString());
 			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException | NoSuchMethodException | SecurityException e1) {
 				//if your getting a error and traced your back to here it means something in the process of constructing a node has thrown a error. all this function does is call the constructor.
 				if(!(e1 instanceof NoSuchMethodException)) {
-					System.out.println("draggableNodeEditor > openNewNodeDialog, dragN:" + dragN);
+					System.out.println("draggableNodeEditor > openNewNodeDialog, dragN:" + selectedNode);
 					e1.printStackTrace();
 				}
 				e1.printStackTrace();
@@ -340,7 +374,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					(int)editorScrollPane.getVisibleRect().getCenterY()
 				);
 		
-		draggableNodes.add(new SoftReference<DraggableNode<?>>(node));
+		draggableNodes.add(node);
 		this.add(node, layer);
 		
 		this.revalidate();
@@ -354,24 +388,26 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		return node;
 	}
 	
-	public void removeNode(DraggableNode<?> node) {
-		dragN.onDelete();
+	public void removeNode(DraggableNode<?> node) {		
+		if(!draggableNodes.remove(node)) return;
 		
-		if(dragN != null && node == dragN) {
+		selectedNode.onDelete();
+		
+		if(selectedNode != null && node == selectedNode) {
 			inspectorPanel.removeAll();
 			inspectorPanel.setBorder(null);
 			inspectorPanel.revalidate();
 		}
 		
-		remove(dragN);
-		repaint(dragN.getBounds());
+		remove(selectedNode);
+		repaint(selectedNode.getBounds());
 	}
 	
 	public void selectNode(DraggableNode<?> node) {
 		if(node != null){
-			this.moveToFront(node);
+			moveToFront(node);
 			
-			if(node != null || node != dragN) {
+			if(node != null || node != selectedNode) {
 				
 				inspectorPanel.removeAll();
 				inspectorPanel.setBorder(new TitledBorder(
@@ -381,11 +417,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				
 				var ins = node.getInspector();
 				if(ins != null)
-					this.inspectorPanel.add(ins);
+					inspectorPanel.add(ins);
 			}
 			
 		}
 		
+		selectedNode = node;
 		inspectorPanel.revalidate();
 	}
 	
@@ -420,9 +457,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	
 	public void onDeletenodeButtonClick() {
-		if(dragN == null) return;
+		if(selectedNode == null) return;
 		
-		removeNode(dragN);
+		removeNode(selectedNode);
 	}
 	
 /////////////////////
@@ -462,16 +499,20 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		g.setXORMode(Color.red);
 		g.drawLine(0, getHeight(), getWidth(), 0);
 		
-		draggableNodes.parallelStream()
-			.map(sr -> sr.get())
-			.filter(e 	-> e == null)
-			.flatMap(e 	-> e.getConnectableNodeComponents().parallelStream())
-			.flatMap(comp 	-> comp.getDirectConnections().parallelStream())
-			.filter(conn 	-> conn.needsRedrawing())
-			.forEach(conn 	-> {
-					
-				});
+//		draggableNodes.parallelStream()
+//			.flatMap(e 	-> e.getConnectableNodeComponents().parallelStream())
+//			.flatMap(comp 	-> comp.getDirectConnections().parallelStream())
+//			.filter(conn 	-> conn.needsRedrawing())
+//			.forEach(conn 	-> {
+//					
+//				});
 	}
 	
-	
+	enum EditorState{
+		GENERAL,
+		DRAGGINGNODE,
+		DRAGGINGCONNECTION,
+		SELECTINGREGION
+		;
+	}
 }

@@ -3,10 +3,11 @@ package draggableNodeEditor.connectionStyles;
 import java.awt.Point;
 import java.awt.Polygon;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 
-import draggableNodeEditor.ConnectionStyle;
-import draggableNodeEditor.LineAnchor;
+import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle;
+import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
+import draggableNodeEditor.NodeConnectionDrawer.WeightedPoint;
 
 /**
  * a straight line between each terminal.
@@ -16,14 +17,18 @@ public class DirectConnectionStyle implements ConnectionStyle{
 		objsticalNavication = false,
 		considerAnchors 	= false;
 
-	@Override public CompletableFuture<LinkedBlockingQueue<Point>> genConnections(
-			LinkedBlockingQueue<Point> output,
+	@Override public CompletableFuture<PriorityBlockingQueue<WeightedPoint>> genConnections(
+			PriorityBlockingQueue<WeightedPoint> output,
 			LineAnchor[] anchors,
 			LineAnchor[] terminals,
-			Polygon[] obsticals) {
+			Polygon[] obstacles) {
 		return CompletableFuture.supplyAsync(() -> {
+			//ignore everything
+			//draw line directly from terminal to terminal
+			int i = 0;
 			for(var t : terminals) {
-				output.add(new Point(t.x(), t.y()));
+				output.add(new WeightedPoint(i, new Point(t.x(), t.y())));
+				i++;
 			}
 			
 			return output;

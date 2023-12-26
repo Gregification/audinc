@@ -1,33 +1,40 @@
-package draggableNodeEditor;
+package draggableNodeEditor.NodeConnectionDrawer;
 
-import java.awt.Point;
 import java.awt.Polygon;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
+
+import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 
 /**
- * handles the drawing of a line 
+ * line drawing interface
  */
 public interface ConnectionStyle {
+	public static ConnectionStyle getDefaultConnectionsStyle() {
+		return new DirectConnectionStyle();
+	}
+	
 	/**
 	 * generates the path, point by point, between all terminal nodes. 
 	 * the final terminal node will not get a path made for it.
 	 * 
-	 * assume to be processing intensive
+	 * it is suggested that, the parameter, onNewPoints be used to provide live updates.  
+	 * 
+	 * assume to be processing intensive.
 	 * 
 	 * @param output : the actual output of this function, Points will be pushed onto the queue as they're calculated 
 	 * @param anchors : points that may effect where the line is drawn 
 	 * @param terminals: points where the line is guaranteed to cross. the first element is the origin. 
 	 * @param obstacles : regions the lines will try not to cross 
 	 * 
-	 * @return returns a completable future that returns the inked blocking queue to the output queue.
+	 * @return a CompletableFuture that returns the [output] parameter  
 	 */
-	public abstract CompletableFuture<LinkedBlockingQueue<Point>> genConnections(
-			LinkedBlockingQueue<Point> output,
-			final LineAnchor[] anchors,
-			final LineAnchor[] terminals,
-			final Polygon[] obsticals
-		);	
+	public abstract CompletableFuture<PriorityBlockingQueue<WeightedPoint>> genConnections(
+			final PriorityBlockingQueue<WeightedPoint> output,
+			LineAnchor[] anchors,
+			LineAnchor[] terminals,
+			Polygon[] obstacles
+		);
 	
 	//unused. too complicated and little reward. would require some sort of way to map what terminals effect what points, and some thread safe accessing of that data
 	/**

@@ -48,6 +48,11 @@ public class AnchorPoint extends DraggableNode<Void> implements MouseListener, M
 		pointColor 		 = AnchorPoint.defaultPointColor,
 		pointBorderColor = AnchorPoint.defaultPointBorderColor;
 	
+	/**
+	 * a arbitrary weight value assigned to this node, for lines to use. 
+	 * does not have to be normalized.
+	 * default is 1.
+	 */
 	public float weight = 1;
 	protected Point2D 
 		incommingBias 	= new Point2D.Float(0,0),
@@ -71,18 +76,6 @@ public class AnchorPoint extends DraggableNode<Void> implements MouseListener, M
 	public Point getPoint() {
 		var bounds = this.getBounds();
 		return new Point((int)bounds.getCenterX(), (int)bounds.getCenterY());
-	}
-	
-	public LineAnchor getAsLineAnchor() {
-		return new LineAnchor(	//some of the casts maybe unnecessary
-				(int)getX(),
-				(int)getY(),
-				(float)weight,
-				(float)incommingBias.getX(),
-				(float)incommingBias.getY(),
-				(float)outgoingBias.getX(),
-				(float)outgoingBias.getY()
-			);
 	}
 
 	@Override public String getTitle() {

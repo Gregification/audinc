@@ -62,7 +62,6 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	 */
 	public abstract void unconsiderComponent(NodeComponent<T> comp);
 	
-	
 	public abstract NodeSupplier<T> getSupplier();
 	
 	public List<NodeConnection<T>> getDirectConnections(){
