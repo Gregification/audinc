@@ -42,7 +42,7 @@ public abstract class DraggableNode<T> extends JPanel {
 	public volatile boolean isDraggable = true;
 	
 	protected volatile T context;
-	protected volatile ArrayList<NodeComponent<?>> connectableNodeComponents = new ArrayList<>();
+	protected ArrayList<NodeComponent<?>> connectableNodeComponents = new ArrayList<>();
 	
 	public DraggableNode(T context) {
 		super();
@@ -64,7 +64,7 @@ public abstract class DraggableNode<T> extends JPanel {
 	}
 	
 	/**
-	 * final step after being added to the editor. when this method is called it means the node is free of concerns for the node editors mission.
+	 * final step after being added to the editor. when this method is called it means the node dosen't have to be concerned about the node editors processes.
 	 * @param hostEditor : the hosting editor for this node
 	 */
 	public abstract void initNode(DraggableNodeEditor hostEditor);
@@ -179,8 +179,9 @@ public abstract class DraggableNode<T> extends JPanel {
 	}
 	
 	/**
+	 * finds the approate NodeComponent, thats on this node, associated with the position relative to this node.
 	 * @param aPoint relative to this DraggableNode
-	 * @return the selected component, or null is none are avaliable
+	 * @return the selected component, or null is none are available
 	 */
 	public NodeComponent<?> getComponentForPoint(Point aPoint) {
 		for(var comp : this.connectableNodeComponents) {

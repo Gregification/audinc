@@ -35,7 +35,7 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	public final static int 
 		connectionPointRaduis = 12,
 		connectionPointBorder = 3;
-	protected NodeComponentImportance importance = NodeComponentImportance.SUGGESTED;
+	protected NodeComponentStatus compStatus = NodeComponentStatus.NETURAL;
 
 	public NodeComponent(Class<T> type, String name, T value) {
 		this.type = type;
@@ -108,7 +108,7 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 			r =	connectionPointRaduis;
 		g.setColor(Color.black);
 		g.fillOval(p.x - R/2, p.y - R/2, R, R);
-		g.setColor(importance.color);
+		g.setColor(compStatus.color);
 		g.fillOval(p.x - r/2, p.y - r/2, r, r);
 	}
 	
@@ -139,13 +139,22 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 		this.setToolTipText(name);
 	}
 	
-	public NodeComponentImportance getImportance() {
-		return importance;
+	public NodeComponentStatus getCompStatus() {
+		return compStatus;
+	}
+	
+	public boolean isCompStatus(NodeComponentStatus... statius) {
+		var stats = List.of(statius);
+		return stats.contains(compStatus);
 	}
 
-	public void setImportance(NodeComponentImportance importance) {
+	public void setCompStatus(NodeComponentStatus stat) {
+		compStatus = stat;
+	}
+	
+	public void setImportance(NodeComponentStatus importance) {
 		if(importance != null)
-			this.importance = importance;
+			this.compStatus = importance;
 	}
 	
 	public NodeConnection<T> getNewConnection(){

@@ -94,7 +94,7 @@ public class AnchorPoint extends DraggableNode<Void> implements MouseListener, M
 		content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 		wrapper_bias.setBorder(new TitledBorder(
 				null,
-				"line bias"
+				"line bias (x, y)"
 			));
 		
 		Function<Double, SpinnerNumberModel>	newModel = (num) 	-> new SpinnerNumberModel((double)num,Integer.MIN_VALUE, Integer.MAX_VALUE, .2f);

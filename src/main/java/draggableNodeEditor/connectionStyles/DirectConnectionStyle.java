@@ -1,13 +1,11 @@
 package draggableNodeEditor.connectionStyles;
 
-import java.awt.Point;
-import java.awt.Polygon;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.PriorityBlockingQueue;
+import java.awt.BasicStroke;
+import java.awt.Shape;
+import java.awt.image.BufferedImage;
 
 import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle;
 import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
-import draggableNodeEditor.NodeConnectionDrawer.WeightedPoint;
 
 /**
  * a straight line between each terminal.
@@ -16,22 +14,26 @@ public class DirectConnectionStyle implements ConnectionStyle{
 	public volatile boolean 			//TODO
 		objsticalNavication = false,
 		considerAnchors 	= false;
-
-	@Override public CompletableFuture<PriorityBlockingQueue<WeightedPoint>> genConnections(
-			PriorityBlockingQueue<WeightedPoint> output,
+	
+	public static volatile int
+		strokeSize = 10; 
+	
+	@Override public void draw(
+			BufferedImage bf,
 			LineAnchor[] anchors,
 			LineAnchor[] terminals,
-			Polygon[] obstacles) {
-		return CompletableFuture.supplyAsync(() -> {
-			//ignore everything
-			//draw line directly from terminal to terminal
-			int i = 0;
-			for(var t : terminals) {
-				output.add(new WeightedPoint(i, new Point(t.x(), t.y())));
-				i++;
-			}
+			Shape[] obstacles) {
+		
+		if(terminals.length < 2) return;
+		
+		var g = bf.createGraphics();
+		g.setStroke(new BasicStroke(strokeSize));
+		
+		LineAnchor f = terminals[0];
+		for(var t : terminals) {
+			g.drawLine(f.x(), f.y(), t.x(), t.y());
 			
-			return output;
-		});
+			f = t;
+		}
 	}
 }

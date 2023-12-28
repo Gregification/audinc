@@ -1,22 +1,20 @@
 package draggableNodeEditor;
 
+import java.awt.Point;
 import java.awt.Polygon;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Stream;
 
 import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle;
 import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
-import draggableNodeEditor.NodeConnectionDrawer.WeightedPoint;
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 
 /**
@@ -30,12 +28,10 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
  * <br>> what did he mean by this 
  */
 public class NodeConnection<T> {
-	public static final int defaultLineWidth = 5;
-	
 	public final Class<T> type;
 	
 	public ArrayList<AnchorPoint> anchors = new ArrayList<>();
-	public HashSet<LineAnchor> knownAnchors = new HashSet<>();
+	public ArrayList<LineAnchor> knownAnchors = new ArrayList<>();
 	
 	//network stuff
 	/**
@@ -49,16 +45,11 @@ public class NodeConnection<T> {
 	protected HashSet<NodeConnection<T>> reachableConnections 			= new HashSet<>(List.of(this));
 	
 	//drawing stuff
-	private boolean needsRedrawn = true;
-	protected int lineWidth = defaultLineWidth;
+	private volatile boolean needsRedrawn = true;
 	
-	public PriorityBlockingQueue<WeightedPoint> linePoints =  new PriorityBlockingQueue<>();
+	private Point imageOffSet = new Point(0,0);
+	public volatile BufferedImage lineImage = null;
 	private ConnectionStyle connectionStyle;
-	
-	/**
-	 * the future thats doing the line calculations
-	 */
-	private CompletableFuture<PriorityBlockingQueue<WeightedPoint>> connectionFuture;
 
 	public NodeConnection(Class<T> type) {
 		super();
@@ -209,13 +200,14 @@ public class NodeConnection<T> {
 	}
 	
 	/**
-	 * recalculates the lines points.
+	 * draws the line points to the lineImage. done this way to somewhat force u to cache it
 	 * @param obstacles : regions the lines will try to avoid (see ConnectionStyle doc. for more info).
 	 */
-	public void redraw(final Polygon[] obstacles) {
+	public void draw(final Polygon[] obstacles) {
+		assert lineImage != null : "no image supplied";
+		
 		setNeedsRedrawing(false);
 		
-		stopRedrawing();
 		LineAnchor[] 
 				anchs  	= this.anchors.stream().map(LineAnchor::getFromAnchorPoint).toArray(LineAnchor[]::new),
 				terms	= Stream.concat(
@@ -223,59 +215,15 @@ public class NodeConnection<T> {
 							  	knownAnchors.stream())
 							.toArray(LineAnchor[]::new);
 		
-		linePoints.clear();
-		
-		connectionFuture = connectionStyle.genConnections(
-					linePoints,
-					anchs,
-					terms,
-					obstacles
-				);
+		connectionStyle.draw(lineImage, anchs, terms, obstacles);
 	}
 	
 	public void setNeedsRedrawing(boolean needsRedrawn) {
 		this.needsRedrawn = needsRedrawn;
-		
-		if(needsRedrawn) stopRedrawing();
 	}
-	public boolean needsRedrawing() { return this.needsRedrawn; }
+	public boolean needsRedrawing() { return needsRedrawn || lineImage == null; }
 	
-	public boolean isRedrawing() { return !connectionFuture.isDone(); }
-	
-	/**
-	 * stops redrawing if it is drawing. does nothing otherwise
-	 * @return true : if redrawing was stopped . false : if redrawing was already stopped
-	 */
-	public boolean stopRedrawing() {
-		if(!isRedrawing()) return false;
-		
-		connectionFuture.cancel(true);
-		
-		return true;
-	}
-	
-	/**
-	 * send the changes to neighboring connections.
-	 * @param changes
-	 */
-	void propagateUpdatePacket(NodeConnectionUpdatePacket<T> changes) {
-		if(changes.visitedConnections().add(this)) {
-			
-			//stop dead end propagations
-			if(changes.addedNodes().size() == 0 && changes.removedNodes().size() == 0) return;
-			
-			//send to neighbors
-			for(var comp : directleyConnectedComponents) {
-				comp.getDirectConnections().stream()
-					.filter(conn -> conn != this)		//could be better
-					;
-			}
-		}
-	}
-	
-	public void deleteConnection() {
-		stopRedrawing();
-		
+	public void deleteConnection() {		
 		//remap the neighboring connections
 		
 		//networks of the neighbors that have been remapped
@@ -299,20 +247,22 @@ public class NodeConnection<T> {
 //////////////////////////
 // getters & setters
 //////////////////////////	
+	public Point getImageOffset() {
+		return imageOffSet;
+	}
+	
+	public void setImage(BufferedImage image) {
+		this.lineImage = image;
+		if(image != null)
+			setNeedsRedrawing(true);
+	}
+	
+	public BufferedImage getImage() {
+		return lineImage;
+	}
+	
 	public List<NodeComponent<T>> getDirectleyConnectedComponents(){
 		return directleyConnectedComponents.stream().toList();
-	}
-	
-	public CompletableFuture<PriorityBlockingQueue<WeightedPoint>> getPointFuture(){
-		return this.connectionFuture;
-	}
-	
-	public int getLineWidth() {
-		return lineWidth;
-	}
-
-	public void setLineWidth(int lineWidth) {
-		this.lineWidth = Math.max(lineWidth, 1);
 	}
 	
 	public ConnectionStyle getConnectionStyle() {
