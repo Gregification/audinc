@@ -47,8 +47,8 @@ public class NodeConnection<T> {
 	//drawing stuff
 	private volatile boolean needsRedrawn = true;
 	
-	private Point imageOffSet = new Point(0,0);
-	public volatile BufferedImage lineImage = null;
+	private volatile Point imageOffSet = new Point(0,0);
+	private volatile BufferedImage lineImage = null;
 	private ConnectionStyle connectionStyle;
 
 	public NodeConnection(Class<T> type) {
@@ -62,7 +62,8 @@ public class NodeConnection<T> {
 	 * adds the component as a directly connected one. rechecks all connections associated with the component
 	 * @param comp : the new component
 	 */
-	public void connectToComponent(NodeComponent<T> comp) {		
+	public void connectToComponent(NodeComponent<T> comp) {	
+		System.out.println("node conneciton > connect to component, comp: " + comp);
 		//if already connected
 		if(directleyConnectedComponents.contains(comp)) 
 			return;
@@ -205,6 +206,7 @@ public class NodeConnection<T> {
 	 */
 	public void draw(final Polygon[] obstacles) {
 		assert lineImage != null : "no image supplied";
+		System.out.println("node conneciton > draw");
 		
 		setNeedsRedrawing(false);
 		

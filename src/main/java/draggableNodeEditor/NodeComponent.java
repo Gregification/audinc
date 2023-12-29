@@ -23,6 +23,7 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	protected String name;
 	protected HashSet<NodeConnection<T>> 	directConnections = new HashSet<>();
 	protected CompletableFuture<T> valueFuture = CompletableFuture.supplyAsync(() -> null);
+	protected DraggableNode<?> hostNode = null;
 	
 	/**
 	 * center of the connectionPoint relative to the host DraggableNode
@@ -66,6 +67,10 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	
 	public List<NodeConnection<T>> getDirectConnections(){
 		return directConnections.stream().toList();
+	}
+	
+	public DraggableNode<?> getHostNode(){
+		return this.hostNode;
 	}
 	
 	public void joinConnection(NodeConnection<T> conn) {

@@ -59,7 +59,7 @@ public abstract class DraggableNode<T> extends JPanel {
 	
 	public abstract String getTitle();
 	public abstract JComponent getInspector();
-	public final ArrayList<NodeComponent<?>> getConnectableNodeComponents(){
+	public ArrayList<NodeComponent<?>> getConnectableNodeComponents(){
 		return connectableNodeComponents;
 	}
 	
@@ -84,6 +84,7 @@ public abstract class DraggableNode<T> extends JPanel {
 	public T getContext() { return context; }
 	
 	protected void registerConnectableNodeComponent(NodeComponent<?> ncomp) {
+		ncomp.hostNode = this;
 		if(!connectableNodeComponents.contains(ncomp))
 			connectableNodeComponents.add(ncomp);
 	}

@@ -83,8 +83,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	/**
 	 * draws the tempoary connection thats being controlled
 	 */
-	private NodeConnection<?> 	connectionIndicator = null;
-	private ConnectionStyle		connectionIndicatorStyle = new DirectConnectionStyle();
+	private NodeConnection<?> 	connectionIndicator = null; 
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		super();
@@ -155,7 +154,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			var pe = prepMouseEvent(e);
 			
 			connectionIndicator.knownAnchors.clear();
-			connectionIndicator.knownAnchors.set(1, new LineAnchor(
+			connectionIndicator.knownAnchors.add(new LineAnchor(
 					pe.mouseEvent.getPoint().x,
 					pe.mouseEvent.getPoint().y,
 					0f,0f,0f,0f,0f
@@ -166,16 +165,21 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		if(SwingUtilities.isMiddleMouseButton(e)) {
 			var pe = prepMouseEvent(e);
 			
-			if(setEditor(EditorState.DRAGGINGCONNECTION)) {
-				if(pe.compAt != null) {
-					System.out.println("new connection, compAt : " + pe.compAt);
-					startConnectionIndicatorFrom(pe.nodeAt, pe.compAt);
-				}
-			}else {
+			if(isEditor(EditorState.DRAGGINGCONNECTION)) {
 				System.out.println("setting connection, compAt : " + pe.compAt);
 				
 				if(pe.compAt != null)
 					plopConnectionIndicator(pe.compAt);
+				else
+					System.out.println("");
+				
+				unsetEditor(EditorState.DRAGGINGCONNECTION);
+			}else {
+				if(pe.compAt != null) {
+					setEditor(EditorState.DRAGGINGCONNECTION);
+					System.out.println("new connection, compAt : " + pe.compAt);
+					startConnectionIndicatorFrom(pe.compAt);
+				}
 			}
 		}
 		
@@ -285,22 +289,23 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		System.out.println("plop node");
 	}
-	
-	public void startConnectionIndicatorFrom(DraggableNode<?> hostNode, NodeComponent<?> comp) {
+
+	public <V> void startConnectionIndicatorFrom(NodeComponent<V> comp) {
+		System.out.println("draggableNodeEditor > startConnectionIndicatorFrom, comp : " + comp);
+		NodeConnection<V> conn = comp.getNewConnection();
+			conn.connectToComponent(comp);
+		startConnectionIndicatorFrom(conn);
+	}
+	public void startConnectionIndicatorFrom(NodeConnection<?> conn) {
+		System.out.println("draggableNodeEditor > startConnectionIndicatorFrom, conn : " + conn);
 		setEditor(EditorState.DRAGGINGCONNECTION);
 		
-		connectionIndicator = comp.getNewConnection();
-		Point connPoint = SwingUtilities.convertPoint(hostNode, comp.connectionPoint, this);
-		connectionIndicator.knownAnchors.add(new LineAnchor(
-				connPoint.x,
-				connPoint.y,
-				0f,0f,0f,0f,0f
-			));
+		connectionIndicator = conn;
 		for(var node : draggableNodes) {
 			for(var c : node.getConnectableNodeComponents()) {
-				if(comp.type == c.type)
+				if(conn.type == c.type)
 					c.setCompStatus(NodeComponentStatus.AVAILABLE);
-				else if(c.type.isAssignableFrom(comp.type))
+				else if(c.type.isAssignableFrom(conn.type))
 					c.setCompStatus(NodeComponentStatus.NETURAL);
 				else
 					c.setCompStatus(NodeComponentStatus.NOT_AVAILABLE);
@@ -567,25 +572,29 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		@Override public void componentResized(ComponentEvent e) 	{ }
 		@Override public void componentMoved(ComponentEvent e)  	{
 //			System.out.println("draggable node editor > nConnRescheduler , component moved : " + e.getSource());
-			if(e.getSource() instanceof DraggableNode node) {
-				var arr = node.getConnectableNodeComponents();
+			if(e.getSource() instanceof DraggableNode<?> node) {
 				
-//				for(NodeComponent<?> comp : node.getConnectableNodeComponents()){
-//					
-//				}
+				node.getConnectableNodeComponents().stream()
+					.flatMap(comp -> comp.getDirectConnections().stream())
+					.forEach(conn -> conn.setNeedsRedrawing(true));
+				
 			}
 		}
 		@Override public void componentShown(ComponentEvent e)  	{ }
 		@Override public void componentHidden(ComponentEvent e) 	{ }
 	};
+	
+	public final ArrayList<NodeComponent<?>> getConnectableNodeComponents(){
+		return null;
+	}
 
 	@Override public void paint(Graphics g) {
-		super.paint(g);
-		
-		g.setXORMode(Color.orange);
+		g.setColor(Color.orange);
 		g.drawLine(0, getHeight(), getWidth(), 0);
 		g.drawLine(0, 0 , getWidth(), getHeight());
 		g.setPaintMode();
+		
+		super.paint(g);
 		
 //		draggableNodes.stream().sequential()
 //			.flatMap(node 	-> node.getConnectableNodeComponents().stream())
