@@ -1,10 +1,15 @@
 package draggableNodeEditor;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Point;
-import java.awt.Polygon;
+import java.awt.event.ActionEvent;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
@@ -15,29 +20,44 @@ import java.awt.image.BufferedImage;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.border.BevelBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 
 import audinc.gui.AbsoluteLayout;
 import audinc.gui.MainWin;
-import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle;
 import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
-import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 import presentables.Presentable;
 /**
  * GUI editor for draggable and linkable nodes. encouraged to inherit this class for more specialized uses
@@ -59,13 +79,13 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	 * for node use.
 	 * A table of all node groups and the "context" associated with them.
 	 */
-	public volatile Map<DraggableNodeGroup, Object> nodeGroups;
+	public final Map<DraggableNodeGroup, Object> nodeGroups;
 	
 	public JToolBar editorToolBar;
 	
 	protected JScrollPane editorScrollPane;
 	protected JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
-	
+	protected JFrame editorDetailsView;
 	/**
 	 * contains all the nodes on the nodeEditor including those that may not be a part of it anymore.
 	 * use something like <code>this.isAncestor(element)</code> to see if its still in the editor
@@ -106,6 +126,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	public DraggableNodeEditor(Map<DraggableNodeGroup, Object> allowedNodeGroups) {
 		this(new JPanel(), new JToolBar(), allowedNodeGroups);
+	}
+	public void quit() {
+		editorDetailsView.dispose();
 	}
 	
 	/**
@@ -166,18 +189,16 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			var pe = prepMouseEvent(e);
 			
 			if(isEditor(EditorState.DRAGGINGCONNECTION)) {
-				System.out.println("setting connection, compAt : " + pe.compAt);
+				System.out.println("draggableNodeEditor > mouse clicked; setting connection, compAt : " + pe.compAt);
 				
-				if(pe.compAt != null)
-					plopConnectionIndicator(pe.compAt);
-				else
-					System.out.println("");
-				
+				plopConnectionIndicator(pe.compAt);
 				unsetEditor(EditorState.DRAGGINGCONNECTION);
+				setAllNodeComponentStatuses(NodeComponentStatus.NETURAL);
 			}else {
 				if(pe.compAt != null) {
 					setEditor(EditorState.DRAGGINGCONNECTION);
-					System.out.println("new connection, compAt : " + pe.compAt);
+					System.out.println("draggableNodeEditor > mouse clicked; new connection, compAt : " + pe.compAt);
+					
 					startConnectionIndicatorFrom(pe.compAt);
 				}
 			}
@@ -287,7 +308,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public void plopNode(DraggableNode<?> node) {
 		assert isAncestorOf(node) : "refrenced a non existing node";
 		
-		System.out.println("plop node");
+//		System.out.println("draggableNodeEditor > plop node");
 	}
 
 	public <V> void startConnectionIndicatorFrom(NodeComponent<V> comp) {
@@ -301,30 +322,46 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		setEditor(EditorState.DRAGGINGCONNECTION);
 		
 		connectionIndicator = conn;
-		for(var node : draggableNodes) {
-			for(var c : node.getConnectableNodeComponents()) {
-				if(conn.type == c.type)
+		setAllNodeComponentStatuses(conn.type);
+	}
+	public void plopConnectionIndicator(NodeComponent<?> comp) {
+		String ret = "draggableNodeEditor > plop conneciton indicator; attach to : " + comp;
+		
+		if(comp == null || comp.isCompStatus(NodeComponentStatus.NOT_AVAILABLE)) {
+			ret += "\n\t> component callnot be used.";
+			if(connectionIndicator.getDirectleyConnectedComponents().isEmpty()) {
+				connectionIndicator.deleteConnection();
+				connectionIndicator = null;
+			}
+		}else {
+			connectionIndicator.connectToComponent(comp);
+		}
+		
+		System.out.println(ret);
+	}
+	
+	public void setAllNodeComponentStatuses(Class<?> type) {			
+		for(var node : draggableNodes) {	
+			var comps = node.getConnectableNodeComponents();
+			for(var c : comps) {
+				if(type == c.type)
 					c.setCompStatus(NodeComponentStatus.AVAILABLE);
-				else if(c.type.isAssignableFrom(conn.type))
+				else if(c.type.isAssignableFrom(type))
 					c.setCompStatus(NodeComponentStatus.NETURAL);
 				else
 					c.setCompStatus(NodeComponentStatus.NOT_AVAILABLE);
-			}	
+			}
+			if(!comps.isEmpty()) node.repaint();
 		}
 	}
-	
-	public void setAllNodeComponentStatuses(NodeComponentStatus stat) {
+	public void setAllNodeComponentStatuses(NodeComponentStatus stat) {		
 		for(var node : draggableNodes) {
-			for(var c : node.getConnectableNodeComponents()) {
-				c.setCompStatus(stat);
-			}	
+			var comps = node.getConnectableNodeComponents();
+			for(var comp : comps) {
+				comp.setCompStatus(stat);
+			}
+			if(!comps.isEmpty()) node.repaint();
 		}
-	}
-	
-	public void plopConnectionIndicator(NodeComponent<?> comp) {
-		if(!unsetEditor(EditorState.DRAGGINGCONNECTION)) return;
-		
-		System.out.println("plop conneciton indicator");
 	}
 	
 	/**
@@ -474,7 +511,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		return node;
 	}
-	
+
 	public void removeNode(DraggableNode<?> node) {		
 		if(!draggableNodes.remove(node)) return;
 		
@@ -531,12 +568,18 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			deleteNodeBtn.addActionListener(e -> onDeletenodeButtonClick());
 			deleteNodeBtn.setMnemonic(KeyEvent.VK_DELETE);
 		
+		var viewConnectionsBtn = new JButton(MainWin.getImageIcon("res/info.png", MainWin.stdtabIconSize));
+			viewConnectionsBtn.setToolTipText("see node editor details. eID:" + hashCode());
+			viewConnectionsBtn.addActionListener(e -> onViewConnectionDetailsClick());
+			viewConnectionsBtn.setMnemonic(KeyEvent.VK_C);
+			
 		editorToolBar = new JToolBar("editor tool bar",JToolBar.VERTICAL);
 			editorToolBar.setRollover(true);
 			
 		editorToolBar.add(newNodeBtn);
 		editorToolBar.add(deleteNodeBtn);
-		editorToolBar.add(Box.createVerticalStrut(MainWin.stdStructSpace / 2));
+		editorToolBar.add(Box.createVerticalGlue());
+		editorToolBar.add(viewConnectionsBtn);
 	}
 	
 	private void genGUI_inspector(JPanel panel) {
@@ -549,6 +592,285 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		removeNode(selectedNode);
 	}
 	
+	public void onViewConnectionDetailsClick() {
+		JFrame connF = viewConnectionDetails();
+		connF.setVisible(!connF.isVisible());
+	}
+	
+	public JFrame viewConnectionDetails() {
+		if(editorDetailsView != null) return editorDetailsView;
+		
+		editorDetailsView = new JFrame("Node Editor info (eID:"+hashCode()+")");
+		editorDetailsView.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		editorDetailsView.setLocationRelativeTo(this);
+		editorDetailsView.setResizable(true);
+		editorDetailsView.setMinimumSize(MainWin.stdDimension);
+		editorDetailsView.setIconImage(MainWin.getImageIcon("res/clear.png").getImage());
+		
+		JPanel
+			generalTab 		= new JPanel(),
+			connectionTab	= new JPanel()
+			;
+		
+		
+		var content = new JTabbedPane();
+			content.addTab("general", MainWin.getImageIcon("res/aboutbg.png", MainWin.stdtabIconSize),
+					new JScrollPane(generalTab,
+			        		JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+			        		JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+					"general overview");
+			content.addTab("connection", MainWin.getImageIcon("res/link.png", MainWin.stdtabIconSize),
+					connectionTab,
+					"connection info");
+		
+		try(ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()){
+			executor.execute(() -> genUI_editorDetails_general(generalTab));
+			executor.execute(() -> genUI_editorDetails_connection(connectionTab));
+		}
+			
+		editorDetailsView.add(content);
+		return editorDetailsView;
+	}
+	public void genUI_editorDetails_general(JPanel content) {
+		content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+		
+		ArrayList<Runnable> onReload = new ArrayList<>();
+		
+		JButton reloadBtn = new JButton(MainWin.getImageIcon("res/refresh.png", MainWin.stdtabIconSize));
+			reloadBtn.setMnemonic(KeyEvent.VK_R);
+			reloadBtn.setToolTipText("refresh this tabbs information");
+			reloadBtn.addActionListener(e -> onReload.stream().forEach(r -> r.run()));
+		
+		JPanel allowedNodes = new JPanel();
+			allowedNodes.setLayout(new GridBagLayout());
+			allowedNodes.setBorder(new TitledBorder(
+					BorderFactory.createBevelBorder(BevelBorder.LOWERED),
+					"allowed nodes"
+				));
+		int y = 0;
+		
+		for(var gp : nodeGroups.keySet().stream().sorted().toList()) {
+			JPanel group = new JPanel();
+			group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+			group.setBorder(new TitledBorder(
+					BorderFactory.createDashedBorder(Color.black),
+					gp.toString()
+				));
+			
+			JTextArea context = new JTextArea();
+				onReload.add(() -> context.setText(nodeGroups.get(gp).toString()));
+				context.setEditable(false);
+				context.setLineWrap(true);
+				context.setLayout(getLayout());
+				
+			int ty = 0;
+			group.add(context, Presentable.createGbc(0, ty++));
+			
+			for(var v : gp.allowedNodes) {
+				var l = new JLabel(v.toString());
+					l.setAlignmentX(Component.LEFT_ALIGNMENT);
+				group.add(l, Presentable.createGbc(0, ty++));
+			}
+			
+			allowedNodes.add(group, Presentable.createGbc(0, y++));
+		}
+		
+		JTable nodeTabel = new JTable(new DefaultTableModel()){
+				private static final long serialVersionUID = 2L;
+				public boolean isCellEditable(int row, int column) { return false; }
+			};
+			nodeTabel.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			nodeTabel.setCellEditor(null);
+			onReload.add(() -> {
+					var model = (DefaultTableModel)nodeTabel.getModel();
+						model.setRowCount(0);
+						model.setColumnCount(1);
+					draggableNodes.stream().sequential()
+							.map(n -> n.getTitle() + "    : " + n.toString())
+							.sorted()
+							.forEach(n -> model.addRow(new Object[] {n}));
+				});
+		
+		for(var a : reloadBtn.getActionListeners()) a.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, null));
+		y = 0;
+		content.add(reloadBtn);
+		content.add(allowedNodes);
+		content.add(nodeTabel);
+	}
+	public void genUI_editorDetails_connection(JPanel content) {
+		ArrayList<Runnable> onReload = new ArrayList<>();
+		
+		JButton reloadBtn = new JButton(MainWin.getImageIcon("res/refresh.png", MainWin.stdtabIconSize));
+			reloadBtn.setMnemonic(KeyEvent.VK_R);
+			reloadBtn.setToolTipText("refresh this tabbs information");
+			reloadBtn.addActionListener(e -> onReload.stream().forEach(r -> r.run()));
+			
+		JPanel inspector = new JPanel(new GridBagLayout());
+			JComboBox<String> connectionList = new JComboBox<>();
+				onReload.add(() -> connectionList.setModel(new DefaultComboBoxModel<String>(draggableNodes.stream().map(n -> n.getTitle()).toArray(String[]::new))));
+		
+		JPanel minimap = new JPanel() {
+				private static final long serialVersionUID = 1L;
+				final Color[] colors = new Color[] {Color.red, Color.green, Color.blue, Color.orange, Color.cyan, Color.pink, Color.magenta, Color.yellow}; 
+				int ci = 0;
+				private Color getAColor() {
+					ci += 1;
+					ci %= colors.length;
+					return colors[ci];
+				}
+				double calculateArcAngle(int startX, int startY, int endX, int endY, double startAngle) {
+					   // Calculate the angle between the start point and the end point
+					   double deltaX = endX - startX;
+					   double deltaY = endY - startY;
+					   double angle = Math.atan2(deltaY, deltaX);
+
+					   // Convert the angle to degrees
+					   angle = Math.toDegrees(angle);
+
+					   // Normalize the angle to be between 0 and 360
+					   if (angle < 0) {
+					       angle += 360;
+					   }
+
+					   // Subtract the start angle from the calculated angle to get the arc angle
+					   double arcAngle = angle - startAngle;
+
+					   // Ensure the arc angle is positive
+					   if (arcAngle < 0) {
+					       arcAngle += 360;
+					   }
+
+					   return arcAngle;
+					}
+				
+				@Override public void paint(Graphics g) {
+					super.paint(g);
+					
+					int 
+						iw = getWidth(),
+						ih = getHeight(),
+						compSpace = 10,
+						compSpaceDiv2 = compSpace /2;
+					float
+						degPerConn = 15;
+					
+					HashMap<NodeComponent<?>, Point> compLocations = new HashMap<>();
+					HashMap<NodeComponent<?>, Float> passedComps = new HashMap<>();
+					draggableNodes.stream()
+						.flatMap(n -> {
+							var comps = n.getConnectableNodeComponents();
+							int x = n.getX(), y = n.getY();
+							for(var comp : comps) {
+								y+= compSpace;
+								g.setColor(getAColor());
+								g.fillRect(x, y, compSpace, compSpace);
+								g.setColor(Color.black);
+								g.drawString(comp.getName(), x+compSpace+2, y+=compSpace);
+								
+								compLocations.put(comp, new Point(x+compSpaceDiv2, y+compSpaceDiv2));
+							}
+							
+							g.setPaintMode();
+							g.setColor(Color.black);
+							g.drawString(n.getTitle(), n.getX(), n.getY());
+							return comps.stream();
+						})
+						.toList()
+						.stream()
+						.forEach(comp -> {
+							passedComps.clear();
+							
+							Point cp = compLocations.get(comp);
+							
+							comp.getDirectConnections().stream()
+								.flatMap(c -> c.getDirectleyConnectedComponents().stream())
+								.forEach(otherComp -> {
+									Point ocp = compLocations.get(otherComp);
+									
+									if(passedComps.containsKey(otherComp)) {
+										float deg = passedComps.get(otherComp);
+										
+										g.drawArc(
+												cp.x,
+												cp.y,
+												ocp.x,
+												ocp.y,
+												(int)deg,
+												(int)calculateArcAngle(
+														cp.x,
+														cp.y,
+														ocp.x,
+														ocp.y,
+														deg
+													)
+											);
+										
+										deg += degPerConn * Math.signum(deg);
+										passedComps.put(otherComp, deg);
+									}else {
+										g.drawLine(cp.x, cp.y, ocp.x, ocp.y);
+										passedComps.put(otherComp, degPerConn);
+									}
+								});
+						})
+						;
+					
+					g.setXORMode(Color.red);
+					g.drawLine(0, 0, iw, ih);
+					g.drawLine(0, ih, iw, 0);
+				}
+			};
+			onReload.add(() -> minimap.repaint());
+		
+		JPanel minimapControlWrapper = new JPanel(new GridBagLayout());
+		
+		BiFunction<Integer, Integer, GridBagConstraints>	gc = (x,y) -> {var c = Presentable.createGbc(x, y); c.weighty = 0; return c;};
+		{//miniMap
+			minimapControlWrapper.setBorder(new TitledBorder(
+					BorderFactory.createBevelBorder(BevelBorder.LOWERED),
+					"mini map options"
+				));
+			
+			Function<Integer, SpinnerNumberModel>	newModel = (num) 	-> new SpinnerNumberModel((int)num, 1, Integer.MAX_VALUE, 1);
+			Function<JSpinner, Integer>				getValue = (s)	-> (int)s.getValue();
+			JSpinner //size control for the minimap
+				bx = new JSpinner(newModel.apply(MainWin.stdDimension.width)),		
+				by = new JSpinner(newModel.apply(MainWin.stdDimension.height));
+			Runnable setSize = () -> {
+				var size = new Dimension(getValue.apply(bx), getValue.apply(by));
+				minimap.setMinimumSize(size);
+				minimap.setPreferredSize(size);
+				minimap.setMaximumSize(size);
+			};
+			onReload.add(setSize);
+			
+			bx.addChangeListener(e -> setSize.run());
+			by.addChangeListener(e -> setSize.run());
+			
+			int x = 0, y = 0;
+			minimapControlWrapper.add(new JLabel("width,height"), 	gc.apply(x++, y));
+			minimapControlWrapper.add(bx, 	gc.apply(x++, y));
+			minimapControlWrapper.add(by, 	gc.apply(x++, y));
+		}
+		{//inspector 
+			int x = 0, y = 0;
+			inspector.add(connectionList,	gc.apply(x, y++));
+		}
+		
+		for(var a : reloadBtn.getActionListeners()) a.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, null));
+		content.setLayout(new BorderLayout());
+		content.add(new JSplitPane(SwingConstants.VERTICAL,
+							new JScrollPane(inspector,	
+									JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+									JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED),
+							new JScrollPane(minimap,	
+									JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+									JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+						),
+						BorderLayout.CENTER
+					);
+		content.add(reloadBtn, BorderLayout.PAGE_START);
+	}
 /////////////////////
 //node connection stuff
 /////////////////////
@@ -583,10 +905,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		@Override public void componentShown(ComponentEvent e)  	{ }
 		@Override public void componentHidden(ComponentEvent e) 	{ }
 	};
-	
-	public final ArrayList<NodeComponent<?>> getConnectableNodeComponents(){
-		return null;
-	}
 
 	@Override public void paint(Graphics g) {
 		g.setColor(Color.orange);

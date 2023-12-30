@@ -1,6 +1,6 @@
 package draggableNodeEditor.serialPoke;
 
-import javax.swing.JPanel;
+import javax.swing.JComponent;
 
 import draggableNodeEditor.DraggableNode;
 import draggableNodeEditor.DraggableNodeEditor;
@@ -21,7 +21,7 @@ public class NepSPDataListener extends DraggableNode<SerialPokeCommConnection> {
 		return "entry point : Serial Port data listener";
 	}
 
-	@Override public JPanel getInspector() {
-		return null;
+	@Override public JComponent getInspector() {
+		return super.getInspector();
 	}
 }

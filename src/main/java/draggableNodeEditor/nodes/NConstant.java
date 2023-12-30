@@ -1,5 +1,6 @@
 package draggableNodeEditor.nodes;
 
+import java.awt.Component;
 import java.awt.GridBagLayout;
 import java.util.Map;
 import java.util.function.Function;
@@ -24,7 +25,7 @@ public class NConstant extends DraggableNode<Void> {
 	private static final long serialVersionUID = 1L;
 	
 	//GUI
-	private JScrollPane constantsTableWrapper;
+	private Component constantsTableWrapper;
 	private JTable constantsTable;	//could be better optimized 
 	private static final Map<Class<?>, Function<Void, NodeSupplier<?>>> supportedConstants = Map.of(
 				Number.class, v -> new NspSpinner<Number>(
@@ -120,7 +121,9 @@ public class NConstant extends DraggableNode<Void> {
 	@Override public String getTitle() {
 		return "Constant (" + index + ")";
 	}
-	@Override public JComponent getInspector() {		
-		return constantsTableWrapper;
+	@Override public JComponent getInspector() {	
+		var v = super.getInspector();
+		v.add(constantsTableWrapper);
+		return v;
 	}
 }

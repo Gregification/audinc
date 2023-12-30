@@ -19,7 +19,8 @@ import DOMViewer.PopupOptionable;
  * the generics supplied to [DOMView] are local [enum]s.
  */
 public class DOMViewerTemplate extends DOMView<DOMViewer.Views.DOMViewerTemplate.popupOptions, DOMViewer.Views.DOMViewerTemplate.popupLimit> {
-	
+	private static final long serialVersionUID = 1L;
+
 	public DOMViewerTemplate(Path root) {
 		super(root);
 	}

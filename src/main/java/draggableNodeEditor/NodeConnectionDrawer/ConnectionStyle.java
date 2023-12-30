@@ -50,6 +50,21 @@ public interface ConnectionStyle {
 			maxy = 0,
 			alpha;
 		
+		//brute force 
+//		for(int x = 0; x < ix; x++) {
+//			for(int y = 0; y < iy; y++) {
+//				alpha = ((p[minx * ix + y] >> 24) & 0xff);
+//				
+//				if(alpha != 0) {
+//					minx = Math.min(minx, x);
+//					miny = Math.min(miny, y);
+//					maxx = Math.max(maxx, x);
+//					maxy = Math.max(maxy, y);
+//				}
+//			}
+//		}
+		
+		
 		//find minX
 		for(minx = 0; minx < ix; minx++) {
 			for(int y = 0; y < iy; y++) {
@@ -101,7 +116,7 @@ public interface ConnectionStyle {
 		
 		//yippie
 		
-		return new Rectangle(minx, miny, maxx - minx, maxy - miny);
+		return new Rectangle(minx, miny, Math.max(0, maxx - minx), Math.max(0, maxy - miny));
 	}
 	
 	//unused. too complicated and little reward. would require some sort of way to map what terminals effect what points, and some thread safe accessing of that data

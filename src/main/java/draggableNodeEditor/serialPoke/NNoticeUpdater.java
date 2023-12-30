@@ -53,7 +53,7 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	}
 
 	@Override public JComponent getInspector() {
-		return null;
+		return super.getInspector();
 	}
 	
 	public void onInput(Object obj) {

@@ -132,7 +132,7 @@ public class NodeConnection<T> {
 	 * @return true if all direct NodeConnections share the same network, or if there are no connections
 	 */
 	public boolean isNodeNetworkSus(NodeComponent<T> node, boolean ignoreself) {
-		List<NodeConnection<T>> conns = node.getDirectConnections();
+		ArrayList<NodeConnection<T>> conns = new ArrayList<>(node.getDirectConnections());
 		
 		if(ignoreself) conns.remove(this);
 		

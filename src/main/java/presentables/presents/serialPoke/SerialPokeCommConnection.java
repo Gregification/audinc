@@ -123,6 +123,8 @@ public class SerialPokeCommConnection extends JPanel{
 			try {
 				logger.close();
 			} catch (IOException e) { e.printStackTrace(); }
+		
+		inputEditor.quit();
 	}
 
 	protected SerialPortDataListener getDataListener() {

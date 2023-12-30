@@ -36,12 +36,10 @@ public abstract class DraggableNode<T> extends JPanel {
 	protected final static Color
 		stdBackgroundColor 			= Color.LIGHT_GRAY,
 		stdBackgroundColorEmphasis1 = Color.LIGHT_GRAY;
-
-	public final static double terminalPointSelectionRadius = 3;
 	
-	public volatile boolean isDraggable = true;
-	
+	//node stuff
 	protected volatile T context;
+	public volatile boolean isDraggable = true;
 	protected ArrayList<NodeComponent<?>> connectableNodeComponents = new ArrayList<>();
 	
 	public DraggableNode(T context) {
@@ -58,9 +56,12 @@ public abstract class DraggableNode<T> extends JPanel {
 	}
 	
 	public abstract String getTitle();
-	public abstract JComponent getInspector();
 	public ArrayList<NodeComponent<?>> getConnectableNodeComponents(){
 		return connectableNodeComponents;
+	}
+	
+	public JComponent getInspector() {
+		return new JPanel();
 	}
 	
 	/**
