@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -103,7 +104,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	/**
 	 * draws the tempoary connection thats being controlled
 	 */
-	private NodeConnection<?> 	connectionIndicator = null; 
+	private NodeConnection	connectionIndicator = null; 
 	
 	public DraggableNodeEditor(JPanel inspector, JToolBar index, Map<DraggableNodeGroup, Object> nodeGroups) {
 		super();
@@ -311,29 +312,33 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //		System.out.println("draggableNodeEditor > plop node");
 	}
 
-	public <V> void startConnectionIndicatorFrom(NodeComponent<V> comp) {
+	public void startConnectionIndicatorFrom(NodeComponent<?> comp) {
 		System.out.println("draggableNodeEditor > startConnectionIndicatorFrom, comp : " + comp);
-		NodeConnection<V> conn = comp.getNewConnection();
+		setAllNodeComponentStatuses(comp.type);
+		
+		NodeConnection conn = new NodeConnection();
 			conn.connectToComponent(comp);
+			
 		startConnectionIndicatorFrom(conn);
 	}
-	public void startConnectionIndicatorFrom(NodeConnection<?> conn) {
+	public void startConnectionIndicatorFrom(NodeConnection conn) {
 		System.out.println("draggableNodeEditor > startConnectionIndicatorFrom, conn : " + conn);
 		setEditor(EditorState.DRAGGINGCONNECTION);
 		
 		connectionIndicator = conn;
-		setAllNodeComponentStatuses(conn.type);
 	}
 	public void plopConnectionIndicator(NodeComponent<?> comp) {
 		String ret = "draggableNodeEditor > plop conneciton indicator; attach to : " + comp;
 		
 		if(comp == null || comp.isCompStatus(NodeComponentStatus.NOT_AVAILABLE)) {
-			ret += "\n\t> component callnot be used.";
-			if(connectionIndicator.getDirectleyConnectedComponents().isEmpty()) {
+			ret += "\n\t> failed to connect -> component called on is not valid.";
+			if(connectionIndicator.getDirectleyConnectedComponents().size() <= 1) {
+				ret += "\n\t> deleting connection <- connection was pointless.";
 				connectionIndicator.deleteConnection();
 				connectionIndicator = null;
 			}
 		}else {
+			ret += "\n\t> connection success.";
 			connectionIndicator.connectToComponent(comp);
 		}
 		
@@ -584,6 +589,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	private void genGUI_inspector(JPanel panel) {
 		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+		panel.setPreferredSize(new Dimension(MainWin.stdDimension.width / 7, MainWin.stdDimension.height));
 	}
 	
 	public void onDeletenodeButtonClick() {
@@ -699,15 +705,12 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 	public void genUI_editorDetails_connection(JPanel content) {
 		ArrayList<Runnable> onReload = new ArrayList<>();
+		final DraggableNodeEditor editor = this;
 		
 		JButton reloadBtn = new JButton(MainWin.getImageIcon("res/refresh.png", MainWin.stdtabIconSize));
 			reloadBtn.setMnemonic(KeyEvent.VK_R);
 			reloadBtn.setToolTipText("refresh this tabbs information");
 			reloadBtn.addActionListener(e -> onReload.stream().forEach(r -> r.run()));
-			
-		JPanel inspector = new JPanel(new GridBagLayout());
-			JComboBox<String> connectionList = new JComboBox<>();
-				onReload.add(() -> connectionList.setModel(new DefaultComboBoxModel<String>(draggableNodes.stream().map(n -> n.getTitle()).toArray(String[]::new))));
 		
 		JPanel minimap = new JPanel() {
 				private static final long serialVersionUID = 1L;
@@ -718,6 +721,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					ci %= colors.length;
 					return colors[ci];
 				}
+
 				double calculateArcAngle(int startX, int startY, int endX, int endY, double startAngle) {
 					   // Calculate the angle between the start point and the end point
 					   double deltaX = endX - startX;
@@ -762,12 +766,24 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 							int x = n.getX(), y = n.getY();
 							for(var comp : comps) {
 								y+= compSpace;
+								g.setColor(Color.black);
+								g.drawString("["+(
+										(comp instanceof NodeSupplier) ? "O" 
+											: (comp instanceof NodeConsumer) ? "I"
+													: "") + "] " 
+										+ comp.getName(), x+compSpace+2, y+compSpace);
+								
+								//draw rectangle
 								g.setColor(getAColor());
 								g.fillRect(x, y, compSpace, compSpace);
-								g.setColor(Color.black);
-								g.drawString(comp.getName(), x+compSpace+2, y+=compSpace);
+								
+								//draw rectangle outline
+								g.setColor(g.getColor().darker());
+								g.drawRect(x, y, compSpace, compSpace);
 								
 								compLocations.put(comp, new Point(x+compSpaceDiv2, y+compSpaceDiv2));
+								
+								y+=compSpace;
 							}
 							
 							g.setPaintMode();
@@ -786,6 +802,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 								.flatMap(c -> c.getDirectleyConnectedComponents().stream())
 								.forEach(otherComp -> {
 									Point ocp = compLocations.get(otherComp);
+									
+									g.setXORMode(getAColor());
 									
 									if(passedComps.containsKey(otherComp)) {
 										float deg = passedComps.get(otherComp);
@@ -816,13 +834,26 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 						;
 					
 					g.setXORMode(Color.red);
-					g.drawLine(0, 0, iw, ih);
-					g.drawLine(0, ih, iw, 0);
+					int //forgot there's no way to consider the layout's scale without some more variables and type checking. not worth it.
+						th = (int)(editor.getHeight() / (float)editor.getWidth() * iw),
+						tw = (int)(editor.getWidth() / (float)editor.getHeight() * ih);
+					g.drawLine(0, 0, tw, th);
+					
+					g.setXORMode(Color.green);
+					g.drawRect(0, 0, editor.getWidth(), editor.getHeight());
+					g.drawLine(0, 0, editor.getWidth(), editor.getHeight());
+					g.drawLine(0, editor.getHeight(), editor.getWidth(), 0);
 				}
 			};
 			onReload.add(() -> minimap.repaint());
 		
 		JPanel minimapControlWrapper = new JPanel(new GridBagLayout());
+		
+		JPanel inspector = new JPanel(new GridBagLayout());
+		JComboBox<String> connectionList = new JComboBox<>();
+			onReload.add(() -> connectionList.setModel(new DefaultComboBoxModel<String>(draggableNodes.stream().map(n -> n.getTitle()).toArray(String[]::new))));
+			JButton resetMinimapSizeBtn = new JButton("reset size");
+			resetMinimapSizeBtn.addActionListener(e -> minimap.setPreferredSize(null));
 		
 		BiFunction<Integer, Integer, GridBagConstraints>	gc = (x,y) -> {var c = Presentable.createGbc(x, y); c.weighty = 0; return c;};
 		{//miniMap
@@ -836,11 +867,17 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			JSpinner //size control for the minimap
 				bx = new JSpinner(newModel.apply(MainWin.stdDimension.width)),		
 				by = new JSpinner(newModel.apply(MainWin.stdDimension.height));
+			
+			onReload.add(() -> {
+				bx.getModel().setValue(getWidth());
+				by.getModel().setValue(getHeight());
+			});
+			
 			Runnable setSize = () -> {
 				var size = new Dimension(getValue.apply(bx), getValue.apply(by));
-				minimap.setMinimumSize(size);
 				minimap.setPreferredSize(size);
-				minimap.setMaximumSize(size);
+				minimap.setSize(size);
+				minimap.revalidate();
 			};
 			onReload.add(setSize);
 			
@@ -848,13 +885,18 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			by.addChangeListener(e -> setSize.run());
 			
 			int x = 0, y = 0;
-			minimapControlWrapper.add(new JLabel("width,height"), 	gc.apply(x++, y));
+			minimapControlWrapper.add(new JLabel("x,y"), 	gc.apply(x++, y));
 			minimapControlWrapper.add(bx, 	gc.apply(x++, y));
 			minimapControlWrapper.add(by, 	gc.apply(x++, y));
+			x = 0; y++;
+			minimapControlWrapper.add(resetMinimapSizeBtn, gc.apply(x, y++));
 		}
 		{//inspector 
+			
+			inspector.setPreferredSize(new Dimension(MainWin.stdDimension.width / 4, inspector.getHeight()));
 			int x = 0, y = 0;
-			inspector.add(connectionList,	gc.apply(x, y++));
+			inspector.add(minimapControlWrapper,gc.apply(x, y++));
+			inspector.add(connectionList,		gc.apply(x, y++));
 		}
 		
 		for(var a : reloadBtn.getActionListeners()) a.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, null));

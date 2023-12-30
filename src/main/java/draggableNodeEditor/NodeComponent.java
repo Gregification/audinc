@@ -21,7 +21,7 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	
 	//node stuff
 	protected String name;
-	protected HashSet<NodeConnection<T>> 	directConnections = new HashSet<>();
+	protected HashSet<NodeConnection> 	directConnections = new HashSet<>();
 	protected CompletableFuture<T> valueFuture = CompletableFuture.supplyAsync(() -> null);
 	protected DraggableNode<?> hostNode = null;
 	
@@ -65,7 +65,7 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	
 	public abstract NodeSupplier<T> getSupplier();
 	
-	public List<NodeConnection<T>> getDirectConnections(){
+	public List<NodeConnection> getDirectConnections(){
 		return directConnections.stream().toList();
 	}
 	
@@ -73,7 +73,7 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 		return this.hostNode;
 	}
 	
-	public void joinConnection(NodeConnection<T> conn) {
+	public void joinConnection(NodeConnection conn) {
 		//if is not connected
 		if(directConnections.add(conn)) {
 			//update the connection
@@ -81,22 +81,13 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 		}
 	}
 	
-	public void dropConnection(NodeConnection<T> conn) {
+	public void dropConnection(NodeConnection conn) {
 		//if is connected
 		if(directConnections.remove(conn)) {
 			//update the connection
 			conn.disconnectComponent(this);
 		}
 			
-	}
-	
-	/**
-	 * makes a new connection compatible with this NodeComponent. 
-	 * <br>the component is not registered with the connection in any way.
-	 * @return
-	 */
-	public NodeConnection<T> makeNewConnectionOfType(){
-		return new NodeConnection<T>(type);
 	}
 	
 	/**
@@ -162,8 +153,8 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 			this.compStatus = importance;
 	}
 	
-	public NodeConnection<T> getNewConnection(){
-		NodeConnection<T> conn = new NodeConnection<T>(type);
+	public NodeConnection getNewConnection(){
+		NodeConnection conn = new NodeConnection();
 		
 		return conn;
 	}
