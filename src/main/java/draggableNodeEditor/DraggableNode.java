@@ -5,6 +5,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Point;
+import java.awt.Polygon;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 
@@ -39,7 +40,9 @@ public abstract class DraggableNode<T> extends JPanel {
 	
 	//node stuff
 	protected volatile T context;
-	public volatile boolean isDraggable = true;
+	public volatile boolean 
+		isDraggable = true,
+		isLineObstical = true;
 	protected ArrayList<NodeComponent<?>> connectableNodeComponents = new ArrayList<>();
 	
 	public DraggableNode(T context) {
@@ -63,6 +66,13 @@ public abstract class DraggableNode<T> extends JPanel {
 	public JComponent getInspector() {
 		return new JPanel();
 	}
+	public Polygon getOutline() {
+		var rect = getBounds();
+		int[] xpoints = {rect.x, rect.x + rect.width, rect.x + rect.width, rect.x};
+		int[] ypoints = {rect.y, rect.y, rect.y + rect.height, rect.y + rect.height};
+		
+	    return new Polygon(xpoints, ypoints, 4); 
+	}
 	
 	/**
 	 * final step after being added to the editor. when this method is called it means the node dosen't have to be concerned about the node editors processes.
@@ -80,7 +90,14 @@ public abstract class DraggableNode<T> extends JPanel {
 	public boolean onOffClick(MouseEvent me, DraggableNode<?> otherNode, NodeComponent<?> otherComponent) {return true;};//me can be null
 	public void initGUI() { applyDefaultNamedBorder(); }
 	public void setContext(T newContext) { this.context = newContext; }	
-	public void onDelete() {};
+	public void onDelete() {
+		connectableNodeComponents.stream()
+			.forEach(comp -> {
+				comp.getDirectConnections().stream()
+					.forEach(conn -> conn.disconnectComponent(comp));
+			})
+			;
+	};
 	
 	public T getContext() { return context; }
 	

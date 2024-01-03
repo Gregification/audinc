@@ -1,6 +1,7 @@
 package draggableNodeEditor.connectionStyles;
 
 import java.awt.BasicStroke;
+import java.awt.Color;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
 
@@ -16,7 +17,7 @@ public class DirectConnectionStyle implements ConnectionStyle{
 		considerAnchors 	= false;
 	
 	public static volatile int
-		strokeSize = 10; 
+		strokeSize = 5; 
 	
 	@Override public void draw(
 			BufferedImage bf,
@@ -27,6 +28,7 @@ public class DirectConnectionStyle implements ConnectionStyle{
 		if(terminals.length < 2) return;
 		
 		var g = bf.createGraphics();
+		g.setColor(Color.red);
 		g.setStroke(new BasicStroke(strokeSize));
 		
 		LineAnchor f = terminals[0];

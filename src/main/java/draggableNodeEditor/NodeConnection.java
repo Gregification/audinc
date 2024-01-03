@@ -1,16 +1,14 @@
 package draggableNodeEditor;
 
+import java.awt.Component;
 import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 
 import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle;
@@ -20,6 +18,8 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 /**
  * connects NodeConsumers
  * 
+ * warning : this class is held together by a excessive use of the "volatile" key word. it seems to work though, just keep this in mind if your getting funky errors
+ * 
  * @unrelated
  * > be me
  * <br>> morbius(2018)
@@ -28,9 +28,8 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
  * <br>> what did he mean by this 
  */
 public class NodeConnection {
-	
-	public ArrayList<AnchorPoint> anchors = new ArrayList<>();
-	public ArrayList<LineAnchor> knownAnchors = new ArrayList<>();
+	public volatile List<AnchorPoint> anchors = new ArrayList<>();
+	public volatile List<LineAnchor> knownAnchors = new ArrayList<>();
 	
 	//network stuff
 	/**
@@ -41,7 +40,7 @@ public class NodeConnection {
 	/**
 	 * true if this connection is a valid network node, otherwise networks will ignore this connection
 	 */
-	private boolean networkable = false;
+	private volatile boolean networkable = false;
 
 	/**
 	 * a shared hashset between each group of connected NodeConnections
@@ -49,11 +48,11 @@ public class NodeConnection {
 //	protected HashSet<NodeConnection> reachableConnections 			= new HashSet<>(List.of(this));
 	
 	//drawing stuff
-	private volatile boolean needsRedrawn = true;
-	
+	private ReentrantLock imgLock = new ReentrantLock(true);//completeable future may deadlock self
+	private	volatile boolean needsRedrawn = true;
 	private volatile Point imageOffSet = new Point(0,0);
-	private volatile BufferedImage lineImage = null;
-	private ConnectionStyle connectionStyle;
+	private volatile CompletableFuture<BufferedImage> imageFuture = null;
+	private volatile ConnectionStyle connectionStyle;
 
 	public NodeConnection() {
 		super();
@@ -61,15 +60,46 @@ public class NodeConnection {
 		setConnectionStyle(null);
 	}
 	
+	public boolean isPoinless() {
+		return directleyConnectedComponents.size() < 2;
+	}
+	
+	public void redraw(int width, int height, final Polygon[] polys, Component hostComp){
+		System.out.println("node connection > redraw, width: " + width + "\t height:" + height + "\t hostComp:" + hostComp);
+		imgLock.lock();
+		if(imageFuture != null) imageFuture.cancel(true);
+		
+		imageFuture = CompletableFuture.supplyAsync(() -> {
+				var img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+				draw(polys, img, hostComp);
+				
+				var cropRec = ConnectionStyle.cropOpaqueContent(img);
+				img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
+				setImageOffset(cropRec.x, cropRec.y);
+				
+				return img;
+			});
+		needsRedrawn = false;
+		imgLock.unlock();
+	}
+	
+	public CompletableFuture<BufferedImage> getImageFuture(){
+		imgLock.lock();
+		var val = imageFuture;
+		imgLock.unlock();
+		return val;
+	}
+	
 	/**
 	 * adds the component as a directly connected one. rechecks all connections associated with the component
 	 * @param comp : the new component
 	 */
 	public void connectToComponent(NodeComponent<?> comp) {	
-		System.out.println("node conneciton > connect to component, comp: " + comp);
 		//if already connected
 		if(directleyConnectedComponents.contains(comp)) 
 			return;
+		
+		System.out.println("node conneciton > connect to component, comp: " + comp);
 		
 		//if is a orphaned node -> no need to worry about a network
 //		if(isNetworkable() && !comp.getDirectConnections().isEmpty()) {			
@@ -103,6 +133,7 @@ public class NodeConnection {
 //		}
 		
 		//update self
+		needsRedrawn = true;
 		directleyConnectedComponents.add(comp);
 		
 		//update the node
@@ -207,26 +238,29 @@ public class NodeConnection {
 	 * draws the line points to the lineImage. done this way to somewhat force u to cache it
 	 * @param obstacles : regions the lines will try to avoid (see ConnectionStyle doc. for more info).
 	 */
-	public void draw(final Polygon[] obstacles) {
-		assert lineImage != null : "no image supplied";
-		System.out.println("node conneciton > draw");
-		
-		setNeedsRedrawing(false);
-		
+	public void draw(final Polygon[] obstacles, BufferedImage image, final Component hostComp) {
 		LineAnchor[] 
 				anchs  	= this.anchors.stream().map(LineAnchor::getFromAnchorPoint).toArray(LineAnchor[]::new),
 				terms	= Stream.concat(
-								directleyConnectedComponents.stream().map(LineAnchor::getFromNodeComponent),
+								directleyConnectedComponents.stream()
+									.map(comp -> LineAnchor.getFromNodeComponent(comp, hostComp)),
 							  	knownAnchors.stream())
 							.toArray(LineAnchor[]::new);
 		
-		connectionStyle.draw(lineImage, anchs, terms, obstacles);
+		connectionStyle.draw(image, anchs, terms, obstacles);
 	}
-	
-	public void setNeedsRedrawing(boolean needsRedrawn) {
-		this.needsRedrawn = needsRedrawn;
+	public boolean isImgReady() {
+		imgLock.lock(); 
+		
+		if(imageFuture == null || imageFuture.isCancelled()) {
+			imgLock.unlock();
+			return false;
+		}
+		
+		var val = imageFuture.isDone();
+		imgLock.unlock();
+		return val;
 	}
-	public boolean needsRedrawing() { return needsRedrawn || lineImage == null; }
 	
 	public void deleteConnection() {		
 		//remap the neighboring connections
@@ -247,23 +281,46 @@ public class NodeConnection {
 //				conn.remap(List.of(conn));
 //			}
 		}
+		
 	}
 	
 //////////////////////////
 // getters & setters
-//////////////////////////	
+//////////////////////////
+	/**
+	 * if the optional flag to redraw the image has been set
+	 * @return
+	 */
+	public boolean needsRedrawn() {
+		imgLock.lock();
+		var res = needsRedrawn || imageFuture == null;
+		imgLock.unlock();
+		return res;
+	}
+	
+	/**
+	 * sets the needsRedrawn option and returns what it previously was
+	 * @param newVal
+	 * @return true if the option was true before the change
+	 */
+	public boolean setNeedsRedrawn(boolean newVal) {
+		imgLock.lock();
+		var oldVal = needsRedrawn;
+		needsRedrawn = newVal;
+		imgLock.unlock();
+		return oldVal;
+	}
+	
+	private void setImageOffset(int x, int y) {
+		imageOffSet.x = x;
+		imageOffSet.y = y;
+	}
+	
 	public Point getImageOffset() {
-		return imageOffSet;
-	}
-	
-	public void setImage(BufferedImage image) {
-		this.lineImage = image;
-		if(image != null)
-			setNeedsRedrawing(true);
-	}
-	
-	public BufferedImage getImage() {
-		return lineImage;
+		imgLock.lock();
+		var val = (Point)imageOffSet.clone();
+		imgLock.unlock();
+		return val;
 	}
 	
 	public List<NodeComponent<?>> getDirectleyConnectedComponents(){
@@ -279,12 +336,15 @@ public class NodeConnection {
 	 * @param connectionStyle, if NULL will use default
 	 */
 	public void setConnectionStyle(ConnectionStyle connectionStyle) {
+		imgLock.lock();
 		if(connectionStyle == null)
 			this.connectionStyle = new DirectConnectionStyle();
+		else
+			this.connectionStyle = connectionStyle;
 		
-		this.connectionStyle = connectionStyle;
+		needsRedrawn = true;
 		
-		setNeedsRedrawing(true);
+		imgLock.unlock();
 	}
 //	public boolean isNetworkable() {
 //		return networkable;

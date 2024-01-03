@@ -650,12 +650,17 @@ public class SerialPokeCommConnection extends JPanel{
 			saveSettingButton.addActionListener(e -> {
 					onSaveSettingsClick(true);
 				});
+		
+		var randBckGndColorBtn = new JButton("change color");
+			randBckGndColorBtn.setToolTipText("revolutionary piece of technologeyeyeyey");
+			randBckGndColorBtn.addActionListener(e -> setBackground(MainWin.randColor()));
 			
 		tab_cont.add(jcb_toggleport);
 		tab_cont.add(saveSettingButton);
 		tab_cont.add(selectSettingButton);
 		tab_cont.add(refreshSettingButton);
 		tab_cont.add(applySettingButton);
+		tab_cont.add(randBckGndColorBtn);
 	}
 	
 	private void genUI_tab_input(JPanel content) {

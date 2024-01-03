@@ -11,6 +11,8 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.swing.JComponent;
 
+import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
+
 /**
  * a editable value for the
  * @param <T>
@@ -23,7 +25,7 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	protected String name;
 	protected HashSet<NodeConnection> 	directConnections = new HashSet<>();
 	protected CompletableFuture<T> valueFuture = CompletableFuture.supplyAsync(() -> null);
-	protected DraggableNode<?> hostNode = null;
+	public volatile DraggableNode<?> hostNode = null;
 	
 	/**
 	 * center of the connectionPoint relative to the host DraggableNode

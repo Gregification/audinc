@@ -1,5 +1,9 @@
 package draggableNodeEditor.NodeConnectionDrawer;
 
+import java.awt.Component;
+
+import javax.swing.SwingUtilities;
+
 import draggableNodeEditor.AnchorPoint;
 import draggableNodeEditor.NodeComponent;
 import draggableNodeEditor.NodeSupplier;
@@ -35,12 +39,14 @@ public record LineAnchor(
 			);
 	}
 
-	public static LineAnchor getFromNodeComponent(NodeComponent<?> comp) {
+	public static LineAnchor getFromNodeComponent(NodeComponent<?> comp, Component hostComp) {
 		int bias = (comp instanceof NodeSupplier) ? 1  : -1;//if is not supplier then is consumer
 		
+		var conPoint = SwingUtilities.convertPoint(comp.hostNode, comp.connectionPoint, hostComp);
+		System.out.println("line ancor > get from node component : ");
 		return new LineAnchor(
-					comp.connectionPoint.x,
-					comp.connectionPoint.y,
+					conPoint.x,
+					conPoint.y,
 					1,
 					bias,
 					0,
