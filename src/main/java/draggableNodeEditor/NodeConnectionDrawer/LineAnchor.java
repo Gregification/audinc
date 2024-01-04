@@ -43,8 +43,8 @@ public record LineAnchor(
 		int bias = (comp instanceof NodeSupplier) ? 1  : -1;//if is not supplier then is consumer
 		
 		var conPoint = SwingUtilities.convertPoint(comp.hostNode, comp.connectionPoint, hostComp);
-		System.out.println("line ancor > get from node component : ");
-		return new LineAnchor(
+		
+		var ret = new LineAnchor(
 					conPoint.x,
 					conPoint.y,
 					1,
@@ -53,6 +53,10 @@ public record LineAnchor(
 					bias,
 					0
 				);
+		
+		System.out.println("line ancor > get from node component : " + comp + "\n\t> " + ret);
+		
+		return ret;
 	}
 	
 	/**

@@ -30,12 +30,13 @@ public class DirectConnectionStyle implements ConnectionStyle{
 		var g = bf.createGraphics();
 		g.setColor(Color.red);
 		g.setStroke(new BasicStroke(strokeSize));
-		
+				
 		LineAnchor f = terminals[0];
 		for(var t : terminals) {
 			g.drawLine(f.x(), f.y(), t.x(), t.y());
-			
 			f = t;
 		}
+		
+		g.dispose();
 	}
 }

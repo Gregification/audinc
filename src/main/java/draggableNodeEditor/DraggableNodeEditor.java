@@ -128,11 +128,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		this.editorToolBar = index;
 		this.inspectorPanel = inspector;			
 		
-		editorScrollPane = new JScrollPane(this,	
-				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-			editorScrollPane.setAutoscrolls(true);
-		
 		this.nodeGroups = nodeGroups;
 		
 		genGUI();
@@ -141,7 +136,10 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		this(new JPanel(), new JToolBar(), allowedNodeGroups);
 	}
 	public void quit() {
-		editorDetailsView.dispose();
+		if(editorDetailsView != null) {
+			editorDetailsView.dispose();
+			editorDetailsView = null;
+		}
 	}
 	
 	/**
@@ -178,7 +176,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				
 			newLocation.x = Math.max(newLocation.x, 0);	//west	bound
 			newLocation.y = Math.max(newLocation.y, 0);	//north bound
-			newLocation.x = Math.min(newLocation.x, this.getWidth()	- selectedNode.getWidth());	//east bound	
+			newLocation.x = Math.min(newLocation.x, this.getWidth()	- selectedNode.getWidth());		//east bound	
 			newLocation.y = Math.min(newLocation.y, this.getHeight() - selectedNode.getHeight());	//south bound
 			
 			selectedNode.setLocation(newLocation);
@@ -188,13 +186,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	@Override public void mouseMoved(MouseEvent e) {
 		if(isEditor(EditorState.DRAGGINGCONNECTION)) {
 			var pe = prepMouseEvent(e);
-			
-			selectedConnection.knownAnchors.clear();
-			selectedConnection.knownAnchors.add(new LineAnchor(
-					pe.mouseEvent.getPoint().x,
-					pe.mouseEvent.getPoint().y,
-					0f,0f,0f,0f,0f
-				));
 		}
 	}
 	@Override public void mouseClicked(MouseEvent e) {
@@ -606,6 +597,11 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //gui events
 ////////////////////////////////
 	private void genGUI_editor() {
+		editorScrollPane = new JScrollPane(this,	
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+			editorScrollPane.setAutoscrolls(true);
+		
 		var absLayout = new AbsoluteLayout();
 		this.setLayout(absLayout);
 				
@@ -1015,15 +1011,19 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	@Override public void componentHidden(ComponentEvent e) 	{ }
 	
 	
-	private long 	nConnRescheduler_lastMovement 	= 0,
-					nConnRescheduler_lastUpdate 	= 0;
-	private SoftReference<Polygon[]> nConnRescheduler_obsRef;
+	volatile long 	nConnRescheduler_lastMovement 	= 0;
+	long			nConnRescheduler_lastUpdate 	= 0;
+	SoftReference<Polygon[]> nConnRescheduler_obsRef;
 	/**
 	 * triggers a line recalculation. editor to tell nodeConnection's should be recalculated/redrawn
 	 * must only be attached to draggableNode's . intended for nodes that are a child of this nodeEditor.
 	 */
-	private ComponentListener nConnRescheduler = new ComponentListener() {		
-		Polygon[] getPoly() {
+	private ComponentListener nConnRescheduler = new ComponentListener() {
+		/**
+		 * gets the polygons that represents all the areas lines should try not to cross
+		 * @return array of polygons
+		 */
+		synchronized Polygon[] getPoly() {
 			Polygon[] ret;
 			
 			if(nConnRescheduler_lastUpdate < nConnRescheduler_lastMovement 
@@ -1037,7 +1037,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			
 			return ret;
 		}
-		
 		@Override public void componentResized(ComponentEvent e) 	{ }
 		@Override public void componentMoved(ComponentEvent e)  	{
 //			System.out.println("draggable node editor > nConnRescheduler , component moved : " + e.getSource());
@@ -1048,7 +1047,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					.forEach(conn -> {
 						conn.redraw(getWidth(), getHeight(), getPoly(), self);
 								
-						conn.setNeedsRedrawn(false);
+						conn.setNeedsRedrawn(true);
 					});
 				
 			}else {

@@ -41,29 +41,32 @@ public interface ConnectionStyle {
 	
 	public static Rectangle cropOpaqueContent(BufferedImage bf) {
 		return new Rectangle(0,0,bf.getWidth(),bf.getHeight());
-//		int[] p = ((DataBufferInt)bf.getRaster().getDataBuffer()).getData();
-//		int
-//			ix = bf.getWidth(),
-//			iy = bf.getHeight(),
-//			minx = 0,
-//			miny = 0,
-//			maxx = 0,
-//			maxy = 0,
-//			alpha;
-		
-//		brute force 
-//		for(int x = 0; x < ix; x++) {
-//			for(int y = 0; y < iy; y++) {
-//				alpha = ((p[minx * ix + y] >> 24) & 0xff);
-//				
-//				if(alpha != 0) {
-//					minx = Math.min(minx, x);
-//					miny = Math.min(miny, y);
-//					maxx = Math.max(maxx, x);
-//					maxy = Math.max(maxy, y);
-//				}
-//			}
-//		}
+		/*
+		int[] p = ((DataBufferInt)bf.getRaster().getDataBuffer()).getData();
+		int
+			ix = bf.getWidth(),
+			iy = bf.getHeight(),
+			minx = 0,
+			miny = 0,
+			maxx = 0,
+			maxy = 0,
+			alpha;
+		*/
+//		brute force
+		/*
+		for(int x = 0; x < ix; x++) {
+			for(int y = 0; y < iy; y++) {
+				alpha = ((p[minx * ix + y] >> 24) & 0xff);
+				
+				if(alpha != 0) {
+					minx = Math.min(minx, x);
+					miny = Math.min(miny, y);
+					maxx = Math.max(maxx, x);
+					maxy = Math.max(maxy, y);
+				}
+			}
+		}
+		*/
 		
 //		
 //		//find minX
@@ -117,7 +120,7 @@ public interface ConnectionStyle {
 		
 		//yippie
 		
-		//return new Rectangle(minx, miny, Math.max(1, maxx - minx), Math.max(1, maxy - miny));
+//		return new Rectangle(minx, miny, Math.max(1, maxx - minx), Math.max(1, maxy - miny));
 	}
 	
 	//unused. too complicated and little reward. would require some sort of way to map what terminals effect what points, and some thread safe accessing of that data

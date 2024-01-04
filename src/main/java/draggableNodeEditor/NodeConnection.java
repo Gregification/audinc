@@ -18,18 +18,10 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 /**
  * connects NodeConsumers
  * 
- * warning : this class is held together by a excessive use of the "volatile" key word. it seems to work though, just keep this in mind if your getting funky errors
- * 
- * @unrelated
- * > be me
- * <br>> morbius(2018)
- * <br>> fight sequence in tourist gimie store, specifically funko pop isle
- * <br>>"stand b-back, im - i'm -- i'm goinngg tooo c-cconsuumme!"
- * <br>> what did he mean by this 
+ * this class is held together by a excessive use of the "volatile" key word. it seems to work though, just keep this in mind if your getting funky errors
  */
 public class NodeConnection {
 	public volatile List<AnchorPoint> anchors = new ArrayList<>();
-	public volatile List<LineAnchor> knownAnchors = new ArrayList<>();
 	
 	//network stuff
 	/**
@@ -48,7 +40,7 @@ public class NodeConnection {
 //	protected HashSet<NodeConnection> reachableConnections 			= new HashSet<>(List.of(this));
 	
 	//drawing stuff
-	private ReentrantLock imgLock = new ReentrantLock(true);//completeable future may deadlock self
+	private ReentrantLock imgLock = new ReentrantLock(true);
 	private	volatile boolean needsRedrawn = true;
 	private volatile Point imageOffSet = new Point(0,0);
 	private volatile CompletableFuture<BufferedImage> imageFuture = null;
@@ -64,6 +56,15 @@ public class NodeConnection {
 		return directleyConnectedComponents.size() < 2;
 	}
 	
+	/**
+	 * listener support -> https://docs.oracle.com/javase/8/docs/api/java/beans/PropertyChangeSupport.html
+	 * listeners -> https://docs.oracle.com/javase/tutorial/uiswing///events/propertychangelistener.html
+	 * SwingWorker (not used since its not a vitural thread) -> https://docs.oracle.com/javase/7/docs/api/javax/swing/SwingWorker.html
+	 * @param width
+	 * @param height
+	 * @param polys
+	 * @param hostComp
+	 */
 	public void redraw(int width, int height, final Polygon[] polys, Component hostComp){
 		System.out.println("node connection > redraw, width: " + width + "\t height:" + height + "\t hostComp:" + hostComp);
 		imgLock.lock();
@@ -76,6 +77,8 @@ public class NodeConnection {
 				var cropRec = ConnectionStyle.cropOpaqueContent(img);
 				img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
 				setImageOffset(cropRec.x, cropRec.y);
+				
+//				hostComp.create
 				
 				return img;
 			});
@@ -239,12 +242,10 @@ public class NodeConnection {
 	 * @param obstacles : regions the lines will try to avoid (see ConnectionStyle doc. for more info).
 	 */
 	public void draw(final Polygon[] obstacles, BufferedImage image, final Component hostComp) {
-		LineAnchor[] 
+		final LineAnchor[] 
 				anchs  	= this.anchors.stream().map(LineAnchor::getFromAnchorPoint).toArray(LineAnchor[]::new),
-				terms	= Stream.concat(
-								directleyConnectedComponents.stream()
-									.map(comp -> LineAnchor.getFromNodeComponent(comp, hostComp)),
-							  	knownAnchors.stream())
+				terms	= directleyConnectedComponents.stream()
+							.map(comp -> LineAnchor.getFromNodeComponent(comp, hostComp))
 							.toArray(LineAnchor[]::new);
 		
 		connectionStyle.draw(image, anchs, terms, obstacles);
@@ -311,7 +312,7 @@ public class NodeConnection {
 		return oldVal;
 	}
 	
-	private void setImageOffset(int x, int y) {
+	private synchronized void setImageOffset(int x, int y) {
 		imageOffSet.x = x;
 		imageOffSet.y = y;
 	}
