@@ -3,21 +3,92 @@ package draggableNodeEditor.NodeConnectionDrawer;
 import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
+import java.awt.image.Raster;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.io.Serializable;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 
-/**
- * line drawing interface
+/**Java Bean
+ * handles line drawing for NodeConnection.
+ * 
  * see here for generic overview -> https://nick-lab.gs.washington.edu/java/jdk1.5b/guide/2d/spec/j2d-image.html
  * 	- note 5.42
  * see here for graphic2d info -> https://docs.oracle.com/javase/8/docs/technotes/guides/2d/spec/j2d-awt.html
  */
-public interface ConnectionStyle {	
+public abstract class ConnectionStyle implements Serializable{
+	private static final long serialVersionUID = 1L;
+	
+	private CompletableFuture<Void> imageFuture = null;
+
+	/**  property fired once when image has finished being drawn 
+	 */
+	public static final String PropertyChange_ImageReady = "PropertyChange_ImageReady";
+	/**  property fired every time a region of the image changes  
+	 */
+	public static final String PropertyChange_ImageUpdate= "PropertyChange_ImageUpdate";
+	
 	public static ConnectionStyle getDefaultConnectionsStyle() {
 		return new DirectConnectionStyle();
 	}
-	
+    
+    public void dispose() {
+    	if(imageFuture != null && !imageFuture.isDone()) imageFuture.cancel(true);
+    }
+    
+    /**
+	 * generates the path, point by point, between all terminal nodes. 
+	 * the final terminal node will not get a path made for it.
+	 * 
+	 * it is suggested that, the parameter, onNewPoints be used to provide live updates.  
+	 * 
+	 * assume to be processing intensive.
+	 * 
+	 * @param bf : the image to draw the line on.
+	 * @param output : the actual output of this function, Points will be pushed onto the queue as they're calculated 
+	 * @param anchors : points that may effect where the line is drawn 
+	 * @param terminals: points where the line is guaranteed to cross. the first element is the origin. 
+	 * @param obstacles : regions the lines will try not to cross   
+	 */
+    public void drawConnection(
+    		int width,
+    		int height,
+			LineAnchor[] anchors,
+			LineAnchor[] terminals,
+			Shape[] obstacles,
+			PropertyChangeSupport pcs){
+    	if(imageFuture != null && !imageFuture.isDone()) {
+    		imageFuture.cancel(true);
+    		System.out.println("-----------------------cancel \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+    	}
+    	
+		imageFuture = CompletableFuture.supplyAsync(() -> {
+				System.out.println("#################################START \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+				var img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+				draw(
+						img,
+						anchors,
+						terminals,
+						obstacles,
+						(region) -> pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageUpdate, null, region)
+					);
+				System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&END \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+				
+//				var cropRec = ConnectionStyle.cropOpaqueContent(img);
+//				img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
+				//signal end of drawing
+				pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageReady, null, img.getData());
+				return null;
+			});
+    }
+    
+//    private void signalImageComplete(BufferedImage image) {
+//    	pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageReady, null, image);	
+//    }
+    
 	/**
 	 * generates the path, point by point, between all terminal nodes. 
 	 * the final terminal node will not get a path made for it.
@@ -32,11 +103,12 @@ public interface ConnectionStyle {
 	 * @param terminals: points where the line is guaranteed to cross. the first element is the origin. 
 	 * @param obstacles : regions the lines will try not to cross   
 	 */
-	public abstract void draw(
+	protected abstract void draw(
 			BufferedImage bf,
 			LineAnchor[] anchors,
 			LineAnchor[] terminals,
-			Shape[] obstacles
+			Shape[] obstacles,
+			Consumer<Raster> signalUpdate
 		);
 	
 	public static Rectangle cropOpaqueContent(BufferedImage bf) {
@@ -136,4 +208,8 @@ public interface ConnectionStyle {
 	 * @param terminalsToReconnect : specific terminals to recalculate
 	 */
 	//public abstract <T> CompletableFuture<LinkedBlockingQueue<Point>> genConnection(LinkedBlockingQueue<Point> output, final List<TerminalPoint> terminals, final Rectangle[] obsticals, final Set<TerminalPoint> terminalsToReconnect);
+
+	@Override public String toString() {
+		return getClass().getCanonicalName() + "[imageFuture:" + imageFuture + "]" ;
+	}
 }

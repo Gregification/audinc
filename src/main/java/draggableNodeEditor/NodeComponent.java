@@ -11,8 +11,6 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.swing.JComponent;
 
-import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
-
 /**
  * a editable value for the
  * @param <T>

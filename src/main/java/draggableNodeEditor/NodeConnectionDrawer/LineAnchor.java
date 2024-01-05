@@ -54,7 +54,7 @@ public record LineAnchor(
 					0
 				);
 		
-		System.out.println("line ancor > get from node component : " + comp + "\n\t> " + ret);
+//		System.out.println("line ancor > get from node component : " + comp + "\n\t> " + ret);
 		
 		return ret;
 	}

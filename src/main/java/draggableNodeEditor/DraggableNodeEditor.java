@@ -19,6 +19,9 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.awt.image.Raster;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
@@ -98,6 +101,23 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	protected JScrollPane editorScrollPane;
 	protected JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
 	protected JFrame editorDetailsView;
+	
+	private BufferedImage connectionImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+	private final PropertyChangeListener pcl_imageListener = new PropertyChangeListener() {
+		@Override public void propertyChange(PropertyChangeEvent evt) {
+			System.out.println("draggable node editor > prop change listener; observer property:" + evt.getPropertyName() + "source: " + evt.getSource());
+			switch(evt.getPropertyName()) {
+				case ConnectionStyle.PropertyChange_ImageUpdate -> {
+						Raster changedRegion = (Raster)evt.getNewValue();
+						synchronized(connectionImage) {
+//							connectionImage.setData(changedRegion);
+						}
+						
+					}
+				case ConnectionStyle.PropertyChange_ImageReady -> repaint();
+				default -> throw new IllegalStateException("unknown property : " + evt.getPropertyName()); 
+			}
+	}};
 	
 	/**
 	 * contains all the nodes on the nodeEditor including those that may not be a part of it anymore.
@@ -192,16 +212,13 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		if(SwingUtilities.isMiddleMouseButton(e)) {
 			var pe = prepMouseEvent(e);
 			
-			if(isEditor(EditorState.DRAGGINGCONNECTION)) {
-				System.out.println("draggableNodeEditor > mouse clicked; setting connection, compAt : " + pe.compAt);
-				
+			if(isEditor(EditorState.DRAGGINGCONNECTION)) {				
 				plopConnectionIndicator(pe.compAt);
 				unsetEditor(EditorState.DRAGGINGCONNECTION);
 				setAllNodeComponentStatuses(NodeComponentStatus.NETURAL);
 			}else {
 				if(pe.compAt != null) {
 					setEditor(EditorState.DRAGGINGCONNECTION);
-					System.out.println("draggableNodeEditor > mouse clicked; new connection, compAt : " + pe.compAt);
 					
 					startConnectionIndicatorFrom(pe.compAt);
 				}
@@ -316,7 +333,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	}
 
 	public void startConnectionIndicatorFrom(NodeComponent<?> comp) {
-		System.out.println("draggableNodeEditor > startConnectionIndicatorFrom, comp : " + comp);
+//		System.out.println("draggableNodeEditor > startConnectionIndicatorFrom, comp : " + comp);
 		setAllNodeComponentStatuses(comp.type);
 		
 		NodeConnection conn = new NodeConnection();
@@ -325,7 +342,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		startConnectionIndicatorFrom(conn);
 	}
 	public void startConnectionIndicatorFrom(NodeConnection conn) {
-		System.out.println("draggableNodeEditor > startConnectionIndicatorFrom, conn : " + conn);
+//		System.out.println("draggableNodeEditor > startConnectionIndicatorFrom, conn : " + conn);
 		setEditor(EditorState.DRAGGINGCONNECTION);
 		
 		selectedConnection = conn;
@@ -344,6 +361,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			ret.append("\n\t> deleting connection <- connection was pointless.");
 			selectedConnection.deleteConnection();
 			selectedConnection = null;
+		}else {
+			selectedConnection.removeAllPropertyChangeListener(pcl_imageListener);
+			selectedConnection.addPropertyChangeListener(pcl_imageListener);
 		}
 		
 		revalidateConnections();
@@ -402,23 +422,40 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		return editorState.addAll(List.of(eds));
 	}
 	
-	public void revalidateConnections() {		
+	public void revalidateConnections() {	
+		var s = new StringBuilder("draggable node editor > recalidate connections. redrawing; ");
+		
 		List<NodeConnection> cons = draggableNodes.parallelStream()
 			.flatMap(node -> node.getConnectableNodeComponents().stream())
 			.flatMap(comp -> comp.getDirectConnections().stream())
 			.distinct()
-			.filter( conn -> conn.needsRedrawn())
 			.toList();
 		
 		if(cons.isEmpty()) return;
 		
-		final Polygon[] obs = getLineObsticals();
-		int	w = getWidth(),
-			h = getHeight();
+		synchronized(connectionImage) {
+			//if panel resized, redraw all connections
+			if(connectionImage == null || connectionImage.getWidth() != this.getWidth() || connectionImage.getHeight() != this.getHeight()) {
+				synchronized(connectionImage) {
+					connectionImage = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+				}
+			}else {
+				cons = cons.stream().filter(conn -> conn.needsRedrawn()).toList();
+			}
+		}
 		
-		cons.parallelStream() 
-			.forEach(conn -> conn.redraw(w, h, obs, this));
+		if(cons.isEmpty()) return;
+		
+		final Polygon[] obs = getLineObsticals();
+		
+		cons.stream() 
+			.forEach(conn -> {
+				conn.draw(obs, connectionImage, this);
+				s.append("\n\t> " + conn);
+			});
 			;
+			
+		System.out.println(s);
 	}
 	
 ////////////////////////////////
@@ -715,7 +752,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			reloadBtn.setMnemonic(KeyEvent.VK_R);
 			reloadBtn.setToolTipText("refresh this tabbs information");
 			reloadBtn.addActionListener(e -> onReload.stream().forEach(r -> r.run()));
-		
+			
 		JPanel allowedNodes = new JPanel();
 			allowedNodes.setLayout(new GridBagLayout());
 			allowedNodes.setBorder(new TitledBorder(
@@ -1045,10 +1082,11 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				node.getConnectableNodeComponents().stream()
 					.flatMap(comp -> comp.getDirectConnections().stream())
 					.forEach(conn -> {
-						conn.redraw(getWidth(), getHeight(), getPoly(), self);
-								
-						conn.setNeedsRedrawn(true);
-					});
+						synchronized(connectionImage) {
+							conn.draw(getPoly(), connectionImage, self);
+						}
+					})
+					;
 				
 			}else {
 				assert false : "componentEvent source comp :" + e.getComponent();
@@ -1066,27 +1104,24 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		super.paint(g);
 		
-		var sb = new StringBuilder("draggable node editor > paint, drawing connection");
-		draggableNodes.parallelStream()
-			//get all distinct connections
-			.flatMap(node -> node.getConnectableNodeComponents().stream())
-			.flatMap(comp -> comp.getDirectConnections().stream())
-			.distinct()
-			.peek(e -> {
-				sb.append("\n\t> needsRedrawn:" + e.needsRedrawn() + "\t isImgReady:" +e.isImgReady() + "\t imgFutr:" + e.getImageFuture());
-			})
-			//draw connections that can be drawn
-			.filter	(conn -> conn.isImgReady())
-			.forEach(conn -> {				
-				var img = conn.getImageFuture().getNow(null);
-				if(img == null) return;
-				
-				final var offset = conn.getImageOffset();
-				
-				g.drawImage(img, offset.x, offset.y, null);
-			})
-			;
-		System.out.println(sb.toString());
+//		var sb = new StringBuilder("draggable node editor > paint, drawing connection");
+//		draggableNodes.parallelStream()
+//			//get all distinct connections
+//			.flatMap(node -> node.getConnectableNodeComponents().stream())
+//			.flatMap(comp -> comp.getDirectConnections().stream())
+//			.distinct()
+//			.forEach(conn -> {				
+//				var img = conn.getImageFuture().getNow(null);
+//				if(img == null) return;
+//				
+//				final var offset = conn.getImageOffset();
+//				
+//				g.drawImage(img, offset.x, offset.y, null);
+//			})
+//			;		
+//		System.out.println(sb.toString());
+		
+		g.drawImage(connectionImage, 0, 0, null);
 		
 	}
 	
