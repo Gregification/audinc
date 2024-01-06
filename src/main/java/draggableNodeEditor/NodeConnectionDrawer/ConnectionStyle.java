@@ -1,5 +1,6 @@
 package draggableNodeEditor.NodeConnectionDrawer;
 
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
@@ -8,6 +9,7 @@ import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.Serializable;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
@@ -22,12 +24,18 @@ import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 public abstract class ConnectionStyle implements Serializable{
 	private static final long serialVersionUID = 1L;
 	
-	private CompletableFuture<Void> imageFuture = null;
+	private CompletableFuture<BufferedImage> imageFuture = null;
 
-	/**  property fired once when image has finished being drawn 
+	private Point offset = new Point(0,0);
+	
+	/**  property fired once when image has finished being drawn.
+	 * new property value => raster of the changed data
+	 * old property value => Point representing the offset
 	 */
 	public static final String PropertyChange_ImageReady = "PropertyChange_ImageReady";
-	/**  property fired every time a region of the image changes  
+	/**  property fired every time a region of the image changes
+	 * new property value => raster of the changed data
+	 * old property value => rectangle of the area the raster matches
 	 */
 	public static final String PropertyChange_ImageUpdate= "PropertyChange_ImageUpdate";
 	
@@ -60,29 +68,38 @@ public abstract class ConnectionStyle implements Serializable{
 			LineAnchor[] terminals,
 			Shape[] obstacles,
 			PropertyChangeSupport pcs){
-    	if(imageFuture != null && !imageFuture.isDone()) {
-    		imageFuture.cancel(true);
-    		System.out.println("-----------------------cancel \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+    	if(imageFuture != null) {
+    		if(imageFuture.cancel(true))
+    			System.out.println("-----------------------cancel \t" + imageFuture.hashCode() + " : " + System.nanoTime());
     	}
     	
 		imageFuture = CompletableFuture.supplyAsync(() -> {
-				System.out.println("#################################START \t" + imageFuture.hashCode() + " : " + System.nanoTime());
-				var img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-				draw(
-						img,
-						anchors,
-						terminals,
-						obstacles,
-						(region) -> pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageUpdate, null, region)
-					);
-				System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&END \t" + imageFuture.hashCode() + " : " + System.nanoTime());
-				
-//				var cropRec = ConnectionStyle.cropOpaqueContent(img);
-//				img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
-				//signal end of drawing
-				pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageReady, null, img.getData());
-				return null;
-			});
+					System.out.println("#################################START \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+					offset.x = offset.y = 0;
+					
+					var img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+					draw(
+							img,
+							anchors,
+							terminals,
+							obstacles,
+							(rect, region) -> pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageUpdate, rect, region)
+						);
+					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&END \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+					
+					var cropRec = ConnectionStyle.cropOpaqueContent(img);
+					offset.x = cropRec.x;
+					offset.y = cropRec.y;
+					
+	//				img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
+					return img;
+				})
+				.thenApply(img -> {
+						//signal end of drawing
+						pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageReady, offset, img);
+						return img;
+					})
+				;
     }
     
 //    private void signalImageComplete(BufferedImage image) {
@@ -108,7 +125,7 @@ public abstract class ConnectionStyle implements Serializable{
 			LineAnchor[] anchors,
 			LineAnchor[] terminals,
 			Shape[] obstacles,
-			Consumer<Raster> signalUpdate
+			BiConsumer<Rectangle, Raster> signalUpdate
 		);
 	
 	public static Rectangle cropOpaqueContent(BufferedImage bf) {
@@ -209,7 +226,50 @@ public abstract class ConnectionStyle implements Serializable{
 	 */
 	//public abstract <T> CompletableFuture<LinkedBlockingQueue<Point>> genConnection(LinkedBlockingQueue<Point> output, final List<TerminalPoint> terminals, final Rectangle[] obsticals, final Set<TerminalPoint> terminalsToReconnect);
 
+	/**
+	 * gets the corresponding rectangle from the given 2 coordinate points
+	 * @param x1
+	 * @param x2
+	 * @param y1
+	 * @param y2
+	 * @return rectangle that covers the enclosed area 
+	 */
+	public static Rectangle getRect(int x1, int y1, int x2, int y2) {
+		int l, r, t, b; //left, right, top, bottom
+		
+		if(x1 < x2) {
+			l = x1;
+			r = x2;
+		}else {
+			l = x2;
+			r = x1;
+		}
+		
+		if(y1 < y2) {
+			t = y1;
+			b = y2;
+		} else {
+			t = y2;
+			b = y1;
+		}
+		
+		return new Rectangle(l, t, r - l, b - t);
+	}
+	
 	@Override public String toString() {
 		return getClass().getCanonicalName() + "[imageFuture:" + imageFuture + "]" ;
+	}
+
+	public Point getOffset() {
+		return offset;
+	}
+
+	public void setOffset(int x, int y) {
+		offset.x = x;
+		offset.y = y;
+	}
+	
+	public CompletableFuture<BufferedImage> getImageFuture() {
+		return imageFuture;
 	}
 }

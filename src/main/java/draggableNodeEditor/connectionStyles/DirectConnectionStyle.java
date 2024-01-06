@@ -2,11 +2,13 @@ package draggableNodeEditor.connectionStyles;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle;
 import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
@@ -29,22 +31,42 @@ public class DirectConnectionStyle extends ConnectionStyle{
 			LineAnchor[] anchors,
 			LineAnchor[] terminals,
 			Shape[] obstacles,
-			Consumer<Raster> signalUpdate) {
+			BiConsumer<Rectangle, Raster> signalUpdate) {
 		
 		if(terminals.length < 2) return;
 		
-		var g = bf.createGraphics();
-		g.setColor(Color.red);
-		g.setStroke(new BasicStroke(strokeSize));
-				
+		//graphics
+		Graphics2D g;
+		Supplier<Graphics2D> newG = () -> {
+			var gphic = bf.createGraphics();
+			gphic.setColor(Color.red);
+			gphic.setStroke(new BasicStroke(strokeSize));
+			return gphic;
+		};
+		g = newG.get();
+		
+		//edited area tracker
+		var rect = new Rectangle(0,0,0,0);
+		
 		LineAnchor f = terminals[0];
-		for(var t : terminals) {
+		for(int i = 0; i < terminals.length; i++) {
+			var t = terminals[i];
+			
 			g.drawLine(f.x(), f.y(), t.x(), t.y());
 			
-//			signalUpdate.accept(bf.getData(new Rectangle(f.x(), f.y(), t.x(), t.y())));
+			rect.add(ConnectionStyle.getRect(f.x(), f.y(), t.x(), t.y()));//update area thats been changed
 			
+			if(i % 1 == 0) { //signal for update
+				g.dispose();
+				
+				var finalRect = rect.intersection(bf.getData().getBounds()); //corrects for overlap (idk what causes it but it exists)
+				
+				if(!(finalRect.width == 0 || finalRect.height == 0))
+					signalUpdate.accept(rect, bf.getData(finalRect));
+				
+				g = newG.get();
+			}
 			f = t;
 		}
-		g.dispose();
 	}
 }
