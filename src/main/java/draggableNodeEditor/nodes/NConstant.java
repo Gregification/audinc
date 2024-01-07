@@ -102,17 +102,17 @@ public class NConstant extends DraggableNode<Void> {
 		return supplier;
 	}
 
-	public void setSupplier(NodeSupplier<?> supplier) {
-		boolean isnotnull = this.supplier != null;
+	public void setSupplier(NodeSupplier<?> suppi) {
+		boolean isnotnull = supplier != null;
 		
 		if(isnotnull)
-			this.remove(this.supplier);
+			remove(supplier);
 		
-		this.supplier = supplier;
+		supplier = suppi;
 		
 		if(isnotnull) {
-			this.add(supplier, Presentable.createGbc(0, 0));
-			this.setPreferredSize(supplier.getPreferredSize());
+			add(supplier, Presentable.createGbc(0, 0));
+			setPreferredSize(supplier.getPreferredSize());
 			genConnectionPoint(supplier);
 		}
 		

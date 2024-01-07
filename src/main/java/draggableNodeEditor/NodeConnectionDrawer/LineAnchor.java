@@ -42,7 +42,7 @@ public record LineAnchor(
 	public static LineAnchor getFromNodeComponent(NodeComponent<?> comp, Component hostComp) {
 		int bias = (comp instanceof NodeSupplier) ? 1  : -1;//if is not supplier then is consumer
 		
-		var conPoint = SwingUtilities.convertPoint(comp.hostNode, comp.connectionPoint, hostComp);
+		var conPoint = SwingUtilities.convertPoint(comp.getHostNode(), comp.connectionPoint, hostComp);
 		
 		var ret = new LineAnchor(
 					conPoint.x,

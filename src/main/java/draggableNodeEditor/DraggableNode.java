@@ -103,8 +103,33 @@ public abstract class DraggableNode<T> extends JPanel {
 	
 	protected void registerConnectableNodeComponent(NodeComponent<?> ncomp) {
 		ncomp.hostNode = this;
-		if(!connectableNodeComponents.contains(ncomp))
-			connectableNodeComponents.add(ncomp);
+		
+		connectableNodeComponents.add(ncomp);
+	}
+
+	protected void unregisterConnectableNodeComponent(NodeComponent<?> ncomp) {
+		ncomp.hostNode = null;
+		
+		while(connectableNodeComponents.remove(ncomp)) {}
+	}
+	
+	@Override public void add(Component comp, Object conts) {
+		if(comp instanceof NodeComponent<?> ncomp)
+			registerConnectableNodeComponent(ncomp);
+		
+		super.add(comp, conts);
+	}
+	@Override public Component add(Component comp) {
+		if(comp instanceof NodeComponent<?> ncomp)
+			registerConnectableNodeComponent(ncomp);
+		
+		return super.add(comp);
+	}
+	@Override public void remove(Component comp) {
+		if(comp instanceof NodeComponent<?> ncomp)
+			unregisterConnectableNodeComponent(ncomp);
+		
+		super.remove(comp);
 	}
 	
 	protected void applyDefaultNamedBorder() { 

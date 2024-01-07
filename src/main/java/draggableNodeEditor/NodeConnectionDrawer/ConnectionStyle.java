@@ -5,39 +5,48 @@ import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
-import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.Serializable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 
 /**Java Bean
  * handles line drawing for NodeConnection.
- * 
- * see here for generic overview -> https://nick-lab.gs.washington.edu/java/jdk1.5b/guide/2d/spec/j2d-image.html
+ * Images are drawn with a Future, changes and updates on the images progress are returned using a observer model. see "PropertyChange_ ..." variables of this class.
+ * Images are un-scaled.
+ * <br><br>
+ * see here for image overview -> https://nick-lab.gs.washington.edu/java/jdk1.5b/guide/2d/spec/j2d-image.html
  * 	- note 5.42
  * see here for graphic2d info -> https://docs.oracle.com/javase/8/docs/technotes/guides/2d/spec/j2d-awt.html
  */
 public abstract class ConnectionStyle implements Serializable{
 	private static final long serialVersionUID = 1L;
+	private static final long minTimeBetweenRefresh_mill = 500;
 	
+	//concurrency stuff
 	private CompletableFuture<BufferedImage> imageFuture = null;
-
+	private long lastSignal = System.currentTimeMillis();
+	
+	//image stuff
 	private Point offset = new Point(0,0);
 	
 	/**  property fired once when image has finished being drawn.
-	 * new property value => raster of the changed data
-	 * old property value => Point representing the offset
+	 * @new-property-value raster of the changed data
+	 * @old-property-value Point representing the offset from the original image
 	 */
-	public static final String PropertyChange_ImageReady = "PropertyChange_ImageReady";
+	public static final String PropertyChange_ImageReady 	= "PropertyChange_ImageReady";
 	/**  property fired every time a region of the image changes
-	 * new property value => raster of the changed data
-	 * old property value => rectangle of the area the raster matches
+	 * @new-property-value raster of the changed data
+	 * @old-property-value rectangle of the area the raster matches
 	 */
-	public static final String PropertyChange_ImageUpdate= "PropertyChange_ImageUpdate";
+	public static final String PropertyChange_ImageUpdate	= "PropertyChange_ImageUpdate";
+	/**  property fired if the image future is canceled before it completes or before it starts.
+	 * @new-property-value null
+	 * @old-property-value null
+	 */
+	public static final String PropertyChange_ImageCanceled	= "PropertyChange_ImageCanceled";
 	
 	public static ConnectionStyle getDefaultConnectionsStyle() {
 		return new DirectConnectionStyle();
@@ -69,12 +78,14 @@ public abstract class ConnectionStyle implements Serializable{
 			Shape[] obstacles,
 			PropertyChangeSupport pcs){
     	if(imageFuture != null) {
-    		if(imageFuture.cancel(true))
-    			System.out.println("-----------------------cancel \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+    		if(imageFuture.cancel(true)) {
+    			pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageCanceled, null, null);
+//    			System.out.println("-----------------------cancel \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+    		}
     	}
     	
 		imageFuture = CompletableFuture.supplyAsync(() -> {
-					System.out.println("#################################START \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+//					System.out.println("#################################START \t@\t : " + System.nanoTime());
 					offset.x = offset.y = 0;
 					
 					var img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -83,13 +94,13 @@ public abstract class ConnectionStyle implements Serializable{
 							anchors,
 							terminals,
 							obstacles,
-							(rect, region) -> pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageUpdate, rect, region)
+							getImageUpdateSignaler(pcs)
 						);
-					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&END \t" + imageFuture.hashCode() + " : " + System.nanoTime());
+//					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&END \t" + imageFuture.hashCode() + " : " + System.nanoTime());
 					
 					var cropRec = ConnectionStyle.cropOpaqueContent(img);
-					offset.x = cropRec.x;
-					offset.y = cropRec.y;
+//					offset.x = cropRec.x;
+//					offset.y = cropRec.y;
 					
 	//				img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
 					return img;
@@ -101,10 +112,6 @@ public abstract class ConnectionStyle implements Serializable{
 					})
 				;
     }
-    
-//    private void signalImageComplete(BufferedImage image) {
-//    	pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageReady, null, image);	
-//    }
     
 	/**
 	 * generates the path, point by point, between all terminal nodes. 
@@ -125,7 +132,7 @@ public abstract class ConnectionStyle implements Serializable{
 			LineAnchor[] anchors,
 			LineAnchor[] terminals,
 			Shape[] obstacles,
-			BiConsumer<Rectangle, Raster> signalUpdate
+			BiConsumer<Rectangle, Raster> signalUpdater
 		);
 	
 	public static Rectangle cropOpaqueContent(BufferedImage bf) {
@@ -212,20 +219,6 @@ public abstract class ConnectionStyle implements Serializable{
 //		return new Rectangle(minx, miny, Math.max(1, maxx - minx), Math.max(1, maxy - miny));
 	}
 	
-	//unused. too complicated and little reward. would require some sort of way to map what terminals effect what points, and some thread safe accessing of that data
-	/**
-	 * redraws the connections for only the given nodes.
-	 * 
-	 * a better option than redrawing all connections, however depending on the ConnectionStyle this may not be much better.
-	 * 
-	 * assume to be processing intensive
-	 *  
-	 * @param nodeConnection : source of connection information
-	 * @param obstacles : regions the lines are not to cross 
-	 * @param terminalsToReconnect : specific terminals to recalculate
-	 */
-	//public abstract <T> CompletableFuture<LinkedBlockingQueue<Point>> genConnection(LinkedBlockingQueue<Point> output, final List<TerminalPoint> terminals, final Rectangle[] obsticals, final Set<TerminalPoint> terminalsToReconnect);
-
 	/**
 	 * gets the corresponding rectangle from the given 2 coordinate points
 	 * @param x1
@@ -269,7 +262,28 @@ public abstract class ConnectionStyle implements Serializable{
 		offset.y = y;
 	}
 	
+	public Rectangle getConnectionImageCoverage() {
+		var futr = getImageFuture();
+		if(futr == null) return null;
+		
+		var oldImg = futr.getNow(null);
+		if(oldImg == null) return null;
+		
+		return new Rectangle(offset.x, offset.y, oldImg.getWidth(), oldImg.getHeight());
+	}
+	
 	public CompletableFuture<BufferedImage> getImageFuture() {
 		return imageFuture;
+	}
+	
+	public BiConsumer<Rectangle, Raster> getImageUpdateSignaler(PropertyChangeSupport pcs){		
+		return (rect,raster) -> {
+			long currTime = System.currentTimeMillis();
+			if(lastSignal - currTime > minTimeBetweenRefresh_mill) {
+				pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageUpdate, rect, raster);
+				lastSignal = currTime;
+			}
+			
+		};
 	}
 }

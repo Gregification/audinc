@@ -45,6 +45,8 @@ public class DirectConnectionStyle extends ConnectionStyle{
 		};
 		g = newG.get();
 		
+//		g.drawLine(0, 0, bf.getWidth(), bf.getHeight());
+		
 		//edited area tracker
 		var rect = new Rectangle(0,0,0,0);
 		
@@ -56,7 +58,7 @@ public class DirectConnectionStyle extends ConnectionStyle{
 			
 			rect.add(ConnectionStyle.getRect(f.x(), f.y(), t.x(), t.y()));//update area thats been changed
 			
-			if(i % 1 == 0) { //signal for update
+			if(i % 5 == 0) { //signal for update
 				g.dispose();
 				
 				var finalRect = rect.intersection(bf.getData().getBounds()); //corrects for overlap (idk what causes it but it exists)

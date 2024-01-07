@@ -2,9 +2,8 @@ package draggableNodeEditor;
 
 import java.awt.Component;
 import java.awt.Polygon;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.awt.image.Raster;
-import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
@@ -58,11 +57,24 @@ public class NodeConnection {
 	 * @param obstacles : regions the lines will try to avoid (see ConnectionStyle doc. for more info).
 	 */
 	public void draw(final Polygon[] obstacles, BufferedImage outputTo, final Component hostComp) {
+		var comps = this.directleyConnectedComponents.stream().toList();
+		
 		final LineAnchor[] 
 				anchs  	= this.anchors.stream().map(LineAnchor::getFromAnchorPoint).toArray(LineAnchor[]::new),
-				terms	= directleyConnectedComponents.stream()
+				terms	= comps.stream().sequential()
 							.map(comp -> LineAnchor.getFromNodeComponent(comp, hostComp))
 							.toArray(LineAnchor[]::new);
+		
+//		var s = new StringBuilder("node connection > draw; terminals before and after point conversion");
+		
+		for(int i = 0; i < terms.length; i++) {
+			var c	= comps.get(i);
+			var cp 	= c.connectionPoint;
+//			s.append("\n\t> (" + cp.x  + "," + cp.y + ")\t -> \t(" + terms[i].x() + "," + terms[i].y() + ")");
+//			s.append("\t\t component:" + c.getName() + "\t\t hostNode:" + c.getHostNode());
+		}
+		
+//		System.out.println(s);
 		
 		needsRedrawn = false;
 		
@@ -98,7 +110,7 @@ public class NodeConnection {
 		if(directleyConnectedComponents.contains(comp)) 
 			return;
 		
-		System.out.println("node conneciton > connect to component, comp: " + comp);
+//		System.out.println("node conneciton > connect to component, comp: " + comp);
 		
 		//if is a orphaned node -> no need to worry about a network
 //		if(isNetworkable() && !comp.getDirectConnections().isEmpty()) {			
@@ -285,6 +297,10 @@ public class NodeConnection {
 	
 	public ConnectionStyle getConnectionStyle() {
 		return connectionStyle;
+	}
+	
+	public Rectangle getConnectionImageCoverage() {
+		return connectionStyle.getConnectionImageCoverage();
 	}
 	
 	/**
