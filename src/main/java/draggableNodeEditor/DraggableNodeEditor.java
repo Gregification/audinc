@@ -102,19 +102,19 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	private ConcurrentLinkedQueue<WeakReference<NodeConnection>> ConnectionsToReimposeQueue = new ConcurrentLinkedQueue<>();
 	private BufferedImage connectionImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
 	private final PropertyChangeListener pcl_imageListener = new PropertyChangeListener() {
-//		final Consumer<Rectangle> populateConnectionsToReimpose = area -> {
-//			getConnections()
-//				.filter(conn -> !conn.needsRedrawn())
-//				.filter(conn -> {
-//					var thisarea = conn.getConnectionImageCoverage();
-//					
-//					if(thisarea == null) return false;
-//					
-//					return thisarea.intersects(area);
-//				})
-//				.forEach(conn -> ConnectionsToReimposeQueue.add(new WeakReference<>(conn)));
-//				;
-//		};
+		final Consumer<Rectangle> populateConnectionsToReimpose = area -> {
+			getConnections()
+				.filter(conn -> !conn.needsRedrawn())
+				.filter(conn -> {
+					var thisarea = conn.getConnectionImageCoverage();
+					
+					if(thisarea == null) return false;
+					
+					return thisarea.intersects(area);
+				})
+				.forEach(conn -> ConnectionsToReimposeQueue.add(new WeakReference<>(conn)));
+				;
+		};
 		
 		@Override public void propertyChange(PropertyChangeEvent evt) {
 //			System.out.println("draggable node editor > prop change listener; time@" + System.nanoTime()
@@ -133,7 +133,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 							g.clearRect(changedRect.x, changedRect.y, changedRect.width, changedRect.height);
 							g.dispose();
 							
-//							populateConnectionsToReimpose.accept(changedRect);
+							populateConnectionsToReimpose.accept(changedRect);
 							
 							connectionImage.setData(changedRastor);
 						}
@@ -144,8 +144,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 						var oldCoverage = (Rectangle)evt.getOldValue();			//old coverage area
 						var imgAndOffset= (ImageAndOffSet)evt.getNewValue();	//ConnectionStyle that finished
 						
-//						if(oldCoverage != null)
-//							populateConnectionsToReimpose.accept(oldCoverage);
+						if(oldCoverage != null)
+							populateConnectionsToReimpose.accept(oldCoverage);
 						
 						var img 	= imgAndOffset.image();						
 						var offset 	= imgAndOffset.offset();
@@ -257,8 +257,6 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			
 			if(isEditor(EditorState.DRAGGINGCONNECTION)) {				
 				plopConnectionIndicator(pe.compAt);
-				unsetEditor(EditorState.DRAGGINGCONNECTION);
-				setAllNodeComponentStatuses(NodeComponentStatus.NETURAL);
 			}else {
 				if(pe.compAt != null) {
 					setEditor(EditorState.DRAGGINGCONNECTION);
@@ -266,6 +264,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					startConnectionIndicatorFrom(pe.compAt);
 				}
 			}
+		}else if(SwingUtilities.isLeftMouseButton(e)) {
+			System.out.println("clicked position " + e.getPoint());
 		}
 		
 	}
@@ -404,6 +404,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //			ret.append("\n\t> deleting connection <- connection was pointless.");
 			selectedConnection.deleteConnection();
 			selectedConnection = null;
+			unsetEditor(EditorState.DRAGGINGCONNECTION);
+			setAllNodeComponentStatuses(NodeComponentStatus.NETURAL);
 		}else {
 			selectedConnection.removeAllPropertyChangeListener(pcl_imageListener);
 			selectedConnection.addPropertyChangeListener(pcl_imageListener);

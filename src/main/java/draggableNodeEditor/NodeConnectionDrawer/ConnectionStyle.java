@@ -1,9 +1,13 @@
 package draggableNodeEditor.NodeConnectionDrawer;
 
+import java.awt.Color;
+import java.awt.GradientPaint;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.awt.image.Raster;
 import java.beans.PropertyChangeSupport;
 import java.io.Serializable;
@@ -86,7 +90,7 @@ public abstract class ConnectionStyle implements Serializable{
 			Shape[] obstacles,
 			PropertyChangeSupport pcs){
     	
-    	if(imageFuture != null && !imageFuture.isDone()) {
+    	if(imageFuture != null) {
     		if(imageFuture.cancel(true)) {
     			pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageCanceled, null, null);
 //    			System.out.println("-----------------------cancel \t" + imageFuture.hashCode() + " : " + System.nanoTime());
@@ -98,6 +102,7 @@ public abstract class ConnectionStyle implements Serializable{
 					offset.x = offset.y = 0;
 					
 					var img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+					
 					draw(
 							img,
 							anchors,
@@ -106,17 +111,28 @@ public abstract class ConnectionStyle implements Serializable{
 							getImageUpdateSignaler(pcs)
 						);
 //					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&END \t" + imageFuture.hashCode() + " : " + System.nanoTime());
-					
 					var cropRec = ConnectionStyle.cropOpaqueContent(img);
-//					offset.x = cropRec.x;
-//					offset.y = cropRec.y;
 					
-	//				img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
+//					{//creates a gradient so the crop region can be visually confirmed
+//						var g = (Graphics2D)img.createGraphics();
+//						
+//						var gp = new GradientPaint(50.0f, 50.0f, new Color(0,0,0xff,0xf), 
+//				                   50.0f, 250.0f, new Color(0,0xff,0,0xf)); 
+//						g.setPaint(gp); 
+//						g.fillRect(0,0,width,height); 
+//						
+//						g.dispose();
+//					}
+					
+					if(cropRec.x != width && cropRec.y != height){
+						offset.x = cropRec.x;
+						offset.y = cropRec.y;
+						img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
+					}else {
+						throw new RuntimeException("croping screwed up, " + "connection style > image future, \n\t> img rect : " + (new Rectangle(offset.x, offset.y, img.getWidth(), img.getHeight())) + "\n\t> crop rect : " + cropRec);
+					}
+						
 					return img;
-				})
-				.exceptionally(e -> { 
-					if(e instanceof CancellationException) return null;
-					else throw new RuntimeException("ConnectionStyle > image future died : " + e); 
 				})
 				.thenApply(img -> {
 						//signal end of drawing
@@ -124,6 +140,10 @@ public abstract class ConnectionStyle implements Serializable{
 						SwingUtilities.invokeLater(() -> pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageReady, oldRect, new ImageAndOffSet(getOffset(), img)));
 						return img;
 					})
+				.exceptionally(e -> { 
+					if(e instanceof CancellationException) return null;
+					else throw new RuntimeException("ConnectionStyle > image future died : " + e); 
+				})
 				;
     }
     
@@ -149,88 +169,81 @@ public abstract class ConnectionStyle implements Serializable{
 			BiConsumer<Rectangle, Raster> signalUpdater
 		);
 	
-	public static Rectangle cropOpaqueContent(BufferedImage bf) {
-		return new Rectangle(0,0,bf.getWidth(),bf.getHeight());
-		/*
+	/**
+	 * find the smallest rectangle that contains all non opaque content. given image is unchanged
+	 * @param bf, the image to crop
+	 * @return a rectangle
+	 */
+	public static Rectangle cropOpaqueContent(final BufferedImage bf) {
+//		return new Rectangle(0,0,bf.getWidth(),bf.getHeight());
+		
 		int[] p = ((DataBufferInt)bf.getRaster().getDataBuffer()).getData();
-		int
-			ix = bf.getWidth(),
+		int ix = bf.getWidth(),
 			iy = bf.getHeight(),
 			minx = 0,
 			miny = 0,
-			maxx = 0,
-			maxy = 0,
+			maxx = ix,
+			maxy = iy,
 			alpha;
-		*/
-//		brute force
-		/*
-		for(int x = 0; x < ix; x++) {
+		
+		boolean brk = false;
+		
+		//find minX
+		for(minx = 0; minx < ix; minx++) {
 			for(int y = 0; y < iy; y++) {
-				alpha = ((p[minx * ix + y] >> 24) & 0xff);
+				alpha = ((p[y* ix + minx] >> 24) & 0xff);
 				
-				if(alpha != 0) {
-					minx = Math.min(minx, x);
-					miny = Math.min(miny, y);
-					maxx = Math.max(maxx, x);
-					maxy = Math.max(maxy, y);
+				if(brk = alpha != 0) {
+					miny = maxy = y;
+					break;
 				}
 			}
+			if(brk) break;
 		}
-		*/
 		
-//		
-//		//find minX
-//		for(minx = 0; minx < ix; minx++) {
-//			for(int y = 0; y < iy; y++) {
-//				alpha = ((p[minx * ix + y] >> 24) & 0xff);
-//				
-//				if(alpha != 0) {
-//					miny = maxy = y;
-//					break;
-//				}
-//			}
-//		}
-//		
-//		//find maxX
-//		for(maxx = ix; maxx > minx; maxx--) {
-//			for(int y = iy; y >= 0; y--) {
-//				alpha = ((p[minx * ix + y] >> 24) & 0xff);
-//				
-//				if(alpha != 0) {
-//					miny = Math.min(miny, y);
-//					maxy = Math.max(maxy, y);
-//					break;
-//				}
-//			}
-//		}
-//		
-//		//confirm minY
-//		for(int x = minx; x < maxx; x++) {
-//			for(int y = 0; y < miny; y++) {
-//				alpha = ((p[x * ix + y] >> 24) & 0xff);
-//				
-//				if(alpha != 0) {
-//					miny = y;
-//					break;
-//				}
-//			}
-//		}
-//		
-//		//confirm maxY
-//		for(int x = minx; x < maxx; x++) {
-//			for(int y = iy; y > maxy; y--) {
-//				alpha = ((p[x * ix + y] >> 24) & 0xff);
-//				
-//				if(alpha != 0) {
-//					maxy = y;
-//					break;
-//				}
-//			}
-//		}
+		//find maxX
+		for(maxx = ix-1; maxx > minx; maxx--) {
+			for(int y = iy-1; y >= 0; y--) {
+				alpha = ((p[y * ix + maxx] >> 24) & 0xff);
+				
+				if(brk = alpha != 0) {
+					miny = Math.min(miny, y);
+					maxy = Math.max(maxy, y);
+					break;
+				}
+			}
+			if(brk) break;
+		}
+		
+		//confirm minY
+		for(int x = minx; x < maxx; x++) {
+			for(int y = 0; y < miny; y++) {
+				alpha = ((p[y * ix + x] >> 24) & 0xff);
+				
+				if(brk = alpha != 0) {
+					miny = y;
+					break;
+				}
+			}
+			if(brk) break;
+		}
+		
+		//confirm maxY
+		for(int x = minx; x < maxx; x++) {
+			for(int y = iy-1; y > maxy; y--) {
+				alpha = ((p[y * ix + x] >> 24) & 0xff);
+				
+				if(brk = alpha != 0) {
+					maxy = y;
+					break;
+				}
+			}
+			if(brk) break;
+		}
 		
 		//yippie
 		
-//		return new Rectangle(minx, miny, Math.max(1, maxx - minx), Math.max(1, maxy - miny));
+		return new Rectangle(minx, miny, Math.max(1, maxx - minx), Math.max(1, maxy - miny));
 	}
 	
 	/**
