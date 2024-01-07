@@ -52,6 +52,8 @@ public class DirectConnectionStyle extends ConnectionStyle{
 		
 		LineAnchor f = terminals[0];
 		for(int i = 0; i < terminals.length; i++) {
+			if(Thread.currentThread().isInterrupted()) return;
+			
 			var t = terminals[i];
 			
 			g.drawLine(f.x(), f.y(), t.x(), t.y());
@@ -65,6 +67,8 @@ public class DirectConnectionStyle extends ConnectionStyle{
 				
 				if(!(finalRect.width == 0 || finalRect.height == 0))
 					signalUpdate.accept(rect, bf.getData(finalRect));
+				
+				rect = new Rectangle(0,0,0,0);
 				
 				g = newG.get();
 			}

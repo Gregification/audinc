@@ -7,8 +7,11 @@ import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.beans.PropertyChangeSupport;
 import java.io.Serializable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+
+import javax.swing.SwingUtilities;
 
 import draggableNodeEditor.connectionStyles.DirectConnectionStyle;
 
@@ -33,8 +36,8 @@ public abstract class ConnectionStyle implements Serializable{
 	private Point offset = new Point(0,0);
 	
 	/**  property fired once when image has finished being drawn.
-	 * @new-property-value raster of the changed data
-	 * @old-property-value Point representing the offset from the original image
+	 * @new-property-value a ImageAndOffSet object with the final image and final offset
+	 * @old-property-value Rectangle representing where the old image was
 	 */
 	public static final String PropertyChange_ImageReady 	= "PropertyChange_ImageReady";
 	/**  property fired every time a region of the image changes
@@ -47,6 +50,11 @@ public abstract class ConnectionStyle implements Serializable{
 	 * @old-property-value null
 	 */
 	public static final String PropertyChange_ImageCanceled	= "PropertyChange_ImageCanceled";
+	/**  property fired when a new image is created. this triggering implies {@link #PropertyChange_ImageUpdate ImageUpdate} triggering too
+	 * @new-property-value oldImage
+	 * @old-property-value Dimension of the new image
+	 */
+	public static final String PropertyChange_newImage		= "PropertyChange_newImage";
 	
 	public static ConnectionStyle getDefaultConnectionsStyle() {
 		return new DirectConnectionStyle();
@@ -77,13 +85,14 @@ public abstract class ConnectionStyle implements Serializable{
 			LineAnchor[] terminals,
 			Shape[] obstacles,
 			PropertyChangeSupport pcs){
-    	if(imageFuture != null) {
+    	
+    	if(imageFuture != null && !imageFuture.isDone()) {
     		if(imageFuture.cancel(true)) {
     			pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageCanceled, null, null);
 //    			System.out.println("-----------------------cancel \t" + imageFuture.hashCode() + " : " + System.nanoTime());
     		}
     	}
-    	
+    	var oldRect = this.getConnectionImageCoverage();
 		imageFuture = CompletableFuture.supplyAsync(() -> {
 //					System.out.println("#################################START \t@\t : " + System.nanoTime());
 					offset.x = offset.y = 0;
@@ -105,9 +114,14 @@ public abstract class ConnectionStyle implements Serializable{
 	//				img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
 					return img;
 				})
+				.exceptionally(e -> { 
+					if(e instanceof CancellationException) return null;
+					else throw new RuntimeException("ConnectionStyle > image future died : " + e); 
+				})
 				.thenApply(img -> {
 						//signal end of drawing
-						pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageReady, offset, img);
+						//invokeLater so the future has time to complete
+						SwingUtilities.invokeLater(() -> pcs.firePropertyChange(ConnectionStyle.PropertyChange_ImageReady, oldRect, new ImageAndOffSet(getOffset(), img)));
 						return img;
 					})
 				;
@@ -263,17 +277,21 @@ public abstract class ConnectionStyle implements Serializable{
 	}
 	
 	public Rectangle getConnectionImageCoverage() {
-		var futr = getImageFuture();
-		if(futr == null) return null;
-		
-		var oldImg = futr.getNow(null);
+		var oldImg = getImageNow();
 		if(oldImg == null) return null;
 		
 		return new Rectangle(offset.x, offset.y, oldImg.getWidth(), oldImg.getHeight());
 	}
 	
-	public CompletableFuture<BufferedImage> getImageFuture() {
-		return imageFuture;
+	public BufferedImage getImageNow() {
+		if(imageFuture == null) return null;
+		
+		BufferedImage img = null;
+		try {
+			img = imageFuture.getNow(null);
+		}catch(CancellationException ex) { }
+		
+		return img;
 	}
 	
 	public BiConsumer<Rectangle, Raster> getImageUpdateSignaler(PropertyChangeSupport pcs){		
@@ -286,4 +304,6 @@ public abstract class ConnectionStyle implements Serializable{
 			
 		};
 	}
+	
+	public record ImageAndOffSet(Point offset, BufferedImage image) {}
 }

@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Point;
@@ -23,31 +22,23 @@ import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -78,7 +69,7 @@ import javax.swing.table.DefaultTableModel;
 import audinc.gui.AbsoluteLayout;
 import audinc.gui.MainWin;
 import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle;
-import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
+import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle.ImageAndOffSet;
 import presentables.Presentable;
 /**
  * GUI editor for draggable and linkable nodes. encouraged to inherit this class for more specialized uses
@@ -111,6 +102,20 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	private ConcurrentLinkedQueue<WeakReference<NodeConnection>> ConnectionsToReimposeQueue = new ConcurrentLinkedQueue<>();
 	private BufferedImage connectionImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
 	private final PropertyChangeListener pcl_imageListener = new PropertyChangeListener() {
+//		final Consumer<Rectangle> populateConnectionsToReimpose = area -> {
+//			getConnections()
+//				.filter(conn -> !conn.needsRedrawn())
+//				.filter(conn -> {
+//					var thisarea = conn.getConnectionImageCoverage();
+//					
+//					if(thisarea == null) return false;
+//					
+//					return thisarea.intersects(area);
+//				})
+//				.forEach(conn -> ConnectionsToReimposeQueue.add(new WeakReference<>(conn)));
+//				;
+//		};
+		
 		@Override public void propertyChange(PropertyChangeEvent evt) {
 //			System.out.println("draggable node editor > prop change listener; time@" + System.nanoTime()
 //				+ "\n\t-observer property: " + evt.getPropertyName() 
@@ -123,21 +128,34 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 					var changedRect	= (Rectangle)evt.getOldValue();		//rectangle on image that needs redrawn
 					var changedRastor 	= (Raster)evt.getNewValue();	//image inside the rectangle
 						synchronized(connectionImage) {
+							//clear the area, apply the change, re-apply the pre-existing connections
+							var g = connectionImage.createGraphics();
+							g.clearRect(changedRect.x, changedRect.y, changedRect.width, changedRect.height);
+							g.dispose();
+							
+//							populateConnectionsToReimpose.accept(changedRect);
+							
 							connectionImage.setData(changedRastor);
 						}
+						
 						repaint(changedRect);
 					}
 				case ConnectionStyle.PropertyChange_ImageReady -> {
-					var offset = (Point)evt.getOldValue();				//offset
-					var finalImage	= (BufferedImage)evt.getNewValue();	//image
+						var oldCoverage = (Rectangle)evt.getOldValue();			//old coverage area
+						var imgAndOffset= (ImageAndOffSet)evt.getNewValue();	//ConnectionStyle that finished
+						
+//						if(oldCoverage != null)
+//							populateConnectionsToReimpose.accept(oldCoverage);
+						
+						var img 	= imgAndOffset.image();						
+						var offset 	= imgAndOffset.offset();
 						synchronized(connectionImage) {
 							var g = connectionImage.createGraphics();
-							g.drawImage(finalImage, offset.x, offset.y, null);
+							g.drawImage(img, offset.x, offset.y, null);
 							g.dispose();
 						}
 						
-//						repaint();
-						repaint(offset.x, offset.y, finalImage.getWidth(), finalImage.getHeight());
+						repaint(offset.x, offset.y, img.getWidth(), img.getHeight());
 					}
 				case ConnectionStyle.PropertyChange_ImageCanceled -> {}
 				default -> throw new IllegalStateException("unknown property : " + evt.getPropertyName()); 
@@ -230,7 +248,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	
 	@Override public void mouseMoved(MouseEvent e) {
 		if(isEditor(EditorState.DRAGGINGCONNECTION)) {
-			var pe = prepMouseEvent(e);
+//			var pe = prepMouseEvent(e);
 		}
 	}
 	@Override public void mouseClicked(MouseEvent e) {
@@ -450,10 +468,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public void revalidateConnections() {	
 //		var s = new StringBuilder("draggable node editor > recalidate connections. redrawing; ");
 		
-		Map<Boolean, List<NodeConnection>> cons = draggableNodes.parallelStream()
-				.flatMap(node -> node.getConnectableNodeComponents().stream())
-				.flatMap(comp -> comp.getDirectConnections().stream())
-				.distinct()
+		Map<Boolean, List<NodeConnection>> cons = getConnections()
 				.collect(Collectors.partitioningBy(conn -> conn.needsRedrawn())); 
 		
 		List<NodeConnection> 
@@ -478,10 +493,10 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 						var area = con.getConnectionImageCoverage();
 						
 						if(area == null) 
-							consToReimpose.remove(con); //no need to repeat check if its already in the redraw queue
+							consToReimpose.remove(con);	//not sure what would cause this but just in case, would mean its useless anyways
 						else if(redrawArea.intersects(area)) {
 							ConnectionsToReimposeQueue.add(new WeakReference<>(con));
-							consToReimpose.remove(con);
+							consToReimpose.remove(con); //no need to repeat check if its already in the redraw queue
 						}
 					}
 				}
@@ -492,6 +507,13 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			;
 		
 //		System.out.println(s);
+	}
+	
+	private Stream<NodeConnection> getConnections(){
+		return draggableNodes.parallelStream()
+				.flatMap(node -> node.getConnectableNodeComponents().stream())
+				.flatMap(comp -> comp.getDirectConnections().stream())
+				.distinct();
 	}
 	
 ////////////////////////////////
@@ -1092,11 +1114,11 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 						.filter(conn -> !conn.needsRedrawn())
 						.forEach(conn -> {		
 								var style 	= conn.getConnectionStyle();
-								var futr 	= style.getImageFuture();
 								
-								BufferedImage connImg;
 								//get image from the future immediately if possible
-								if((connImg = futr.getNow(null)) != null) {
+								BufferedImage connImg = style.getImageNow();
+								
+								if(connImg != null) {
 									var offset	= style.getOffset();
 									
 									g.drawImage(connImg, offset.x, offset.y, null);
@@ -1186,9 +1208,11 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				ConnectionsToReimposeQueue.stream()
 					.map(ref -> ref.get())
 					.filter(conn -> conn != null && !conn.isPoinless())
+					.distinct()
 					.map(conn -> conn.getConnectionStyle())
 					.forEach(style-> {
-						var img = style.getImageFuture().getNow(null);
+						BufferedImage img = style.getImageNow();
+						
 						if(img == null) return;
 						
 						var offset = style.getOffset();
