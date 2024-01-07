@@ -1,8 +1,5 @@
 package draggableNodeEditor.NodeConnectionDrawer;
 
-import java.awt.Color;
-import java.awt.GradientPaint;
-import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Shape;
@@ -98,9 +95,7 @@ public abstract class ConnectionStyle implements Serializable{
     	}
     	var oldRect = this.getConnectionImageCoverage();
 		imageFuture = CompletableFuture.supplyAsync(() -> {
-//					System.out.println("#################################START \t@\t : " + System.nanoTime());
-					offset.x = offset.y = 0;
-					
+//					System.out.println("#################################START \t@\t : " + System.nanoTime());					
 					var img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 					
 					draw(
@@ -125,8 +120,10 @@ public abstract class ConnectionStyle implements Serializable{
 //					}
 					
 					if(cropRec.x != width && cropRec.y != height){
-						offset.x = cropRec.x;
-						offset.y = cropRec.y;
+						synchronized(offset) {
+							offset.x = cropRec.x;
+							offset.y = cropRec.y;
+						}
 						img = img.getSubimage(cropRec.x, cropRec.y, cropRec.width, cropRec.height);
 					}else {
 						throw new RuntimeException("croping screwed up, " + "connection style > image future, \n\t> img rect : " + (new Rectangle(offset.x, offset.y, img.getWidth(), img.getHeight())) + "\n\t> crop rect : " + cropRec);
@@ -243,6 +240,8 @@ public abstract class ConnectionStyle implements Serializable{
 		
 		//yippie
 		
+		if(minx == ix) return new Rectangle(0,0, 1,1);//the image was empty
+		
 		return new Rectangle(minx, miny, Math.max(1, maxx - minx), Math.max(1, maxy - miny));
 	}
 	
@@ -281,7 +280,13 @@ public abstract class ConnectionStyle implements Serializable{
 	}
 
 	public Point getOffset() {
-		return offset;
+		int x, y;
+		synchronized(offset) {
+			x = offset.x;
+			y = offset.y;
+		}
+		
+		return new Point(x,y);
 	}
 
 	public void setOffset(int x, int y) {

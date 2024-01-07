@@ -667,9 +667,10 @@ public class SerialPokeCommConnection extends JPanel{
 		//everything gets wrapped in a scroll frame
 		
 		var toolbarWrapper = new JPanel(new BorderLayout());
-			toolbarWrapper.add(inputEditor.editorToolBar);
-		var eWrapper = new JPanel(new GridBagLayout());
-			eWrapper.add(inputEditor, Presentable.createGbc(0, 0));
+			toolbarWrapper.add(inputEditor.geteditorToolBar());
+		var eWrapper =	new JScrollPane(inputEditor,	//left
+				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 			
 		var editorWrapper = new JPanel(new BorderLayout());
 			editorWrapper.add(toolbarWrapper, BorderLayout.LINE_START);
@@ -679,9 +680,7 @@ public class SerialPokeCommConnection extends JPanel{
 			inputEditor.editorToolBar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 2, Color.black));
 			
 		var editorAndInspector = new JSplitPane(SwingConstants.VERTICAL,
-				new JScrollPane(editorWrapper,	//left
-						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED),
+				editorWrapper,
 				new JScrollPane(inputEditor.getInspectorPanel(),	//right	
 						JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
 						JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)

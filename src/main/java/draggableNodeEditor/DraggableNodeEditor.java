@@ -265,7 +265,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				}
 			}
 		}else if(SwingUtilities.isLeftMouseButton(e)) {
-			System.out.println("clicked position " + e.getPoint());
+			
 		}
 		
 	}
@@ -394,22 +394,27 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 //		var ret = new StringBuilder("draggableNodeEditor > plop conneciton indicator; attach to : " + comp);
 		
 		if(comp == null || comp.isCompStatus(NodeComponentStatus.NOT_AVAILABLE)) {
+			selectedConnection = null;
+			unsetEditor(EditorState.DRAGGINGCONNECTION);
+			setAllNodeComponentStatuses(NodeComponentStatus.NETURAL);
 //			ret.append("\n\t> connection is unchanged <- component called on is not valid.");
 		}else {
 			selectedConnection.connectToComponent(comp);
 //			ret.append("\n\t> connection success. nodes connected : " + selectedConnection.getDirectleyConnectedComponents().size());
 		}
 		
-		if(selectedConnection.isPoinless()) {
-//			ret.append("\n\t> deleting connection <- connection was pointless.");
-			selectedConnection.deleteConnection();
-			selectedConnection = null;
-			unsetEditor(EditorState.DRAGGINGCONNECTION);
-			setAllNodeComponentStatuses(NodeComponentStatus.NETURAL);
-		}else {
-			selectedConnection.removeAllPropertyChangeListener(pcl_imageListener);
-			selectedConnection.addPropertyChangeListener(pcl_imageListener);
-		}
+		if(selectedConnection != null)
+			if(selectedConnection.isPoinless()) {
+//				ret.append("\n\t> deleting connection <- connection was pointless.");
+				selectedConnection.deleteConnection();
+				
+				selectedConnection = null;
+				unsetEditor(EditorState.DRAGGINGCONNECTION);
+				setAllNodeComponentStatuses(NodeComponentStatus.NETURAL);
+			}else {
+				selectedConnection.removeAllPropertyChangeListener(pcl_imageListener);
+				selectedConnection.addPropertyChangeListener(pcl_imageListener);
+			}
 		
 		revalidateConnections();
 		
@@ -505,9 +510,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				
 				conn.draw(obs, connectionImage, this);
 //				s.append("\n\t> " + conn);
-			});
+			})
 			;
-		
+			
 //		System.out.println(s);
 	}
 	

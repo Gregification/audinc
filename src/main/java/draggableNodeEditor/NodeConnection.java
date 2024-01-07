@@ -31,7 +31,7 @@ public class NodeConnection {
 
 	/** a shared hashset between each group of connected NodeConnections
 	 */
-//	protected HashSet<NodeConnection> reachableConnections 			= new HashSet<>(List.of(this));
+	protected HashSet<NodeConnection> reachableConnections 			= new HashSet<>(List.of(this));
 	
 	//drawing stuff
 	private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
@@ -53,28 +53,15 @@ public class NodeConnection {
 	 */
 	
 	/**
-	 * draws the line points to the lineImage. done this way to somewhat force u to cache it
+	 * draws the line points to the lineImage
 	 * @param obstacles : regions the lines will try to avoid (see ConnectionStyle doc. for more info).
 	 */
 	public void draw(final Polygon[] obstacles, BufferedImage outputTo, final Component hostComp) {
-		var comps = this.directleyConnectedComponents.stream().toList();
-		
 		final LineAnchor[] 
 				anchs  	= this.anchors.stream().map(LineAnchor::getFromAnchorPoint).toArray(LineAnchor[]::new),
-				terms	= comps.stream().sequential()
+				terms	= directleyConnectedComponents.stream().sequential()
 							.map(comp -> LineAnchor.getFromNodeComponent(comp, hostComp))
 							.toArray(LineAnchor[]::new);
-		
-//		var s = new StringBuilder("node connection > draw; terminals before and after point conversion");
-		
-		for(int i = 0; i < terms.length; i++) {
-			var c	= comps.get(i);
-			var cp 	= c.connectionPoint;
-//			s.append("\n\t> (" + cp.x  + "," + cp.y + ")\t -> \t(" + terms[i].x() + "," + terms[i].y() + ")");
-//			s.append("\t\t component:" + c.getName() + "\t\t hostNode:" + c.getHostNode());
-		}
-		
-//		System.out.println(s);
 		
 		needsRedrawn = false;
 		
