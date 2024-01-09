@@ -17,3 +17,18 @@ fork & create a branch for your changes. submit a pull request when ready.
 1. copy and paste everyting from the <code>presentables.presentTemplate</code> class into your newly created .java file & change the class name to the correct one.
 1. add your class path to the <code>Presents</code> variable in the <code>audinc.gui.MainWin</code> class. (will eventually update to something more dynamic)
 1. start typing.
+
+### snapshots bellow
+* as of 1/9/2024
+
+main menu
+![demo of the main menu](./res/demo%20images/demomenu.PNG)
+
+serial pokes' input editor
+![demo of serial poke's input editor](./res/demo%20images/demoInputEditor.PNG)
+
+dom viewer
+![demo of DOMViewer](./res/demo%20images/demoDOMviewer.PNG)
+
+ie3301
+![demo of ie3301](./res/demo%20images/demoie3301.PNG)

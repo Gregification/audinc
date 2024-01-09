@@ -509,7 +509,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		final Polygon[] obs = getLineObsticals();
 		
-		consToRedraw.stream() 
+		consToRedraw.stream().sequential()
 			.forEach(conn -> {
 				Rectangle redrawArea = conn.getConnectionImageCoverage();
 				if(redrawArea != null) {
