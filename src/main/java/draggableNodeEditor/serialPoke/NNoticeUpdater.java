@@ -1,17 +1,13 @@
 package draggableNodeEditor.serialPoke;
 
 import java.awt.Color;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.beans.PropertyChangeEvent;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import javax.swing.JComponent;
 
 import draggableNodeEditor.DraggableNode;
 import draggableNodeEditor.DraggableNodeEditor;
-import draggableNodeEditor.NodeComponent;
 import draggableNodeEditor.NodeConsumer;
 import presentables.presents.serialPoke.SerialPokeCommConnection;
 
@@ -23,7 +19,7 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	public NodeConsumer<Object> c_logger 			= new NodeConsumer<>(
 				Object.class,
 				"logger",
-				null
+				"c_logger initial text"
 			) { private static final long serialVersionUID = 1L;
 			@Override public void accept(PropertyChangeEvent t) {
 					onInput(t.getNewValue());
@@ -62,9 +58,10 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	}
 	
 	public void onInput(Object obj) {
-		System.out.println("NNoticeUpdator logging w/"+c_forgroundColor.getValue()+" : "+ obj.toString());
+		var color = c_forgroundColor.getValueNow();
 		
-		var color = c_forgroundColor.getValue();
+		System.out.println("NNoticeUpdator > onInput; \n\t>color:"+color+"\n\t>text:"+ obj.toString());
+		
 		context.setNoticeText(obj.toString(), color == null ? Color.black : color);
 	}
 }

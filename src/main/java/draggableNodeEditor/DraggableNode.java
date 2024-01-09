@@ -90,12 +90,9 @@ public abstract class DraggableNode<T> extends JPanel {
 	public boolean onOffClick(MouseEvent me, DraggableNode<?> otherNode, NodeComponent<?> otherComponent) {return true;};//me can be null
 	public void initGUI() { applyDefaultNamedBorder(); }
 	public void setContext(T newContext) { this.context = newContext; }	
-	public void onDelete() {
+	public void onDelete(DraggableNodeEditor editor) {
 		connectableNodeComponents.stream()
-			.forEach(comp -> {
-				comp.getDirectConnections().stream()
-					.forEach(conn -> conn.disconnectComponent(comp));
-			})
+			.forEach(comp -> comp.onDelete(editor))
 			;
 	};
 	

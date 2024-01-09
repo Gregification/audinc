@@ -165,6 +165,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public void reimposeArea(Rectangle area) {
 		synchronized(connectionImage) {
 			var g = connectionImage.createGraphics();
+			g.setBackground(new Color(0,0,0,0));
 			g.clearRect(area.x, area.y, area.width, area.height);
 			g.dispose();
 		}
@@ -448,9 +449,9 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			var comps = node.getConnectableNodeComponents();
 			for(var c : comps) {
 				if(type == c.type)
-					c.setCompStatus(NodeComponentStatus.AVAILABLE);
+					c.setCompStatus(NodeComponentStatus.SUGESTED);
 				else if(c.type.isAssignableFrom(type))
-					c.setCompStatus(NodeComponentStatus.NETURAL);
+					c.setCompStatus(NodeComponentStatus.AVAILABLE);
 				else
 					c.setCompStatus(NodeComponentStatus.NOT_AVAILABLE);
 			}
@@ -683,7 +684,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	public void removeNode(DraggableNode<?> node) {		
 		if(!draggableNodes.remove(node)) return;
 		
-		selectedNode.onDelete();
+		selectedNode.onDelete(this);
 		
 		if(selectedNode != null && node == selectedNode) {
 			inspectorPanel.removeAll();
@@ -701,6 +702,8 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				})
 				;
 		
+		if(this.selectedConnection.getDirectleyConnectedComponents().size() <=  1)
+			plopConnectionIndicator(null);
 		
 		remove(selectedNode);
 		repaint(selectedNode.getBounds());

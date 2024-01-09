@@ -11,7 +11,9 @@ import java.util.function.Supplier;
 public non-sealed class NodeSupplier<T> extends NodeComponent<T> implements Supplier<T>, Serializable {
 	private static final long serialVersionUID = 1L;
 	
-	/**  property fired when the value is changed 
+	/**
+	 * property fired when the value is changed.
+	 * this happens immediately BEFORE getnextValue() is unblocked.
 	 * @new-property-value new value
 	 * @old-property-value old value
 	 */
@@ -22,11 +24,11 @@ public non-sealed class NodeSupplier<T> extends NodeComponent<T> implements Supp
 	}
 	
 	@Override public T get() {
-		return getValue();
+		return getValueNow();
 	}
 
-	@Override public void setValue(T value) {
-		firePropertyChange(PC_ValueChanged, this.value, value);
+	@Override public final void setValue(T value) {
+		firePropertyChange(PC_ValueChanged, getValueNow(), value);
 		super.setValue(value);
 	}
 }

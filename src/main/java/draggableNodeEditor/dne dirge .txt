@@ -1,0 +1,31 @@
+1/9/2024 - i give up on the draggable node editor (dne). burn-out or something something. 
+only way to get it to work is pour more hours into it. its not hard work, just a lot of choices 
+and better things to do, as is - its enough as a mostly working proof of concept.    
+
+please pick up on this, should be doable with basic java, oop, and a bit of swing knowledge.
+
+TODOs
+ - finish the conversion NodeSupplier and NodeConsumer to pass values through the propertyChangeListeners,
+ 	the NConn should subscribe to the NSup, all the NSsup does is fire things off, the implementation should all 
+ 	be in NConn. suggest this be done by having 2 methods like {@code consider/unconsider-component(NodeComponent)}
+	, NConn should add and remove its listener to components passed by those 2 consider methods appropriately 
+	(if its a compatiable type and if not already subscribed). the 2 consider methods should be called by 
+	NodeConnection whenever a new component joins/leaves the network. 
+ - decide how consumers/suppliers should be determined to be actively supplying or passively (does the consumer ask 
+ 	the supplier or just listens on the supplier when it needs a value?). idealy there would be a toggle button 
+ 	so the issue can just be thrown at the user while also being a 'control feature'.
+ - some sort of connection editor, suggest throwing it into the "node editor details" JFrame thing. need to give 
+ 	the user some way to edit the anchors and terminals of a NodeConnection, if its networkable, if it should be 
+ 	deleted, and so on. also some way to change the connection style.
+ - finish the NodeTransit class, all its ment to do is be both a supplier and consumer with some way to insert
+ 	logic between the two. should be in one horiziontal row visually. its for things like a "convert a to b" where
+ 	it looks cluttered if there's a separate "in" consumer and "out" supplier.
+ - finish the NepSPDataListener class, make the cell things being added NConn's so they get a connection point,
+ 	and somehow register them as listeners to the "context" variable which should be a SerialPort or something 
+ 	that can give a serial port.  
+
+NOTEs
+ - NodeConsumers are passed in a propertyChangeListener and should verify the given objects themselves, this is 
+ 	intentional.
+ - when passing numbers of any kind involving a consumer and supplier make it a {@link Number.class} object just 
+ 	as a standard

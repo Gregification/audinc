@@ -28,6 +28,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
@@ -78,7 +79,6 @@ import com.fazecast.jSerialComm.SerialPort;
 
 import audinc.gui.MainWin;
 import presentables.Presentable;
-import presentables.custom_function;
 
 public class IE3301 extends Presentable{
 	public 	volatile JTable part1DataTable;
@@ -393,17 +393,14 @@ public class IE3301 extends Presentable{
 				this.getClass(),
 				this.savePath,
 				logToggler,
-				new custom_function<JFileChooser>() {
-					@Override public JFileChooser doTheThing(JFileChooser fc) {
+				fc -> {
 						switch(fc.showOpenDialog(cframe)) {
 							case JFileChooser.APPROVE_OPTION : 
 		    					Path newpath = fc.getSelectedFile().toPath();
 		    					setLoggingTo(newpath);
 	    					break;
 						}
-						
-						return null;
-					}}
+					}
 				);
 			saveFilePicker.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "log to", TitledBorder.LEFT, TitledBorder.TOP));
 			
@@ -443,13 +440,11 @@ public class IE3301 extends Presentable{
 		JComponent[] objs = {
 				saveFilePicker,
 				saveAudioFileToggler,
-				Presentable.genLabelInput("log interval (mil)	: ", new custom_function<JTextField>() {
-					@Override public JTextField doTheThing(JTextField thisisnull) {
+				Presentable.genLabelInput("log interval (mil)	: ", () -> {
 						JTextField tf = new JTextField(5);
 						tf.setText(logInterval_mill+"");
 						
-						custom_function<Boolean> isValid = new custom_function<>() {
-							@Override public Boolean doTheThing(Boolean o) {
+						Supplier<Boolean> isValid = () -> {{
 								String s = tf.getText();
 								int v;
 								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > 100000) {
@@ -461,10 +456,10 @@ public class IE3301 extends Presentable{
 								return true;
 							}};
 						var v = new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 							@Override public void changedUpdate(DocumentEvent e) {								
-								if(!isValid.doTheThing(false)) {
+								if(!isValid.get()) {
 									JOptionPane.showInternalMessageDialog(
 											null,
 											"invalid log interval : " + tf.getText(),
@@ -480,14 +475,12 @@ public class IE3301 extends Presentable{
 						docListeners.add(v);
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
-					}}),
-				Presentable.genLabelInput("log length (mil)	: ", new custom_function<JTextField>() {
-					@Override public JTextField doTheThing(JTextField thisisnull) {
+					}),
+				Presentable.genLabelInput("log length (mil)	: ", () -> {{
 						JTextField tf = new JTextField(5);
 						tf.setText(logLength_mill+"");
 						
-						custom_function<Boolean> isValid = new custom_function<>() {
-							@Override public Boolean doTheThing(Boolean o) {
+						Supplier<Boolean> isValid = () -> { {
 								String s = tf.getText();
 								int v;
 								if(s.isBlank() || (v = Integer.parseInt(s)) <= 0 || v > logInterval_mill) {
@@ -499,10 +492,10 @@ public class IE3301 extends Presentable{
 								return true;
 							}};
 						var v = new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 							@Override public void changedUpdate(DocumentEvent e) {								
-								if(!isValid.doTheThing(false)) {
+								if(!isValid.get()) {
 									JOptionPane.showInternalMessageDialog(
 											null,
 											"invalid log length : " + tf.getText(),
@@ -519,13 +512,11 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
-				Presentable.genLabelInput("refrence amp (float): ", new custom_function<JTextField>() {
-					@Override public JTextField doTheThing(JTextField thisisnull) {
+				Presentable.genLabelInput("refrence amp (float): ", () -> {{
 						JTextField tf = new JTextField(5);
 						tf.setText(ampRef+"");
 						
-						custom_function<Boolean> isValid = new custom_function<>() {
-							@Override public Boolean doTheThing(Boolean o) {
+						Supplier<Boolean> isValid = () -> {{
 								String s = tf.getText();try {
 								if(s.isBlank() || Float.parseFloat(s) == 0) {
 									setNoticeText("invalid", Color.red);
@@ -538,10 +529,10 @@ public class IE3301 extends Presentable{
 								return true;
 							}};
 						var v = new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 							@Override public void changedUpdate(DocumentEvent e) {								
-								if(!isValid.doTheThing(false)) {
+								if(!isValid.get()) {
 									JOptionPane.showInternalMessageDialog(
 											null,
 											"invalid refrence amp : " + tf.getText(),
@@ -561,8 +552,7 @@ public class IE3301 extends Presentable{
 						return tf;
 					}}),
 				audioEncoding,
-				Presentable.genLabelInput((JComponent)useCustomLineToggler, new custom_function<JComponent>() {
-					@Override public JComponent doTheThing(JComponent o) {
+				Presentable.genLabelInput((JComponent)useCustomLineToggler, () -> {{
 						var v = new JComboBox(detectedLines.toArray());
 							v.setSelectedIndex(0);
 							v.addActionListener(e -> {
@@ -571,13 +561,11 @@ public class IE3301 extends Presentable{
 							v.setToolTipText("honstley this selector dosnet do anything. the check box does tho");
 						return v;
 					}}),
-				Presentable.genLabelInput("channel size 	(bytes)	: ", new custom_function<JTextField>() {
-					@Override public JTextField doTheThing(JTextField thisisnull) {
+				Presentable.genLabelInput("channel size 	(bytes)	: ", () -> {{
 						JTextField tf = new JTextField(5);
 						tf.setText(channelSize_byte+"");
 						
-						custom_function<Boolean> isValid = new custom_function<>() {
-							@Override public Boolean doTheThing(Boolean o) {
+						Supplier<Boolean> isValid = () -> {{
 								String s = tf.getText();
 								int v;
 								if(s.isBlank() || (v = Integer.parseInt(s)) <=0 || v > 8) {
@@ -589,10 +577,10 @@ public class IE3301 extends Presentable{
 								return true;
 							}};
 						var v = new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 							@Override public void changedUpdate(DocumentEvent e) {								
-								if(!isValid.doTheThing(false)) {
+								if(!isValid.get()) {
 									JOptionPane.showInternalMessageDialog(
 											null,
 											"invalid sample bit count (bytes): " + tf.getText(),
@@ -609,13 +597,11 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
-				Presentable.genLabelInput("channels 	(int)	: ", new custom_function<JTextField>() {
-					@Override public JTextField doTheThing(JTextField thisisnull) {
+				Presentable.genLabelInput("channels 	(int)	: ", () -> {{
 						JTextField tf = new JTextField(5);
 						tf.setText(channels+"");
 						
-						custom_function<Boolean> isValid = new custom_function<>() {
-							@Override public Boolean doTheThing(Boolean o) {
+						Supplier<Boolean> isValid = () -> {{
 								String s = tf.getText();
 								
 								if(s.isBlank() || !isValidChannelCount(Integer.parseInt(s))) {
@@ -627,10 +613,10 @@ public class IE3301 extends Presentable{
 								return true;
 							}};
 						var v = new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 							@Override public void changedUpdate(DocumentEvent e) {								
-								if(!isValid.doTheThing(false)) {
+								if(!isValid.get()) {
 									JOptionPane.showInternalMessageDialog(
 											null,
 											"invalid channel count : " + tf.getText(),
@@ -647,13 +633,11 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
-				Presentable.genLabelInput("frame size  (float)	: ", new custom_function<JTextField>() {
-					@Override public JTextField doTheThing(JTextField thisisnull) {
+				Presentable.genLabelInput("frame size  (float)	: ", () -> {{
 						JTextField tf = new JTextField(10);
 						tf.setText(frameSize+"");
 						
-						custom_function<Boolean> isValid = new custom_function<>() {
-							@Override public Boolean doTheThing(Boolean o) {
+						Supplier<Boolean> isValid = () -> {{
 								String s = tf.getText();
 								
 								if(s.isBlank() || Integer.parseInt(s) <= 0) {
@@ -665,10 +649,10 @@ public class IE3301 extends Presentable{
 								return true;
 							}};
 						var v = new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 							@Override public void changedUpdate(DocumentEvent e) {
-								if(!isValid.doTheThing(false)) {
+								if(!isValid.get()) {
 									JOptionPane.showInternalMessageDialog(
 											null,
 											"invalid frame size : " + tf.getText(),
@@ -685,13 +669,11 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
-				Presentable.genLabelInput("sample rate (float-Hz)	: ", new custom_function<JTextField>() {
-					@Override public JTextField doTheThing(JTextField thisisnull) {
+				Presentable.genLabelInput("sample rate (float-Hz)	: ", () -> {{
 						JTextField tf = new JTextField(10);
 						tf.setText(sampleRate+"");
 						
-						custom_function<Boolean> isValid = new custom_function<>() {
-							@Override public Boolean doTheThing(Boolean o) {
+						Supplier<Boolean> isValid = () -> {{
 								String s = tf.getText();
 								
 								if(s.isBlank() || Float.parseFloat(s) <= 0) {
@@ -703,10 +685,10 @@ public class IE3301 extends Presentable{
 								return true;
 							}};
 						var v = new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 							@Override public void changedUpdate(DocumentEvent e) {
-								if(!isValid.doTheThing(false)) {
+								if(!isValid.get()) {
 									JOptionPane.showInternalMessageDialog(
 											null,
 											"invalid sample rate : " + tf.getText(),
@@ -723,13 +705,11 @@ public class IE3301 extends Presentable{
 						tf.getDocument().addDocumentListener(v);		
 						return tf;
 					}}),
-				Presentable.genLabelInput("frame rate (float-Hz): ", new custom_function<JTextField>() {
-					@Override public JTextField doTheThing(JTextField thisisnull) {
+				Presentable.genLabelInput("frame rate (float-Hz): ", () -> {{
 						JTextField tf = new JTextField(10);
 						tf.setText(frameRate+"");
 						
-						custom_function<Boolean> isValid = new custom_function<>() {
-							@Override public Boolean doTheThing(Boolean o) {
+						Supplier<Boolean> isValid = () -> {{
 								String s = tf.getText();
 								
 								if(s.isBlank() || Float.parseFloat(s) <= 0) {
@@ -741,10 +721,10 @@ public class IE3301 extends Presentable{
 								return true;
 							}};
 						var v = new DocumentListener() {
-							@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-							@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+							@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+							@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 							@Override public void changedUpdate(DocumentEvent e) {
-								if(!isValid.doTheThing(false)) {
+								if(!isValid.get()) {
 									JOptionPane.showInternalMessageDialog(
 											null,
 											"invalid frame rate : " + tf.getText(),
@@ -896,6 +876,7 @@ public class IE3301 extends Presentable{
 	 							}
 	 							
 	 							//trim off trailing comma
+	 							if(sb.length() > 1)
 	 							sb.setLength(sb.length()-1);
 	 							
 	 							sb.append(newLine);

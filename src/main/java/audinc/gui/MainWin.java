@@ -35,12 +35,12 @@ import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.Random;
 
 import presentables.Presentable;
-import presentables.custom_function;
 
 public class MainWin extends JFrame {
 	/**
@@ -137,9 +137,9 @@ public class MainWin extends JFrame {
         this.setBackground(randColor());
         
         
-		//starting present
-//		setPresent(presentables.presents.menu.class);
-		setPresent(presentables.presents.SerialPoke.class);
+		//starting present, useful to edit this when testing a present
+		setPresent(presentables.presents.menu.class);
+//		setPresent(presentables.presents.SerialPoke.class);
 		
 		setVisible(true);
 	}
@@ -230,22 +230,20 @@ public class MainWin extends JFrame {
 			ArrayList<DocumentListener> docListeners = new ArrayList<>(5);	
 			
 			JComponent[] objs = {
-					Presentable.genLabelInput("general scale (float): ", new custom_function<JTextField>() {
-						@Override public JTextField doTheThing(JTextField thisisnull) {
+					Presentable.genLabelInput("general scale (float): ", () -> {{
 							JTextField tf = new JTextField(5);
 							tf.setText(MainWin.stdDimensionScale+"");
 							
-							custom_function<Boolean> isValid = new custom_function<>() {
-								@Override public Boolean doTheThing(Boolean o) {
+							Supplier<Boolean> isValid = () -> {{
 									String s = tf.getText();
 									return !(s.isBlank() || Float.parseFloat(s) <= 0);
 								}};
 								
 							var v = new DocumentListener() {
-								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 								@Override public void changedUpdate(DocumentEvent e) {
-									if(!isValid.doTheThing(false)) {
+									if(!isValid.get()) {
 										JOptionPane.showInternalMessageDialog(
 												null,
 												"invalid general scale : " + tf.getText(),
@@ -262,22 +260,20 @@ public class MainWin extends JFrame {
 							tf.getDocument().addDocumentListener(v);		
 							return tf;
 						}}),
-					Presentable.genLabelInput("window scale (float): ", new custom_function<JTextField>() {
-						@Override public JTextField doTheThing(JTextField thisisnull) {
+					Presentable.genLabelInput("window scale (float): ", () -> {{
 							JTextField tf = new JTextField(5);
 							tf.setText(MainWin.DimensionScale_window+"");
 							
-							custom_function<Boolean> isValid = new custom_function<>() {
-								@Override public Boolean doTheThing(Boolean o) {
+							Supplier<Boolean> isValid = () -> {{
 									String s = tf.getText();
 									return !(s.isBlank() || Float.parseFloat(s) <= 0);
 								}};
 								
 							var v = new DocumentListener() {
-								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 								@Override public void changedUpdate(DocumentEvent e) {
-									if(!isValid.doTheThing(false)) {
+									if(!isValid.get()) {
 										JOptionPane.showInternalMessageDialog(
 												null,
 												"invalid window scale : " + tf.getText(),
@@ -294,22 +290,20 @@ public class MainWin extends JFrame {
 							tf.getDocument().addDocumentListener(v);		
 							return tf;
 						}}),
-					Presentable.genLabelInput("icon scale (float): ", new custom_function<JTextField>() {
-						@Override public JTextField doTheThing(JTextField thisisnull) {
+					Presentable.genLabelInput("icon scale (float): ", () -> {{
 							JTextField tf = new JTextField(5);
 							tf.setText(MainWin.DimensionScale_icon+"");
 							
-							custom_function<Boolean> isValid = new custom_function<>() {
-								@Override public Boolean doTheThing(Boolean o) {
+							Supplier<Boolean> isValid = () -> {{
 									String s = tf.getText();
 									return !(s.isBlank() || Float.parseFloat(s) <= 0);
 								}};
 								
 							var v = new DocumentListener() {
-								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 								@Override public void changedUpdate(DocumentEvent e) {
-									if(!isValid.doTheThing(false)) {
+									if(!isValid.get()) {
 										JOptionPane.showInternalMessageDialog(
 												null,
 												"invalid icon scale : " + tf.getText(),
@@ -326,22 +320,20 @@ public class MainWin extends JFrame {
 							tf.getDocument().addDocumentListener(v);		
 							return tf;
 						}}),
-					Presentable.genLabelInput("present scale (float): ", new custom_function<JTextField>() {
-						@Override public JTextField doTheThing(JTextField thisisnull) {
+					Presentable.genLabelInput("present scale (float): ",() -> {{
 							JTextField tf = new JTextField(5);
 							tf.setText(MainWin.DimensionScale_present+"");
 							
-							custom_function<Boolean> isValid = new custom_function<>() {
-								@Override public Boolean doTheThing(Boolean o) {
+							Supplier<Boolean> isValid = () -> {{
 									String s = tf.getText();
 									return !(s.isBlank() || Float.parseFloat(s) <= 0);
 								}};
 								
 							var v = new DocumentListener() {
-								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 								@Override public void changedUpdate(DocumentEvent e) {
-									if(!isValid.doTheThing(false)) {
+									if(!isValid.get()) {
 										JOptionPane.showInternalMessageDialog(
 												null,
 												"invalid presnet scale : " + tf.getText(),
@@ -358,23 +350,21 @@ public class MainWin extends JFrame {
 							tf.getDocument().addDocumentListener(v);		
 							return tf;
 						}}),
-					Presentable.genLabelInput("thread pool size (int): ", new custom_function<JTextField>() {
-						@Override public JTextField doTheThing(JTextField thisisnull) {
+					Presentable.genLabelInput("thread pool size (int): ",() -> {{
 							JTextField tf = new JTextField(5);
 							tf.setText(MainWin.stdPreferredNumThreads+"");
 							
-							custom_function<Boolean> isValid = new custom_function<>() {
-								@Override public Boolean doTheThing(Boolean o) {
+							Supplier<Boolean> isValid = () -> {{
 									String s = tf.getText();
 									float f;
 									return !(s.isBlank() || (f = Integer.parseInt(s)) <= 0 || f > 15);
 								}};
 								
 							var v = new DocumentListener() {
-								@Override public void insertUpdate(DocumentEvent e) { isValid.doTheThing(true); } 
-								@Override public void removeUpdate(DocumentEvent e)	{ isValid.doTheThing(true); }
+								@Override public void insertUpdate(DocumentEvent e) { isValid.get(); } 
+								@Override public void removeUpdate(DocumentEvent e)	{ isValid.get(); }
 								@Override public void changedUpdate(DocumentEvent e) {
-									if(!isValid.doTheThing(false)) {
+									if(!isValid.get()) {
 										JOptionPane.showInternalMessageDialog(
 												null,
 												"invalid presnet scale : " + tf.getText(),

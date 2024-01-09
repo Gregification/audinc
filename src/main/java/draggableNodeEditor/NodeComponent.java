@@ -9,6 +9,9 @@ import java.io.Serializable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.locks.AbstractQueuedLongSynchronizer.ConditionObject;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.swing.JComponent;
 
@@ -37,8 +40,9 @@ public abstract sealed class NodeComponent<T> extends JComponent implements Seri
 	protected NodeComponentStatus compStatus = NodeComponentStatus.NETURAL;
 	
 	//component stuff
-	protected T value;
-	public volatile boolean useCacheValue = true;
+	protected final ReentrantLock valueLock = new ReentrantLock();
+	protected final Condition nextValueCondition = valueLock.newCondition();
+	protected volatile T value;
 	
 	public NodeComponent(Class<T> type, String name, T value) {
 		Objects.requireNonNull(type);
@@ -49,8 +53,33 @@ public abstract sealed class NodeComponent<T> extends JComponent implements Seri
 		this.setLayout(new FlowLayout());
 	}
 	
-	public T getValue() { return (useCacheValue ?  value : null); }
-	public void setValue(T value) { this.value = value; };
+	public final T getValueNow() {
+		return value;//defeats the point of trying to synchronize this stuff TODO: fix this or something
+	}
+	
+	/**
+	 * waits for the value to change, when it does, it returns the new value; 
+	 * this is a blocking call.
+	 * for NodeSupplier's, this call is unblocked the immediately AFTER the property change is fired.
+	 * @return the next value
+	 */
+	public final T getNextValue() {
+		try {
+			nextValueCondition.await();
+		} catch (InterruptedException e) {}
+		
+		return getValueNow();
+	}
+	
+	public void setValue(T value) {
+		valueLock.lock();
+		this.value = value;
+		
+		nextValueCondition.signalAll();
+		
+		
+		valueLock.unlock();
+	};
 	
 	/**
 	 * gets called when a new node joins the connection. 
@@ -96,7 +125,10 @@ public abstract sealed class NodeComponent<T> extends JComponent implements Seri
 		for(var conn : directConnections) {
 			dropConnection(conn);
 			conn.setNeedsRedrawn(true);
-			editor.reimposeArea(conn.getConnectionImageCoverage());
+			
+			var area = conn.getConnectionImageCoverage();
+			if(area != null)
+			editor.reimposeArea(area);
 		}
 		
 		directConnections = null;

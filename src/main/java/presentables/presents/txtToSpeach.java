@@ -1,7 +1,6 @@
 package presentables.presents;
 
 import presentables.Presentable;
-import presentables.custom_function;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -166,15 +165,13 @@ public class txtToSpeach extends Presentable {
 						this.getClass(),
 						XMLPath,
 						logToggler,
-						new custom_function<JFileChooser>() {
-							@Override public JFileChooser doTheThing(JFileChooser fc) {
+						(fc) -> {{
 								switch(fc.showOpenDialog(null)) {
 									case JFileChooser.APPROVE_OPTION : 
 				    					Path newpath = fc.getSelectedFile().toPath();
 				    					XMLPath = newpath;
 			    					break;
 								}
-								return null;
 							}}
 						);
 

@@ -23,11 +23,12 @@ public class NspColor extends NodeSupplier<Color> {
 	}
 	
 	private void initGUI() {
+		var value = getValueNow();
 		  JSpinner 
-		  		spinR = new JSpinner(new SpinnerNumberModel(0, 0, 255, 1)),
-		  		spinG = new JSpinner(new SpinnerNumberModel(0, 0, 255, 1)),
-		  		spinB = new JSpinner(new SpinnerNumberModel(0, 0, 255, 1)),
-		  		spinA = new JSpinner(new SpinnerNumberModel(0, 0, 255, 1))
+		  		spinR = new JSpinner(new SpinnerNumberModel(value.getRed(), 0, 255, 1)),
+		  		spinG = new JSpinner(new SpinnerNumberModel(value.getGreen(), 0, 255, 1)),
+		  		spinB = new JSpinner(new SpinnerNumberModel(value.getBlue(), 0, 255, 1)),
+		  		spinA = new JSpinner(new SpinnerNumberModel(value.getAlpha(), 0, 255, 1))
 		  	;
 		  
 		  spinR.setToolTipText("red");

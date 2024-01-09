@@ -11,6 +11,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -122,7 +124,7 @@ public abstract class Presentable {
 			Class<? extends Presentable> c,
 			Path 		defaultPath,
 			JCheckBox 	savetoggler,
-			custom_function<JFileChooser> fileChooserEvent){
+			Consumer<JFileChooser> fileChooserEvent){
 		
 		JPanel logTranscript_panel = new JPanel();
 			SpringLayout editorTab_portDescriptor_layout = new SpringLayout();
@@ -139,7 +141,7 @@ public abstract class Presentable {
 			    			
 			    			fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 			    			
-			    			fileChooserEvent.doTheThing(fc);
+			    			fileChooserEvent.accept(fc);
 			    			
 		    			});
 		    		
@@ -191,14 +193,14 @@ public abstract class Presentable {
 			
 		return container;
 	}
-	public static JPanel genLabelInput(String title, custom_function<JTextField> cf) {
-		return Presentable.genLabelInput(title, cf.doTheThing(null));
+	public static JPanel genLabelInput(String title, Supplier<JTextField> cf) {
+		return Presentable.genLabelInput(title, cf.get());
 	}
-	public static JPanel genLabelInput(JComponent title, custom_function<JComponent> cf) {
-		return Presentable.genLabelInput(title, cf.doTheThing(null));
+	public static JPanel genLabelInput(JComponent title, Supplier<JComponent> cf) {
+		return Presentable.genLabelInput(title, cf.get());
 	}
-	public static JPanel genLabelInput(JLabel label, custom_function<JTextField> cf) {
-		return Presentable.genLabelInput(label, cf.doTheThing(null));
+	public static JPanel genLabelInput(JLabel label, Supplier<JTextField> cf) {
+		return Presentable.genLabelInput(label, cf.get());
 	}
 	public static JPanel genLabelInput(String title, JTextField input) {
 		return Presentable.genLabelInput(new JLabel(title), input);
@@ -252,33 +254,28 @@ public abstract class Presentable {
 ///////////////////
 //i know better but am too lazy to correct
 ///////////////////
-	protected void writeToPath(Path path, custom_bufferedWriter lambda) {
+	protected void writeToPath(Path path, Consumer<BufferedWriter> lambda) {
 		try(BufferedWriter br = Files.newBufferedWriter(path)){
-			lambda.doTheThing(br);
+			lambda.accept(br);
 		}catch (IOException e) { e.printStackTrace(); }
 	}
-	public static void readFromPath(Path path, custom_bufferedReader lambda) {
+	public static void readFromPath(Path path, Consumer<BufferedReader> lambda) {
 		if(Files.exists(path))
 			try(BufferedReader br = Files.newBufferedReader(path)){
-				lambda.doTheThing(br);
+				lambda.accept(br);
 			} catch (IOException e) { e.printStackTrace(); }
 	}
-	protected int lazyPathRecursion(Path path, int maxDepth, custom_lasyDirRecursion lambda) {
+	protected int lazyPathRecursion(Path path, int maxDepth, Consumer<Path> lambda) {
 		if(maxDepth < 0) return 0;
 		if(Files.exists(path)) {
 			if(Files.isDirectory(path)) {
 					try { Files.list(path).forEach(p -> this.lazyPathRecursion(p, maxDepth - 1, lambda)); } catch (IOException e) { e.printStackTrace(); };
 			}else if(Files.isRegularFile(path)){
-				lambda.doTheThing(path);
+				lambda.accept(path);
 				return 1;
 			}
 		}
 		return 0;
-	}
-	protected <T> boolean nullCoalescing(T o, custom_doTheThingIfNotNull<T> lamda){
-		if(o == null) return false;
-		lamda.doTheThing(o);
-		return true;
 	}
 	
 	//quick c&p
