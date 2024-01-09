@@ -57,6 +57,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
+import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
@@ -99,30 +100,29 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 	protected JPanel inspectorPanel;	//options related to a single node. view & edit details about a selected node
 	protected JFrame editorDetailsView;
 	
+	private volatile boolean cacheDrawnLines = true;
+	private final static long minRefreshWait_mill = 100;
+	
 	private ConcurrentLinkedQueue<WeakReference<NodeConnection>> ConnectionsToReimposeQueue = new ConcurrentLinkedQueue<>();
 	private BufferedImage connectionImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
 	private final PropertyChangeListener pcl_imageListener = new PropertyChangeListener() {
-		final Consumer<Rectangle> populateConnectionsToReimpose = area -> {
-			getConnections()
-				.filter(conn -> !conn.needsRedrawn())
-				.filter(conn -> {
-					var thisarea = conn.getConnectionImageCoverage();
-					
-					if(thisarea == null) return false;
-					
-					return thisarea.intersects(area);
-				})
-				.forEach(conn -> ConnectionsToReimposeQueue.add(new WeakReference<>(conn)));
-				;
-		};
 		
+		private long lastRefresh = 0;
 		@Override public void propertyChange(PropertyChangeEvent evt) {
 //			System.out.println("draggable node editor > prop change listener; time@" + System.nanoTime()
 //				+ "\n\t-observer property: " + evt.getPropertyName() 
 //				+ "\n\t-source	: " + evt.getSource()
 //				+ "\n\t-old val : " + evt.getOldValue()
 //				+ "\n\t-new val : " + evt.getNewValue());
-
+			if(!cacheDrawnLines) {
+				long ref = System.currentTimeMillis();
+				if(ref - lastRefresh > minRefreshWait_mill) {
+					lastRefresh = ref;
+					SwingUtilities.invokeLater(() -> repaint());
+				}
+				return;
+			}
+			
 			switch(evt.getPropertyName()) {
 				case ConnectionStyle.PropertyChange_ImageUpdate -> {
 					var changedRect	= (Rectangle)evt.getOldValue();		//rectangle on image that needs redrawn
@@ -133,10 +133,10 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 							g.clearRect(changedRect.x, changedRect.y, changedRect.width, changedRect.height);
 							g.dispose();
 							
-							populateConnectionsToReimpose.accept(changedRect);
-							
 							connectionImage.setData(changedRastor);
 						}
+						
+						reimposeArea(changedRect);
 						
 						repaint(changedRect);
 					}
@@ -145,7 +145,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 						var imgAndOffset= (ImageAndOffSet)evt.getNewValue();	//ConnectionStyle that finished
 						
 						if(oldCoverage != null)
-							populateConnectionsToReimpose.accept(oldCoverage);
+							reimposeArea(oldCoverage);
 						
 						var img 	= imgAndOffset.image();						
 						var offset 	= imgAndOffset.offset();
@@ -161,6 +161,26 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				default -> throw new IllegalStateException("unknown property : " + evt.getPropertyName()); 
 			}
 	}};
+	
+	public void reimposeArea(Rectangle area) {
+		synchronized(connectionImage) {
+			var g = connectionImage.createGraphics();
+			g.clearRect(area.x, area.y, area.width, area.height);
+			g.dispose();
+		}
+		
+		getConnections()
+		.filter(conn -> !conn.needsRedrawn())
+		.filter(conn -> {
+			var thisarea = conn.getConnectionImageCoverage();
+			
+			if(thisarea == null) return false;
+			
+			return thisarea.intersects(area);
+		})
+		.forEach(conn -> ConnectionsToReimposeQueue.add(new WeakReference<>(conn)));
+		;
+	}
 	
 	/**
 	 * contains all the nodes on the nodeEditor including those that may not be a part of it anymore.
@@ -205,8 +225,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		}
 	}
 	
-	/**
-	 * this just calls the 3 functions <code>genGUI inspector-index-editor</code> in that order 
+	/** this just calls the 3 functions <code>genGUI inspector-index-editor</code> in that order 
 	 */
 	public void genGUI() {		
 		genGUI_inspector(inspectorPanel);
@@ -255,8 +274,11 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		if(SwingUtilities.isMiddleMouseButton(e)) {
 			var pe = prepMouseEvent(e);
 			
-			if(isEditor(EditorState.DRAGGINGCONNECTION)) {				
-				plopConnectionIndicator(pe.compAt);
+			if(isEditor(EditorState.DRAGGINGCONNECTION)) {	
+				if(pe.nodeAt instanceof AnchorPoint ap)
+					selectedConnection.anchors.add(ap);	
+				else
+					plopConnectionIndicator(pe.compAt);
 			}else {
 				if(pe.compAt != null) {
 					setEditor(EditorState.DRAGGINGCONNECTION);
@@ -641,6 +663,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		node.addComponentListener(nConnRescheduler);
 		
+		//position in center of view port
 		SwingUtilities.invokeLater(() -> {
 			Point location = position;
 			if(location == null) {
@@ -667,6 +690,17 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			inspectorPanel.setBorder(null);
 			inspectorPanel.revalidate();
 		}
+		
+		if(node instanceof AnchorPoint ap)
+			getConnections()
+				.filter(conn -> conn.anchors.remove(node))
+				.forEach(conn -> {
+					while(conn.anchors.remove(node)) {}
+					
+					conn.setNeedsRedrawn(true);
+				})
+				;
+		
 		
 		remove(selectedNode);
 		repaint(selectedNode.getBounds());
@@ -727,12 +761,18 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 			runGCBtn.setToolTipText("clears unecessary data and runs Javas' GC");
 			runGCBtn.addActionListener(e -> onRunGCClick());
 		
+		var smartLineToggler = new JToggleButton();
+			smartLineToggler.setToolTipText("toggle line caching(is somewhat more efficent & faster if on; looks prettier if off)");
+			smartLineToggler.setSelected(cacheDrawnLines);
+			smartLineToggler.addActionListener(e -> onCacheDrawnLines(smartLineToggler.isSelected()));
+			
 		editorToolBar = new JToolBar("editor tool bar",JToolBar.VERTICAL);
 			editorToolBar.setRollover(true);
 			
 		editorToolBar.add(newNodeBtn);
 		editorToolBar.add(deleteNodeBtn);
 		editorToolBar.add(Box.createVerticalGlue());
+		editorToolBar.add(smartLineToggler);
 		editorToolBar.add(runGCBtn);
 		editorToolBar.add(viewConnectionsBtn);
 	}
@@ -746,6 +786,10 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		if(selectedNode == null) return;
 		
 		removeNode(selectedNode);
+	}
+	
+	public void onCacheDrawnLines(boolean on) {
+		cacheDrawnLines = on;
 	}
 	
 	public void onRunGCClick() {
@@ -1198,17 +1242,7 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 		
 		super.paint(g);
 		
-//		synchronized(connectionImage)
-//		{
-//			System.out.println("conectionImage " + connectionImage);
-//			
-//			var z = (Graphics2D)connectionImage.createGraphics();
-//			
-//			z.fillRect(0,  0, connectionImage.getWidth(), connectionImage.getHeight());
-//			z.dispose();
-//		}
-		
-		synchronized(connectionImage) {
+		if(cacheDrawnLines) synchronized(connectionImage) {
 			if(!ConnectionsToReimposeQueue.isEmpty()) {
 				var cig = connectionImage.createGraphics();
 				
@@ -1232,9 +1266,30 @@ public class DraggableNodeEditor extends JLayeredPane implements MouseListener, 
 				cig.dispose();
 			}
 			
-			g.drawImage(connectionImage, 0, 0, null);
+		}
+		else synchronized(connectionImage)
+		{
+			var cig = connectionImage.createGraphics();
+			cig.setColor(new Color(0,0,0,0));
+			cig.fillRect(0,  0, connectionImage.getWidth(), connectionImage.getHeight());
+			
+			ConnectionsToReimposeQueue.clear();
+			
+			getConnections()
+				.map(conn -> conn.getConnectionStyle())
+				.forEach(style -> {
+					var offset = style.getOffset();
+					var img = style.getImageNow();
+					if(img == null || offset == null) return;
+					
+					g.drawImage(img, offset.x, offset.y, null);
+				})
+				;
+			
+			cig.dispose();
 		}
 		
+		g.drawImage(connectionImage, 0, 0, null);
 	}
 	
 	@Override public void revalidate() {

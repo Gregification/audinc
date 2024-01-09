@@ -5,9 +5,10 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Point;
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.Objects;
 
 import javax.swing.JComponent;
 
@@ -15,44 +16,47 @@ import javax.swing.JComponent;
  * a editable value for the
  * @param <T>
  */
-public abstract sealed class NodeComponent<T> extends JComponent permits NodeConsumer, NodeSupplier {
-	public final Class<T> type;
+public abstract sealed class NodeComponent<T> extends JComponent implements Serializable permits NodeConsumer, NodeSupplier {
 	private static final long serialVersionUID = 1L;
 	
-	//node stuff
-	protected String name;
-	protected HashSet<NodeConnection> 	directConnections = new HashSet<>();
-	protected CompletableFuture<T> valueFuture = CompletableFuture.supplyAsync(() -> null);
-	public volatile DraggableNode<?> hostNode = null;
+	public final Class<T> type;
 	
-	/**
-	 * center of the connectionPoint relative to the host DraggableNode
-	 */
-	public volatile Point 	connectionPoint 	= new Point(0,0);	//decided by the host node 
-	
-	/**
-	 * preferred connection point icon values. these may not necessarily correlate to a circle
+	/** preferred connection point icon values. these may not necessarily correlate to a circle. up to the component
 	 */
 	public final static int 
 		connectionPointRaduis = 12,
 		connectionPointBorder = 3;
+	
+	//node stuff
+	protected String name;
+	protected HashSet<NodeConnection> 	directConnections = new HashSet<>();
+	public volatile DraggableNode<?> hostNode = null;
+	/** center of the connectionPoint relative to the host DraggableNode
+	 */
+	public volatile Point 	connectionPoint 	= new Point(0,0);	//decided by the host node 
 	protected NodeComponentStatus compStatus = NodeComponentStatus.NETURAL;
-
+	
+	//component stuff
+	protected T value;
+	public volatile boolean useCacheValue = true;
+	
 	public NodeComponent(Class<T> type, String name, T value) {
+		Objects.requireNonNull(type);
+		
 		this.type = type;
 		this.setName(name);
 		this.setValue(value);
 		this.setLayout(new FlowLayout());
 	}
 	
-	public abstract CompletableFuture<T> getValue();
-	public abstract void setValue(T value);
+	public T getValue() { return (useCacheValue ?  value : null); }
+	public void setValue(T value) { this.value = value; };
 	
 	/**
 	 * gets called when a new node joins the connection. 
 	 * @param comp : the new node
 	 */
-	public abstract void considerComponent(NodeComponent<T> comp);
+//	public abstract void considerComponent(NodeComponent<T> comp);
 	
 	/**
 	 * gets called when a node is removed from the connection. 
@@ -61,9 +65,7 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	 *  considerComponent.
 	 * @param comp : the removed node
 	 */
-	public abstract void unconsiderComponent(NodeComponent<T> comp);
-	
-	public abstract NodeSupplier<T> getSupplier();
+//	public abstract void unconsiderComponent(NodeComponent<T> comp);
 	
 	public List<NodeConnection> getDirectConnections(){
 		return directConnections.stream().toList();
@@ -88,6 +90,16 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 			conn.disconnectComponent(this);
 		}
 			
+	}
+	
+	public void onDelete(DraggableNodeEditor editor) {
+		for(var conn : directConnections) {
+			dropConnection(conn);
+			conn.setNeedsRedrawn(true);
+			editor.reimposeArea(conn.getConnectionImageCoverage());
+		}
+		
+		directConnections = null;
 	}
 	
 	/**
@@ -130,7 +142,7 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	}
 
 	public void setName(String newName) {
-		this.name = (newName == null) ? "" : newName;
+		this.name = (newName == null) ? (getClass().getName() + " of " + type.toString()) : newName;
 		
 		this.setToolTipText(name);
 	}
@@ -151,11 +163,5 @@ public abstract sealed class NodeComponent<T> extends JComponent permits NodeCon
 	public void setImportance(NodeComponentStatus importance) {
 		if(importance != null)
 			this.compStatus = importance;
-	}
-	
-	public NodeConnection getNewConnection(){
-		NodeConnection conn = new NodeConnection();
-		
-		return conn;
 	}
 }

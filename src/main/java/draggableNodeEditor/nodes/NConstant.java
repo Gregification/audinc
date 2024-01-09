@@ -1,9 +1,10 @@
 package draggableNodeEditor.nodes;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.GridBagLayout;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.swing.JComponent;
 import javax.swing.JScrollPane;
@@ -14,10 +15,10 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
-import audinc.gui.MainWin;
 import draggableNodeEditor.DraggableNode;
 import draggableNodeEditor.DraggableNodeEditor;
 import draggableNodeEditor.NodeSupplier;
+import draggableNodeEditor.suppliers.NspColor;
 import draggableNodeEditor.suppliers.NspSpinner;
 import presentables.Presentable;
 
@@ -27,28 +28,37 @@ public class NConstant extends DraggableNode<Void> {
 	//GUI
 	private Component constantsTableWrapper;
 	private JTable constantsTable;	//could be better optimized 
-	private static final Map<Class<?>, Function<Void, NodeSupplier<?>>> supportedConstants = Map.of(
-				Number.class, v -> new NspSpinner<Number>(
+	private static final Map<Class<?>, Supplier<NodeSupplier<?>>> supportedConstants = Map.of(
+				Number.class, () -> new NspSpinner<Number>(
 							Number.class,
 							"number spinner",
 							new SpinnerNumberModel(0, null, null, 1),
 							(s,e) -> (Number)s.getModel().getValue()
+						),
+				Color.class, () -> new NspColor(
+							"color picker",
+							Color.black
 						)
 			);
+	private static final Supplier<NodeSupplier<?>> defaultSupplier;
 	
-	//node
-	protected NodeSupplier<?> supplier;
+	static {
+		defaultSupplier = supportedConstants.values().stream().toList().getFirst();
+	}
+	
+	//NConstant stuff
+	protected NodeSupplier<?> supplier = null;
+	protected DraggableNodeEditor nodeEditor;
 	
 	public NConstant() {
-		this(null);
+		this(defaultSupplier.get());
 	}
 	public NConstant(NodeSupplier<?> supplier) {
 		super(null);
 		
-		this.supplier = supplier;
+		setSupplier(supplier);
 		
 		setLayout(new GridBagLayout());
-		setPreferredSize(MainWin.stdtabIconSize);
 		
 		initGUI();
 	}
@@ -85,7 +95,7 @@ public class NConstant extends DraggableNode<Void> {
 				if(selectedRow < 0) return;
 				
 				Object key = (constantsTable.getModel().getValueAt(selectedRow, 0));
-				setSupplier(supportedConstants.get(key).apply(null));
+				setSupplier(supportedConstants.get(key).get());
 				
 				self.revalidate();
 			}
@@ -95,6 +105,7 @@ public class NConstant extends DraggableNode<Void> {
 	}
 
 	@Override public void initNode(DraggableNodeEditor editor) {
+		nodeEditor = editor;
 		setSupplier(supplier);
 	}
 	
@@ -102,18 +113,18 @@ public class NConstant extends DraggableNode<Void> {
 		return supplier;
 	}
 
-	public void setSupplier(NodeSupplier<?> suppi) {
-		boolean isnotnull = supplier != null;
-		
-		if(isnotnull)
+	public void setSupplier(NodeSupplier<?> suppi) {		
+		if(this.supplier != null && this.supplier != suppi) {
+			supplier.onDelete(nodeEditor);
 			remove(supplier);
+		}
 		
 		supplier = suppi;
 		
-		if(isnotnull) {
-			add(supplier, Presentable.createGbc(0, 0));
+		if(this.supplier != null) {
+			supplier.hostNode = this;
 			setPreferredSize(supplier.getPreferredSize());
-			genConnectionPoint(supplier);
+			add(supplier, Presentable.createGbc(0, 0));
 		}
 		
 	}

@@ -3,6 +3,7 @@ package draggableNodeEditor.serialPoke;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.beans.PropertyChangeEvent;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -20,15 +21,19 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	public static final String title = "Notice Updator";
 	
 	public NodeConsumer<Object> c_logger 			= new NodeConsumer<>(
-					Object.class,
-					"logger",
-					null
-				);
+				Object.class,
+				"logger",
+				null
+			) { private static final long serialVersionUID = 1L;
+			@Override public void accept(PropertyChangeEvent t) {
+					onInput(t.getNewValue());
+			}};
 	public NodeConsumer<Color>  c_forgroundColor	= new NodeConsumer<>(
 				Color.class,
 				"forground color",
 				Color.black
-			);
+			){ private static final long serialVersionUID = 1L;
+			@Override public void accept(PropertyChangeEvent t) {}};
 
 	public NNoticeUpdater(SerialPokeCommConnection context) {
 		super(context);
@@ -58,14 +63,8 @@ public class NNoticeUpdater extends DraggableNode<SerialPokeCommConnection> {
 	
 	public void onInput(Object obj) {
 		System.out.println("NNoticeUpdator logging w/"+c_forgroundColor.getValue()+" : "+ obj.toString());
-		try {
-			this.context.setNoticeText(obj.toString(), c_forgroundColor.getValue().get());
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ExecutionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		
+		var color = c_forgroundColor.getValue();
+		context.setNoticeText(obj.toString(), color == null ? Color.black : color);
 	}
 }

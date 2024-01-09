@@ -1,27 +1,32 @@
 package draggableNodeEditor;
 
-import java.util.concurrent.CompletableFuture;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.io.Serializable;
 import java.util.function.Consumer;
 
 import javax.swing.JLabel;
 
-public non-sealed class NodeConsumer<T> extends NodeComponent<T> implements Consumer<T> {
+public non-sealed abstract class NodeConsumer<T> extends NodeComponent<T> implements Consumer<PropertyChangeEvent>, Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	protected JLabel nameLabel;
 	
-	protected NodeSupplier<T> supplier;
+	protected PropertyChangeListener listener = pce -> {
+			if(NodeSupplier.PC_ValueChanged.equals(pce.getPropertyName())) {
+				accept(pce);
+				
+				try {
+			        T val = type.cast(pce.getNewValue());
+			        setValue(val);
+			    } catch(ClassCastException e) {
+			    	System.out.println("node consumer > listener triggered; failed cast to T:" + type + " from " + pce.getNewValue().getClass());
+			    }
+			}
+		};
 	
 	public NodeConsumer(Class<T> type, String name, T value) {
 		super(type, name, value);
-	}
-	
-	@Override public NodeSupplier<T> getSupplier() {
-		return this.supplier;
-	}
-	
-	@Override public boolean hasConnection() {
-		return this.supplier != null;
 	}
 	
 	@Override public void setName(String newName) {
@@ -39,28 +44,5 @@ public non-sealed class NodeConsumer<T> extends NodeComponent<T> implements Cons
 		}
 		
 		nameLabel.setText(name);
-	}
-
-	@Override public CompletableFuture<T> getValue() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override public void setValue(T value) {
-		//TODO Auto-generated method stub
-	}
-
-	@Override public void accept(T value) { this.setValue(value); }
-
-	@Override
-	public void considerComponent(NodeComponent<T> comp) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void unconsiderComponent(NodeComponent<T> comp) {
-		// TODO Auto-generated method stub
-		
 	}
 }

@@ -84,6 +84,8 @@ public class AnchorPoint extends DraggableNode<Void> implements MouseListener, M
 
 	@Override public void initNode(DraggableNodeEditor editor) {
 		nodeEditor = editor;
+		
+		enableMouseBiasSelection(false);
 	}
 
 	@Override public JComponent getInspector() {

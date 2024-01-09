@@ -1,9 +1,10 @@
 package draggableNodeEditor;
 
 import java.awt.Color;
+import java.io.Serializable;
 
 //i wanted to do something more with this but eh. if your reading this and feel like it then consider ...
-public enum NodeComponentStatus {
+public enum NodeComponentStatus implements Serializable {
 		SUGESTED		(Color.green),
 		AVAILABLE		(Color.yellow),
 		NOT_AVAILABLE	(Color.red),

@@ -7,8 +7,14 @@ import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import draggableNodeEditor.NodeConnectionDrawer.ConnectionStyle;
 import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
@@ -19,7 +25,7 @@ import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
  * this class is held together by a excessive use of the "volatile" key word. it seems to work though, just keep this in mind if your getting funky errors
  */
 public class NodeConnection {	
-	public volatile List<AnchorPoint> anchors = new ArrayList<>();
+	public volatile List<AnchorPoint> anchors = Collections.synchronizedList(new ArrayList<>());
 	
 	/** set of directly connected components
 	 */
@@ -31,7 +37,7 @@ public class NodeConnection {
 
 	/** a shared hashset between each group of connected NodeConnections
 	 */
-	protected HashSet<NodeConnection> reachableConnections 			= new HashSet<>(List.of(this));
+	protected Set<NodeConnection> reachableConnections 			= ConcurrentHashMap.newKeySet();
 	
 	//drawing stuff
 	private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
@@ -40,6 +46,8 @@ public class NodeConnection {
 
 	public NodeConnection() {
 		super();
+		
+		reachableConnections.add(this);
 	}
 	
 	public boolean isPoinless() {
@@ -58,7 +66,7 @@ public class NodeConnection {
 	 */
 	public void draw(final Polygon[] obstacles, BufferedImage outputTo, final Component hostComp) {
 		final LineAnchor[] 
-				anchs  	= this.anchors.stream().map(LineAnchor::getFromAnchorPoint).toArray(LineAnchor[]::new),
+				anchs  	= anchors.stream().map(LineAnchor::getFromAnchorPoint).toArray(LineAnchor[]::new),
 				terms	= directleyConnectedComponents.stream().sequential()
 							.map(comp -> LineAnchor.getFromNodeComponent(comp, hostComp))
 							.toArray(LineAnchor[]::new);
@@ -100,35 +108,35 @@ public class NodeConnection {
 //		System.out.println("node conneciton > connect to component, comp: " + comp);
 		
 		//if is a orphaned node -> no need to worry about a network
-//		if(isNetworkable() && !comp.getDirectConnections().isEmpty()) {			
-//			//check if the existing networks are valid (this should always be true but i don't trust my code)
-//			boolean 
-//				isOtherSus 	= isNodeNetworkSus(comp, true),
-//				isThisSus	= this.getDirectleyConnectedComponents().stream().anyMatch(n -> isNodeNetworkSus(n, false));
-//			
-//			HashSet<NodeConnection> otherNet = comp.getDirectConnections().getFirst().reachableConnections;
-//			
-//			if(!isOtherSus || !isThisSus) {
-//				//if the networks share a connection
-//				if(otherNet.stream().anyMatch(reachableConnections::contains))
-//					isOtherSus = isThisSus = true;
-//			}
-//			
-//			//if-elses' for readability.
-//			if(isOtherSus && isThisSus) { 	//trust nothing, except your self :3
-//				remap(List.of(this));
-//			}else if(isOtherSus) {			//trust this network.
-//				remap(reachableConnections);
-//			}else if(isThisSus) {			//trust the other network.
-//				remap(otherNet);
-//			}else {							//trust both networks.
-//				//if networks are the same
-//				if(reachableConnections == otherNet) return;
-//				
-//				//join
-//				joinNetworks(reachableConnections, otherNet);
-//			}
-//		}
+		if(isNetworkable() && !comp.getDirectConnections().isEmpty()) {			
+			//check if the existing networks are valid (this should always be true but i don't trust my code)
+			boolean 
+				isOtherSus 	= isNodeNetworkSus(comp, true),
+				isThisSus	= this.getDirectleyConnectedComponents().stream().anyMatch(n -> isNodeNetworkSus(n, false));
+			
+			Set<NodeConnection> otherNet = comp.getDirectConnections().getFirst().reachableConnections;
+			
+			if(!isOtherSus || !isThisSus) {
+				//if the networks share a connection
+				if(otherNet.stream().anyMatch(reachableConnections::contains))
+					isOtherSus = isThisSus = true;
+			}
+			
+			//if-elses' for readability.
+			if(isOtherSus && isThisSus) { 	//trust nothing, except your self :3
+				remap(List.of(this));
+			}else if(isOtherSus) {			//trust this network.
+				remap(reachableConnections);
+			}else if(isThisSus) {			//trust the other network.
+				remap(otherNet);
+			}else {							//trust both networks.
+				//if networks are the same
+				if(reachableConnections == otherNet) return;
+				
+				//join
+				joinNetworks(reachableConnections, otherNet);
+			}
+		}
 		
 		//update self
 		needsRedrawn = true;
@@ -163,74 +171,74 @@ public class NodeConnection {
 	 * @param node the node to check
 	 * @return true if all direct NodeConnections share the same network, or if there are no connections
 	 */
-//	public boolean isNodeNetworkSus(NodeComponent<?> node, boolean ignoreself) {
-//		ArrayList<NodeConnection> conns = new ArrayList<>(node.getDirectConnections());
-//		
-//		if(ignoreself) conns.remove(this);
-//		
-//		if(conns.isEmpty()) return true;
-//		
-//		var net = conns.getFirst().reachableConnections;
-//		
-//		return conns.stream()
-//				.allMatch(conn -> conn.reachableConnections == net);
-//	}
+	public boolean isNodeNetworkSus(NodeComponent<?> node, boolean ignoreself) {
+		ArrayList<NodeConnection> conns = new ArrayList<>(node.getDirectConnections());
+		
+		if(ignoreself) conns.remove(this);
+		
+		if(conns.isEmpty()) return true;
+		
+		var net = conns.getFirst().reachableConnections;
+		
+		return conns.stream()
+				.allMatch(conn -> conn.reachableConnections == net);
+	}
 	
 	/**
 	 * ignores all existing information. remaps connections using the given knownConnections and sets this.reachableConnections to the updated map.
 	 * this instance will now host the network map
 	 */
-//	public HashSet<NodeConnection> remap(Collection<NodeConnection> knownConnections) {
-//		reachableConnections.clear();
-//		
-//		Set<NodeConnection> connections = ConcurrentHashMap.<NodeConnection>newKeySet(); //basically a concurrent HashSet
-//			connections.addAll(knownConnections);
-//			connections.add(this);
-//			
-//		try(ExecutorService exe = Executors.newVirtualThreadPerTaskExecutor()){
-//			recursiveConnectionMapperFunc(this, connections, exe);
-//		}
-//		
-//		//replace the existing network
-//		//this is the new head
-//		reachableConnections.addAll(connections);
-//		
-//		//idealy would only have to update the refrences in [connections] but just incase something went wrong elsewhere this may correct it
-//		for(var conn : reachableConnections)
-//			conn.reachableConnections = reachableConnections;
-//		
-//		return reachableConnections;
-//	}
-//	private final void recursiveConnectionMapperFunc(NodeConnection srcConn, Set<NodeConnection> knownConnections, ExecutorService exe) {
-//		srcConn.getDirectleyConnectedComponents().stream()
-//			.flatMap(comp -> comp.getDirectConnections().stream())
-//			.filter(conn -> conn != srcConn) //preemptively removes some known duplicates
-//			.forEach(conn -> {
-//				if(knownConnections.add(conn))
-//					exe.execute(() -> recursiveConnectionMapperFunc(conn, knownConnections, exe));
-//			});
-//	}
+	public Set<NodeConnection> remap(Collection<NodeConnection> knownConnections) {
+		reachableConnections.clear();
+		
+		Set<NodeConnection> connections = ConcurrentHashMap.<NodeConnection>newKeySet(); //basically a concurrent HashSet
+			connections.addAll(knownConnections);
+			connections.add(this);
+			
+		try(ExecutorService exe = Executors.newVirtualThreadPerTaskExecutor()){
+			recursiveConnectionMapperFunc(this, connections, exe);
+		}
+		
+		//replace the existing network
+		//this is the new head
+		reachableConnections.addAll(connections);
+		
+		//update the references
+		for(var conn : connections)
+			conn.reachableConnections = this.reachableConnections;
+		
+		return reachableConnections;
+	}
+	private final void recursiveConnectionMapperFunc(NodeConnection srcConn, Set<NodeConnection> knownConnections, ExecutorService exe) {
+		srcConn.getDirectleyConnectedComponents().stream()
+			.flatMap(comp -> comp.getDirectConnections().stream())
+			.filter(conn -> conn != srcConn) //preemptively removes some known duplicates
+			.forEach(conn -> {
+				if(knownConnections.add(conn))
+					exe.execute(() -> recursiveConnectionMapperFunc(conn, knownConnections, exe));
+			});
+	}
 	
-//	public static HashSet<NodeConnection> joinNetworks(HashSet<NodeConnection> net1, HashSet<NodeConnection> net2) {
-//		//faster to add the smaller network to the larger one
-//		HashSet<NodeConnection> small, big;
-//				
-//		if(net1.size() > net2.size()) {
-//			small 	= net2;
-//			big 	= net1;
-//		}else {
-//			small 	= net1;
-//			big 	= net2;
-//		}
-//		
-//		big.addAll(small);
-//		
-//		//update references
-//		for(var conn : small)
-//			conn.reachableConnections = big;
-//		
-//		return big;
-//	}
+	public static Set<NodeConnection> joinNetworks(Set<NodeConnection> net1, Set<NodeConnection> net2) {
+		//faster to add the smaller network to the larger one
+		Set<NodeConnection> small, big;
+				
+		if(net1.size() > net2.size()) {
+			small 	= net2;
+			big 	= net1;
+		}else {
+			small 	= net1;
+			big 	= net2;
+		}
+		
+		big.addAll(small);
+		
+		//update references
+		for(var conn : small)
+			conn.reachableConnections = big;
+		
+		return big;
+	}
 	
 	public void deleteConnection() {		
 		//remap the neighboring connections
@@ -304,13 +312,14 @@ public class NodeConnection {
 		
 		needsRedrawn = true;
 	}
-//	public boolean isNetworkable() {
-//		return networkable;
-//	}
-//
-//	public void setNetworkable(boolean networkable) {
-//		this.networkable = networkable;
-//	}
+	
+	public boolean isNetworkable() {
+		return networkable;
+	}
+
+	public void setNetworkable(boolean networkable) {
+		this.networkable = networkable;
+	}
 	
 	@Override public String toString() {
 		return getClass().getCanonicalName() + "[" 

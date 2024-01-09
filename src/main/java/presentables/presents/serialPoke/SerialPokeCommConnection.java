@@ -167,6 +167,7 @@ public class SerialPokeCommConnection extends JPanel{
 	protected void serialPortEvent(SerialPortEvent spe) {
 		switch(spe.getEventType()) {
 			case SerialPort.LISTENING_EVENT_DATA_AVAILABLE :
+				
 				break;
 			case SerialPort.LISTENING_EVENT_DATA_RECEIVED :
 				break;

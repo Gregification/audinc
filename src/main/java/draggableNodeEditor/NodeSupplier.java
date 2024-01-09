@@ -1,50 +1,32 @@
 package draggableNodeEditor;
 
-import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
+import java.io.Serializable;
 import java.util.function.Supplier;
 
-public non-sealed class NodeSupplier<T> extends NodeComponent<T> implements Supplier<CompletableFuture<T>>{
+/**
+ * supplies values to the network
+ * see "PC_ ..." variables for bound property changes
+ * @param <T>
+ */
+public non-sealed class NodeSupplier<T> extends NodeComponent<T> implements Supplier<T>, Serializable {
 	private static final long serialVersionUID = 1L;
-	private ArrayList<NodeConsumer<T>> consumers = new ArrayList<>();
 	
-	public NodeSupplier(Class<T> type, String name, T value, CompletableFuture<T> valueFuture) {
-		super(type, name, value);
-		this.valueFuture = valueFuture;
-	}
+	/**  property fired when the value is changed 
+	 * @new-property-value new value
+	 * @old-property-value old value
+	 */
+	public static final String PC_ValueChanged = "PC_ValueChanged";
+	 
 	public NodeSupplier(Class<T> type, String name, T value) {
 		super(type, name, value);
-		valueFuture = CompletableFuture.completedFuture(value);
 	}
 	
-	@Override public NodeSupplier<T> getSupplier() {
-		return this;
-	}
-	
-	@Override public CompletableFuture<T> get() {
+	@Override public T get() {
 		return getValue();
 	}
 
-	@Override public void considerComponent(NodeComponent<T> comp) {
-		if(comp instanceof NodeConsumer<T> cosm) {
-			if(!consumers.contains(cosm)) consumers.add(cosm);
-		}
-	}
-
-	@Override public void unconsiderComponent(NodeComponent<T> comp) {
-		if(comp instanceof NodeConsumer<T> cosm) {
-			consumers.remove(cosm);
-		}
-	}
-
-	@Override public CompletableFuture<T> getValue() {
-		return this.valueFuture;
-	}
-
 	@Override public void setValue(T value) {
-		if(valueFuture.isDone()) {
-			valueFuture = CompletableFuture.completedFuture(value);
-		} else 
-			valueFuture.complete(value);
+		firePropertyChange(PC_ValueChanged, this.value, value);
+		super.setValue(value);
 	}
 }
