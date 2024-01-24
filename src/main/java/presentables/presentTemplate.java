@@ -4,7 +4,7 @@ import javax.swing.ImageIcon;
 
 import audinc.gui.MainWin;
 
-public class presentTemplate extends Presentable{
+class presentTemplate extends Presentable{
 	/*
 	 * when the present is selected to run, these methods will be called in order.
 	 * 	1. init(MainWin mw)

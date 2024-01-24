@@ -18,7 +18,8 @@ import draggableNodeEditor.NodeConnectionDrawer.LineAnchor;
  */
 public class DirectConnectionStyle extends ConnectionStyle{
 	private static final long serialVersionUID = -1155002155261577282L;
-
+	private static final byte nodesBetweenUpdate = 3;
+	
 	public volatile boolean 			//TODO
 		objsticalNavication = false,
 		considerAnchors 	= false;
@@ -45,8 +46,6 @@ public class DirectConnectionStyle extends ConnectionStyle{
 		};
 		g = newG.get();
 		
-//		g.drawLine(0, 0, bf.getWidth(), bf.getHeight());
-		
 		//edited area tracker
 		var rect = new Rectangle(0,0,0,0);
 		
@@ -56,14 +55,20 @@ public class DirectConnectionStyle extends ConnectionStyle{
 			
 			var t = terminals[i];
 			
+			//actually drawing the line
 			g.drawLine(f.x(), f.y(), t.x(), t.y());
 			
-			rect.add(ConnectionStyle.getRect(f.x(), f.y(), t.x(), t.y()));//update area thats been changed
+			//determining what to update
+			//update area thats been changed
+			rect.add(ConnectionStyle.getRect(f.x(), f.y(), t.x(), t.y()));
 			
-			if(i % 5 == 0) { //signal for update
+			//signal for update if wanted
+			if(i % nodesBetweenUpdate == 0) {
+				
+				//synchronize graphics
 				g.dispose();
 				
-				var finalRect = rect.intersection(bf.getData().getBounds()); //corrects for overlap (idk what causes it but it exists)
+				var finalRect = rect.intersection(bf.getData().getBounds()); //corrects for overlap(can be caused by misuse of Rectangle.add, bad line calculation, etc )
 				
 				if(!(finalRect.width == 0 || finalRect.height == 0))
 					signalUpdate.accept(rect, bf.getData(finalRect));

@@ -46,14 +46,12 @@
 	    <artifactId>LGoodDatePicker</artifactId>
 	    <version>11.2.1</version>
 	</dependency>
-
-    <!-- external jars -->
-  	<!--<dependency>
-        <groupId>lib</groupId>
-        <artifactId>jSerialComm</artifactId>
-        <version>2.10.1</version>
-        <scope>system</scope>
-    	<systemPath>${project.basedir}/lib/jSerialComm/jSerialComm-2.10.1.jar</systemPath>
-    </dependency>-->
+	
+    <dependency>
+	    <groupId>org.apache.commons</groupId>
+	    <artifactId>commons-math</artifactId>
+	    <version>2.2</version>
+	</dependency>
+	
   </dependencies> 
 </project>

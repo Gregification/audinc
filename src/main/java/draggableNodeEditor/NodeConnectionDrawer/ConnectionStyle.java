@@ -150,13 +150,13 @@ public abstract class ConnectionStyle implements Serializable{
 	 * 
 	 * it is suggested that, the parameter, onNewPoints be used to provide live updates.  
 	 * 
-	 * assume to be processing intensive.
+	 * this function is the main use of the ConnectionStyle class and is assumed to be processing intensive.
 	 * 
-	 * @param bf : the image to draw the line on.
-	 * @param output : the actual output of this function, Points will be pushed onto the queue as they're calculated 
+	 * @param bf : the image to draw the line on. 
 	 * @param anchors : points that may effect where the line is drawn 
 	 * @param terminals: points where the line is guaranteed to cross. the first element is the origin. 
-	 * @param obstacles : regions the lines will try not to cross   
+	 * @param obstacles : regions the lines will try not to cross
+	 * @param signalUpdator : imageupdate requests are sent here, the rectangle parameter decides where the raster goes. position data of the raster is ignored 
 	 */
 	protected abstract void draw(
 			BufferedImage bf,
@@ -171,10 +171,9 @@ public abstract class ConnectionStyle implements Serializable{
 	 * @param bf, the image to crop
 	 * @return a rectangle
 	 */
-	public static Rectangle cropOpaqueContent(final BufferedImage bf) {
-//		return new Rectangle(0,0,bf.getWidth(),bf.getHeight());
-		
-		int[] p = ((DataBufferInt)bf.getRaster().getDataBuffer()).getData();
+	public static Rectangle cropOpaqueContent(final BufferedImage bf) {		
+		//array of img pixel data (is live, should not be changed)
+		final int[] p = ((DataBufferInt)bf.getRaster().getDataBuffer()).getData();
 		int ix = bf.getWidth(),
 			iy = bf.getHeight(),
 			minx = 0,
@@ -183,59 +182,57 @@ public abstract class ConnectionStyle implements Serializable{
 			maxy = iy,
 			alpha;
 		
-		boolean brk = false;
-		
 		//find minX
+		findMinX:
 		for(minx = 0; minx < ix; minx++) {
 			for(int y = 0; y < iy; y++) {
 				alpha = ((p[y* ix + minx] >> 24) & 0xff);
 				
-				if(brk = alpha != 0) {
+				if(alpha != 0) {
 					miny = maxy = y;
-					break;
+					break findMinX;
 				}
 			}
-			if(brk) break;
 		}
 		
 		//find maxX
+		findMaxX:
 		for(maxx = ix-1; maxx > minx; maxx--) {
 			for(int y = iy-1; y >= 0; y--) {
 				alpha = ((p[y * ix + maxx] >> 24) & 0xff);
 				
-				if(brk = alpha != 0) {
+				if(alpha != 0) {
 					miny = Math.min(miny, y);
 					maxy = Math.max(maxy, y);
-					break;
+					break findMaxX;
 				}
 			}
-			if(brk) break;
 		}
 		
 		//confirm minY
+		confirmMinY:
 		for(int x = minx; x < maxx; x++) {
 			for(int y = 0; y < miny; y++) {
 				alpha = ((p[y * ix + x] >> 24) & 0xff);
 				
-				if(brk = alpha != 0) {
+				if(alpha != 0) {
 					miny = y;
-					break;
+					break confirmMinY;
 				}
 			}
-			if(brk) break;
 		}
 		
 		//confirm maxY
+		confirmMaxY:
 		for(int x = minx; x < maxx; x++) {
 			for(int y = iy-1; y > maxy; y--) {
 				alpha = ((p[y * ix + x] >> 24) & 0xff);
 				
-				if(brk = alpha != 0) {
+				if(alpha != 0) {
 					maxy = y;
-					break;
+					break confirmMaxY;
 				}
 			}
-			if(brk) break;
 		}
 		
 		//yippie
@@ -312,6 +309,12 @@ public abstract class ConnectionStyle implements Serializable{
 		return img;
 	}
 	
+	/**
+	 * gets a BiConsumer to pass on to ConnectionSyle.draw(...) thats unique to this instance
+	 *   such that it ensures there is a minimum delay between draw requests. 
+	 * @param pcs : where to fire the change event
+	 * @return the BiConsumer to use when noting a change
+	 */
 	public BiConsumer<Rectangle, Raster> getImageUpdateSignaler(PropertyChangeSupport pcs){		
 		return (rect,raster) -> {
 			long currTime = System.currentTimeMillis();
