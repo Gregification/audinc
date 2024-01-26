@@ -8,6 +8,7 @@ import java.awt.image.Raster;
 import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
+import java.util.stream.IntStream;
 
 import org.apache.commons.math.util.MathUtils;
 
@@ -47,12 +48,14 @@ public class BezierSplineConnectionStyle extends ConnectionStyle{
 		//stop futures
 	}	
 	
-	public static Point getBezierCurveAtT(final float t, final LineAnchor[] anchors) {
+	public static Point getBezierCurveAtT(float t, final LineAnchor[] anchors) {
+		float[] coeffs = getBezierCurveCoefficients(t, anchors.length);
+		return getBezierCurveAtT(t, anchors, coeffs);
+	}
+	public static Point getBezierCurveAtT(float t, final LineAnchor[] anchors, final float[] coeffs) {
 		float x = 0, y = 0;
 		
-		long[] coeffs = getBezierCurveCoefficients(t, anchors.length);
-		
-		for(int i = 0; i < anchors.length; i++) {
+		for(int i = 0; i < coeffs.length; i++) {
 			var anc = anchors[i];
 			var coe = coeffs[i];
 			
@@ -65,73 +68,24 @@ public class BezierSplineConnectionStyle extends ConnectionStyle{
 	
 	/**
 	 * returns a list of coefficients that when summed gives the point for 't' 
-	 * 
+	 * brute forces it
 	 * @param numPoints to expect
 	 * @return
 	 */
 	//reference -> https://en.wikipedia.org/wiki/B%C3%A9zier_curve	
-	public static long[] getBezierCurveCoefficients(final float t, final int numPoints) {
+	public static float[] getBezierCurveCoefficients(float t, int numPoints) {
 		assert numPoints > 1;
 		
 		//coefficients
-		var c = new long[numPoints]; 
-		Arrays.fill(c, 1); 
+		float[] c = new float[numPoints];
 		
-		try(var service = Executors.newVirtualThreadPerTaskExecutor()) {
-			final BiConsumer<Integer, Double> applyChange = (index, mult) -> {
-				synchronized(c) { 
-					c[index] = Math.round(mult * c[index]);
-				}
-			};
-			
-			//(1 - t)^(n - i) , 1/(n - i)!
-	        service.submit(() -> {
-	        	double
-	        		omt = 1-t,
-	        		omtPow = 1,
-	        		nmiFra = 1;
-	        	
-	        	for(int i = numPoints-2; i >= 0; i--) {
-	        		omtPow *= omt;
-	        		nmiFra *= i;
-	        		
-	        		applyChange.accept(i, omtPow / nmiFra);
-				}
-			});
-	        
-	        // 1 / i! , n! , t^i
-	        service.submit(() -> {
-	        	double
-	        		nF = MathUtils.factorialDouble(numPoints),
-	        		tP = 1,
-	        		iF = 1;
-	        	
-				for(int i = 1; i < numPoints; i++) {
-					tP *= t;
-					iF *= i;
-					
-					applyChange.accept(i, nF * tP / iF);
-				}
-			});
-		}
-		
-		return c;
-	}
-	
-	public float[] getBezierBinomialComponent(int n) {
-		var c = new float[n];
-		
-		final float nF = (float)MathUtils.factorialDouble(n);
-		float 
-			nMi = 1,
-			iF = 1;
-		
-		c[0] = 1;
-		
-		for(int i = n-1; i > 0; i++) {
-			
-		}
+		IntStream.range(0,  c.length).parallel()
+			.forEach(i -> {
+				double val = MathUtils.binomialCoefficientDouble(numPoints, i) * Math.pow(t, i) * Math.pow(1-t, numPoints - i);
 				
+				c[i] = (float)val;
+			});
+		
 		return c;
 	}
 }
