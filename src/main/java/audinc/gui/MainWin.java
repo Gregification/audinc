@@ -49,8 +49,8 @@ public class MainWin extends JFrame {
 	
 	public static Path settingsDir = Paths.get(".\\audincSettings"); // build with ".\\audincSettings"
 	
-	//accessible presents go here. order does not matter
-	public static Set<Class<? extends Presentable>> Presents = Stream.of(
+	//accessible presents go here. order does not matter, the annotation system is a mess, just ignore it
+	public static final Set<Class<? extends Presentable>> Presents = Stream.of(
 			presentables.presents.menu.class,
 			presentables.presents.txtToSpeach.class,
 			presentables.presents.BorderLayoutDemo.class,
@@ -58,7 +58,8 @@ public class MainWin extends JFrame {
 			presentables.presents.SerialPoke.class,
 			presentables.presents.IE3301.class,
 			presentables.presents.Awake.class,
-			presentables.presents.DOMViewer.class
+			presentables.presents.DOMViewer.class,
+			presentables.presents.Chat.class
 		).collect(Collectors.collectingAndThen(Collectors.toSet(),Collections::<Class<? extends Presentable>>unmodifiableSet));
 	
 	//standard values

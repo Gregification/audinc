@@ -9,6 +9,9 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Consumer;
@@ -35,6 +38,7 @@ import presentables.presents.SerialPoke;
  * {@value displayTitle parameter should be set to something unique.}
  */
 
+@Present
 public abstract class Presentable {
 	public void quit()	{};
 	public void present(MainWin mw) {
@@ -103,21 +107,25 @@ public abstract class Presentable {
 		return null;
 	}
 	public static ImageIcon getImageIcon(String prefereed) {
-//		System.out.println("presentable>getImagIcon(),prefereed : " + prefereed);
 		try {
-			ImageIcon ii = new ImageIcon( ImageIO.read(new File(prefereed)));
-			if(ii != null) return ii;
+			var file = new File(prefereed);
+			
+			if(file.exists()) {
+				ImageIcon ii = new ImageIcon( ImageIO.read(file));
+				if(ii != null) return ii;
+			}else {
+				URI uri = file.toURI();
+				return new ImageIcon(ImageIO.read(uri.toURL()));
+			}
 		} catch (IOException e) {}
 		
 		try {
 			var v = new File("res/presentIcons/default.png");
-			System.out.println("presentable>getImageIcon()> unable to find : "+prefereed+" : => using : " + v.getAbsolutePath());
-			
 			return new ImageIcon( ImageIO.read(new File("res/presentIcons/default.png")));
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException e) { 
 			return null;
 		}
+
 	}
 		
 	public static JPanel genFilePicker(
