@@ -19,7 +19,11 @@ import java.util.function.Consumer;
  */
 public class NServer implements Runnable {
 	//the suggested default listening port
-	public static final int defaultListeningPort = 39633;
+	public static final int 
+		defaultListeningPort = 39633,
+		minPort = 0,
+		maxPort = 65535;
+	
 	
 	public final long 
 		creationTime 	= System.currentTimeMillis(),

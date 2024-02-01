@@ -33,14 +33,12 @@ import presentables.presents.NComm.NServer;
 import presentables.presents.NComm.NServerUI;
 
 public class Chat extends Presentable {
-	private static final String defaultChatName = "-default name-";
+	private static final String defaultChatName = "localhost";
 	
 	private JTable chatsTable;
-	private JTextField chatNameInput;
-	private List<Integer> serverPorts = List.of(NServer.defaultListeningPort);
+	private JTextField addressInput, portInput;
 	
-	@Override protected void start()	{
-		
+	@Override protected void start()	{	
 	}
 	
 	@Override protected void init(MainWin mw) 	{ initGUI(mw); }	
@@ -50,10 +48,10 @@ public class Chat extends Presentable {
 		
 			//editor tab
 			JPanel editorTab = new JPanel(new BorderLayout());
-				JButton editorTab_newEditor_btn = new JButton("join chat");
-					editorTab_newEditor_btn.addActionListener(event -> onJoinChatGroupClick(mainTp));
-					editorTab_newEditor_btn.setMnemonic(KeyEvent.VK_ENTER);
-					editorTab_newEditor_btn.setToolTipText("joins chat if existing, otherwise will host");
+				JButton joinChat_btn = new JButton("join chat");
+					joinChat_btn.addActionListener(event -> onJoinChatGroupClick(mainTp));
+					joinChat_btn.setMnemonic(KeyEvent.VK_ENTER);
+					joinChat_btn.setToolTipText("joins chat if existing, otherwise will host");
 				JPanel editorTab_portDescriptor = new JPanel();
 					SpringLayout editorTab_portDescriptor_layout = new SpringLayout();
 					editorTab_portDescriptor.setLayout(editorTab_portDescriptor_layout);{
@@ -66,59 +64,70 @@ public class Chat extends Presentable {
 							refreshTableBtn.setOpaque(false);
 							refreshTableBtn.setBackground(new Color(0,0,0,0));
 							
-						JLabel label = new JLabel("Chat Name : ");
-						chatNameInput = new JTextField("Default", 15);
-						chatNameInput.getDocument().addDocumentListener(new DocumentListener() {
+						JLabel
+							addresslabel = new JLabel("address"),
+							portlabel = new JLabel("port");
+//						InetSocketAddress.createUnresolved
+						
+						addressInput = new JTextField("localhost", 20);
+						portInput = new JTextField(NServer.defaultListeningPort + "", 5);
+							portInput.setToolTipText("will attempt connection on these ports. comma seperators allowed.");
+							
+						addressInput.getDocument().addDocumentListener(new DocumentListener() {
 							  public void changedUpdate(DocumentEvent e) 	{
-								  String text = chatNameInput.getText();
+								  String text = addressInput.getText();
 								  
-								  if((text.length() == 0) != !editorTab_newEditor_btn.isEnabled()) //System.out.println("flipping enabled to : " + !editorTab_newEditor_btn.isEnabled());
-									  editorTab_newEditor_btn.setEnabled(!chatNameInput.isEnabled());
+								  if((text.length() == 0) != !joinChat_btn.isEnabled())
+									  joinChat_btn.setEnabled(!addressInput.isEnabled());
 							  }
 							  public void removeUpdate(DocumentEvent e) 	{
-								  String text = chatNameInput.getText();
+								  String text = addressInput.getText();
 								  
-								  if(text.length() == 0 && editorTab_newEditor_btn.isEnabled())
-									  editorTab_newEditor_btn.setEnabled(false);	
+								  if(text.length() == 0 && joinChat_btn.isEnabled())
+									  joinChat_btn.setEnabled(false);	
 							  }
 							  public void insertUpdate(DocumentEvent e) 	{									  
-								  if(!editorTab_newEditor_btn.isEnabled())
-									  editorTab_newEditor_btn.setEnabled(true);
+								  if(!joinChat_btn.isEnabled())
+									  joinChat_btn.setEnabled(true);
 							  }
 							});
-						editorTab_newEditor_btn.setEnabled(chatNameInput.getText().length() != 0);
+						joinChat_btn.setEnabled(addressInput.getText().length() != 0);
 						
 						editorTab_portDescriptor.add(refreshTableBtn);
-				        editorTab_portDescriptor.add(label);
-				        editorTab_portDescriptor.add(chatNameInput);
+				        editorTab_portDescriptor.add(addresslabel);
+				        editorTab_portDescriptor.add(addressInput);
+				        editorTab_portDescriptor.add(portInput);
+				        editorTab_portDescriptor.add(portlabel);
 				 
 				        //refresh button at top left
 				        layout.putConstraint(SpringLayout.WEST, refreshTableBtn,
 			        			3, SpringLayout.WEST, editorTab_portDescriptor);
-				        layout.putConstraint(SpringLayout.NORTH, refreshTableBtn,
-			        			5, SpringLayout.NORTH, editorTab_portDescriptor);
 				        
-				        //label at (5,5).
-				        layout.putConstraint(SpringLayout.WEST, label,
+				        //address label
+				        layout.putConstraint(SpringLayout.WEST, addresslabel,
 				        			5, SpringLayout.EAST, refreshTableBtn);
-				        layout.putConstraint(SpringLayout.NORTH, label,
-				        			5, SpringLayout.NORTH, editorTab_portDescriptor);
 				 
-				        //test field at (<label's right edge> + 5, 5).
-				        layout.putConstraint(SpringLayout.WEST, chatNameInput,
-				        			5, SpringLayout.EAST, label);
-				        layout.putConstraint(SpringLayout.NORTH, chatNameInput,
-				        			5, SpringLayout.NORTH, editorTab_portDescriptor);
-				 
+				        //address input
+				        layout.putConstraint(SpringLayout.WEST, addressInput,
+				        			5, SpringLayout.EAST, addresslabel);
+				        
+				        //port label
+				        layout.putConstraint(SpringLayout.WEST, portlabel,
+				        		5, SpringLayout.EAST, addressInput);
+				        
+				        //port input
+				        layout.putConstraint(SpringLayout.WEST, portInput,
+				        		5, SpringLayout.EAST, portlabel);
+				        
 				        //Adjust constraints for the content pane. text field assumed to be bottom-most component
 				        layout.putConstraint(SpringLayout.EAST, editorTab_portDescriptor,
-				        			1, SpringLayout.EAST, chatNameInput);
+				        			1, SpringLayout.EAST, portInput);
 				        layout.putConstraint(SpringLayout.SOUTH, editorTab_portDescriptor,
-				                    5, SpringLayout.SOUTH, chatNameInput);
+				                    5, SpringLayout.SOUTH, addressInput);
 					}
 					
 				editorTab.add(editorTab_portDescriptor, BorderLayout.PAGE_START);
-				editorTab.add(editorTab_newEditor_btn, BorderLayout.PAGE_END);
+				editorTab.add(joinChat_btn, BorderLayout.PAGE_END);
 				
 				chatsTable = new JTable() {
 					private static final long serialVersionUID = 1L;//eclipse complains
@@ -130,7 +139,7 @@ public class Chat extends Presentable {
 					for(var v : new String[] {"name", "users"}) chatsTModel.addColumn(v);
 					chatsTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 						@Override public void valueChanged(ListSelectionEvent e) {
-							chatNameInput.setText(chatsTable.getModel().getValueAt(chatsTable.getSelectedRow(), 0).toString());
+							addressInput.setText(chatsTable.getModel().getValueAt(chatsTable.getSelectedRow(), 0).toString());
 						}
 					});
 				TableRowSorter<TableModel> importT_srcsTable_sorter = new TableRowSorter<>(chatsTModel);
@@ -154,14 +163,36 @@ public class Chat extends Presentable {
 	}
 	
 	public void onJoinChatGroupClick(JTabbedPane tabbedPane) {
-		 String title = chatNameInput.getText();
+		 String title = addressInput.getText();
 		 if(title == null || title.isBlank()) title = defaultChatName;
 		 
 		 NServerUI server = new NServerUI();
 	}
 	
 	public void updateChatsTable() {
+		//if server dne, make server
 		
+		//join server as client
+	}
+	
+	List<Integer> getSelectedPorts() {
+		assert portInput != null : "failed to init";
+		
+		List<Integer> ret =  Arrays.stream(portInput.getText().split(","))
+				.map(str -> {
+					try {
+						return Integer.parseInt(str);
+					}catch(NumberFormatException e) {
+						return -1;
+					}
+				})
+				.filter(i -> i > NServer.minPort && i <= NServer.maxPort)
+				.distinct()
+				.collect(Collectors.toList());
+		if(!ret.contains(NServer.defaultListeningPort))
+			ret.add(NServer.defaultListeningPort);
+		
+		return ret;
 	}
 	
 ///////////////////
