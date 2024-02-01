@@ -1,4 +1,4 @@
-package presentables.presents.NConn;
+package presentables.presents.NComm;
 
 import java.io.Serializable;
 

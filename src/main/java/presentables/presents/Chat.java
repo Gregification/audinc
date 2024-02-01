@@ -29,12 +29,15 @@ import javax.swing.table.TableRowSorter;
 
 import audinc.gui.MainWin;
 import presentables.Presentable;
-import presentables.presents.NConn.NServer;
+import presentables.presents.NComm.NServer;
+import presentables.presents.NComm.NServerUI;
 
-public class Chat extends Presentable{
+public class Chat extends Presentable {
+	private static final String defaultChatName = "-default name-";
+	
 	private JTable chatsTable;
 	private JTextField chatNameInput;
-	private List<Integer> serverPorts = Arrays.stream(NServer.defaultListeningPorts).boxed().collect(Collectors.toList());
+	private List<Integer> serverPorts = List.of(NServer.defaultListeningPort);
 	
 	@Override protected void start()	{
 		
@@ -48,7 +51,7 @@ public class Chat extends Presentable{
 			//editor tab
 			JPanel editorTab = new JPanel(new BorderLayout());
 				JButton editorTab_newEditor_btn = new JButton("join chat");
-					editorTab_newEditor_btn.addActionListener(event -> onJoinChatGroupClick());
+					editorTab_newEditor_btn.addActionListener(event -> onJoinChatGroupClick(mainTp));
 					editorTab_newEditor_btn.setMnemonic(KeyEvent.VK_ENTER);
 					editorTab_newEditor_btn.setToolTipText("joins chat if existing, otherwise will host");
 				JPanel editorTab_portDescriptor = new JPanel();
@@ -150,8 +153,11 @@ public class Chat extends Presentable{
 		mw.add(container);
 	}
 	
-	public void onJoinChatGroupClick() {
-		
+	public void onJoinChatGroupClick(JTabbedPane tabbedPane) {
+		 String title = chatNameInput.getText();
+		 if(title == null || title.isBlank()) title = defaultChatName;
+		 
+		 NServerUI server = new NServerUI();
 	}
 	
 	public void updateChatsTable() {
